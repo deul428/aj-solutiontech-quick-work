@@ -262,6 +262,72 @@ const MainApp: React.FC = () => {
 
 // Root App Component
 const App: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // 전역 에러 핸들러: 404나 인증 에러 발생 시 처리
+  useEffect(() => {
+    // fetch 에러 감지 및 처리
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      try {
+        const response = await originalFetch(...args);
+        
+        // 404나 인증 에러 처리
+        if ((response.status === 404 || response.status === 401 || response.status === 403) && location.pathname !== '/login') {
+          // 응답 본문 확인 (404 not_found 메시지 체크)
+          try {
+            const clonedResponse = response.clone();
+            const text = await clonedResponse.text();
+            if (text.includes('not_found') || text.includes('404')) {
+              // 인증 상태 확인 후 로그인으로 리다이렉트
+              if (!isLoggedIn()) {
+                navigate('/login', { state: { from: location.pathname }, replace: true });
+                return response;
+              }
+            }
+          } catch (e) {
+            // 응답 본문 읽기 실패는 무시
+          }
+          
+          // 인증 에러인 경우 로그인으로 리다이렉트
+          if ((response.status === 401 || response.status === 403) && !isLoggedIn()) {
+            navigate('/login', { state: { from: location.pathname }, replace: true });
+          }
+        }
+        
+        return response;
+      } catch (error: any) {
+        // 네트워크 에러나 기타 에러 처리
+        if (error?.message?.includes('404') || error?.message?.includes('not_found')) {
+          if (location.pathname !== '/login' && !isLoggedIn()) {
+            navigate('/login', { state: { from: location.pathname }, replace: true });
+          }
+        }
+        throw error;
+      }
+    };
+
+    // 전역 에러 이벤트 리스너
+    const handleError = (event: ErrorEvent) => {
+      const errorMessage = event.message || event.error?.message || '';
+      
+      // 404 에러나 인증 관련 에러 감지
+      if ((errorMessage.includes('404') || errorMessage.includes('not_found') || errorMessage.includes('401') || errorMessage.includes('403')) && location.pathname !== '/login') {
+        if (!isLoggedIn()) {
+          navigate('/login', { state: { from: location.pathname }, replace: true });
+        }
+      }
+    };
+
+    window.addEventListener('error', handleError);
+    
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.fetch = originalFetch;
+    };
+  }, [navigate, location.pathname]);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />

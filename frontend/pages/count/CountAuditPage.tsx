@@ -117,7 +117,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
 
     setCameraStatus('loading');
     setErrorMessage(null);
-    
+
     // 기존 스캐너가 있으면 정지
     if (html5QrCodeRef.current) {
       try {
@@ -128,24 +128,24 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
         console.error("Error stopping scanner:", e);
       }
     }
-    
+
     const html5QrCode = new Html5Qrcode(scannerId);
     html5QrCodeRef.current = html5QrCode;
-    
-    const config = { 
-      fps: 10, 
-      qrbox: { width: 300, height: 300 }, 
-      aspectRatio: 1.0, 
+
+    const config = {
+      fps: 10,
+      qrbox: { width: 300, height: 300 },
+      aspectRatio: 1.0,
       formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
     };
-    
+
     try {
       await html5QrCode.start(
-        { facingMode: "environment" }, 
-        config, 
+        { facingMode: "environment" },
+        config,
         (decodedText) => {
           handleScanSuccess(decodedText);
-        }, 
+        },
         () => {
           // 스캔 에러는 무시
         }
@@ -183,27 +183,27 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
 
   useEffect(() => {
     startScanner();
-    return () => { 
+    return () => {
       if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        html5QrCodeRef.current.stop().catch(() => {});
+        html5QrCodeRef.current.stop().catch(() => { });
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScanSuccess = (decodedText: string) => {
     if (showScanModal || showTransferModal || isCoolingDown || isSyncing) return;
-    
+
     const trimmedText = decodedText.trim();
     if (!trimmedText) return;
-    
+
     setScannedResult(trimmedText);
     const match = masterData.find(row => {
       const mgmtNo = String(row[MASTER_COLUMNS.MGMT_NO] || "").trim();
       const assetNo = String(row[MASTER_COLUMNS.ASSET_NO] || "").trim();
       return mgmtNo === trimmedText || assetNo === trimmedText;
     });
-    
+
     setFoundRow(match || null);
     setShowScanModal(true);
     // pause()를 사용하지 않고, 모달이 열려있으면 자동으로 스캔 무시됨
@@ -319,6 +319,17 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                 <span className="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wider">
                   <div className={`w-2 h-2 rounded-full ${cameraStatus === 'ready' ? (isCoolingDown ? 'bg-amber-500 animate-pulse' : 'bg-green-500') : 'bg-red-500'}`}></div>{cameraStatus === 'ready' ? '스캔 중...' : '스캔 준비 중...'}
                 </span>
+                <button
+                  onClick={handleMockScan}
+                  disabled={showScanModal || showTransferModal || isCoolingDown || isSyncing}
+                  className={`px-4 py-2 rounded-xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${showScanModal || showTransferModal || isCoolingDown || isSyncing
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : "bg-blue-600 hover:bg-blue-700 hover:shadow-blue-200"
+                    }`}
+                >
+                  <ScanQrCode className="w-5 h-5" />
+                  테스트 스캔 실행
+                </button>
               </div>
               <button onClick={handleResetScanner} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 flex items-center gap-1 text-xs font-bold"><RefreshCcw className="w-4 h-4" /> 리셋</button>
             </div>
@@ -329,18 +340,6 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                   <CameraOff className="w-16 h-16 text-red-500 mb-6 opacity-50" />
                   <p className="font-bold text-lg mb-2">카메라 연결 불가</p>
                   <p className="text-xs text-gray-400 mb-6 leading-relaxed">{errorMessage}</p>
-                  <button
-                    onClick={handleMockScan}
-                    disabled={showScanModal || showTransferModal || isCoolingDown || isSyncing}
-                    className={`px-6 py-3 rounded-xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
-                      showScanModal || showTransferModal || isCoolingDown || isSyncing
-                        ? "bg-gray-600 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700 hover:shadow-blue-200"
-                    }`}
-                  >
-                    <ScanQrCode className="w-5 h-5" />
-                    테스트 스캔 실행
-                  </button>
                 </div>
               )}
               {cameraStatus === 'loading' && (
