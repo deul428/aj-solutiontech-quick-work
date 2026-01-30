@@ -329,7 +329,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                 <span className="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wider">
                   <div className={`w-2 h-2 rounded-full ${cameraStatus === 'ready' ? (isCoolingDown ? 'bg-amber-500 animate-pulse' : 'bg-green-500') : 'bg-red-500'}`}></div>{cameraStatus === 'ready' ? '스캔 중...' : '스캔 준비 중...'}
                 </span>
-                <button
+                {/* <button
                   onClick={handleMockScan}
                   disabled={showScanModal || showTransferModal || isCoolingDown || isSyncing}
                   className={`px-4 py-2 rounded-xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${showScanModal || showTransferModal || isCoolingDown || isSyncing
@@ -339,7 +339,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                 >
                   <ScanQrCode className="w-5 h-5" />
                   테스트 스캔 실행
-                </button>
+                </button> */}
               </div>
               <button onClick={handleResetScanner} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 flex items-center gap-1 text-xs font-bold"><RefreshCcw className="w-4 h-4" /> 리셋</button>
             </div>
@@ -418,7 +418,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                         {centerOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         <option value="custom">+ 직접 입력하기</option>
                       </select>
-                      <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div>
+                     {/*  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div> */}
                     </div>
                   ) : (
                     <div className="flex gap-2 animate-in slide-in-from-right-2"><input type="text" autoFocus value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-blue-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-blue-50" /><button onClick={() => { setIsCustomCenter(false); setSelectedCenter(""); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200"><RefreshCcw className="w-5 h-5" /></button></div>
@@ -433,7 +433,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                         {availableZones.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         {(selectedCenter || isCustomCenter) && <option value="custom">+ 직접 입력하기</option>}
                       </select>
-                      <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div>
+                      {/* <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div> */}
                     </div>
                   ) : (
                     <div className="flex gap-2 animate-in slide-in-from-right-2"><input type="text" autoFocus value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-purple-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-purple-50" /><button onClick={() => { setIsCustomZone(false); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200"><RefreshCcw className="w-5 h-5" /></button></div>
