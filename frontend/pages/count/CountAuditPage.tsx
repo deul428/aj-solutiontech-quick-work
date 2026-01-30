@@ -109,30 +109,61 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     loadOptions();
   }, [serviceUrl]);
 
-  const startScanner = async () => {
-    setCameraStatus('loading');
-    setErrorMessage(null);
+  // 스캐너를 완전히 정지하는 함수
+  const stopScanner = async () => {
     if (html5QrCodeRef.current) {
-      try { 
+      try {
         if (html5QrCodeRef.current.isScanning) {
-          await html5QrCodeRef.current.stop(); 
+          await html5QrCodeRef.current.stop();
         }
-      } catch (e) { 
+        // DOM에서 스캐너 요소 정리
+        const scannerElement = document.getElementById(scannerId);
+        if (scannerElement) {
+          scannerElement.innerHTML = '';
+        }
+        html5QrCodeRef.current = null;
+      } catch (e) {
         console.error("Error stopping scanner:", e);
+        // 에러가 발생해도 강제로 정리
+        html5QrCodeRef.current = null;
+        const scannerElement = document.getElementById(scannerId);
+        if (scannerElement) {
+          scannerElement.innerHTML = '';
+        }
       }
     }
-    const html5QrCode = new Html5Qrcode(scannerId);
-    html5QrCodeRef.current = html5QrCode;
-    // qrbox 크기를 더 크게 설정하고, 전체 화면 스캔도 지원하도록 개선
-    const config = { 
-      fps: 10, 
-      qrbox: { width: 300, height: 300 }, 
-      aspectRatio: 1.0, 
-      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-      disableFlip: false,
-      rememberLastUsedCamera: true
-    };
+  };
+
+  const startScanner = async () => {
+    // 이미 스캔 중이면 재시작하지 않음
+    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+      console.log("Scanner already running, skipping start");
+      return;
+    }
+
+    setCameraStatus('loading');
+    setErrorMessage(null);
+    
+    // 기존 스캐너 완전히 정지 및 정리
+    await stopScanner();
+    
+    // 약간의 지연을 두어 DOM이 정리될 시간을 줌
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     try {
+      const html5QrCode = new Html5Qrcode(scannerId);
+      html5QrCodeRef.current = html5QrCode;
+      
+      // qrbox 크기를 더 크게 설정하고, 전체 화면 스캔도 지원하도록 개선
+      const config = { 
+        fps: 10, 
+        qrbox: { width: 300, height: 300 }, 
+        aspectRatio: 1.0, 
+        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+        disableFlip: false,
+        rememberLastUsedCamera: true
+      };
+      
       await html5QrCode.start(
         { facingMode: "environment" }, 
         config, 
@@ -146,21 +177,29 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
         }
       );
       setCameraStatus('ready');
+      console.log("Scanner started successfully");
     } catch (err: any) {
       console.error("Camera start error:", err);
       setCameraStatus('error');
       setErrorMessage("카메라를 시작할 수 없습니다. 카메라 사용 권한을 확인하세요.");
+      html5QrCodeRef.current = null;
     }
+  };
+
+  // 리셋 버튼 핸들러
+  const handleResetScanner = async () => {
+    console.log("Resetting scanner...");
+    await stopScanner();
+    // 약간의 지연 후 재시작
+    setTimeout(() => {
+      startScanner();
+    }, 200);
   };
 
   useEffect(() => {
     startScanner();
     return () => { 
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        html5QrCodeRef.current.stop().catch((e) => { 
-          console.error("Error stopping scanner on cleanup:", e);
-        }); 
-      }
+      stopScanner();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -235,19 +274,20 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     setScannedResult(null);
     setFoundRow(null);
     setIsCoolingDown(true);
-    setTimeout(() => {
+    setTimeout(async () => {
       setIsCoolingDown(false);
       if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
         try {
+          // 스캐너가 일시정지 상태인지 확인하고 재개
           html5QrCodeRef.current.resume();
           console.log("Scanner resumed");
         } catch (e) {
           console.error("Error resuming scanner:", e);
-          // 재개 실패 시 스캐너 재시작
-          startScanner();
+          // 재개 실패 시 스캐너 완전히 재시작
+          await handleResetScanner();
         }
-      } else if (html5QrCodeRef.current && !html5QrCodeRef.current.isScanning) {
-        // 스캐너가 멈춰있으면 재시작
+      } else {
+        // 스캐너가 멈춰있거나 없으면 재시작
         startScanner();
       }
     }, 1500);
@@ -324,7 +364,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                   <div className={`w-2 h-2 rounded-full ${cameraStatus === 'ready' ? (isCoolingDown ? 'bg-amber-500 animate-pulse' : 'bg-green-500') : 'bg-red-500'}`}></div>{cameraStatus === 'ready' ? '스캔 중...' : '스캔 준비 중...'}
                 </span>
               </div>
-              <button onClick={startScanner} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 flex items-center gap-1 text-xs font-bold"><RefreshCcw className="w-4 h-4" /> 리셋</button>
+              <button onClick={handleResetScanner} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 flex items-center gap-1 text-xs font-bold"><RefreshCcw className="w-4 h-4" /> 리셋</button>
             </div>
             <div className="p-4 bg-black min-h-[400px] flex items-center justify-center relative">
               <div id={scannerId} className="w-full h-full min-h-[400px] overflow-hidden rounded-2xl"></div>
