@@ -109,115 +109,93 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     loadOptions();
   }, [serviceUrl]);
 
-  // 스캐너를 완전히 정지하는 함수
-  const stopScanner = async () => {
-    if (html5QrCodeRef.current) {
-      try {
-        if (html5QrCodeRef.current.isScanning) {
-          await html5QrCodeRef.current.stop();
-        }
-        // DOM에서 스캐너 요소 정리
-        const scannerElement = document.getElementById(scannerId);
-        if (scannerElement) {
-          scannerElement.innerHTML = '';
-        }
-        html5QrCodeRef.current = null;
-      } catch (e) {
-        console.error("Error stopping scanner:", e);
-        // 에러가 발생해도 강제로 정리
-        html5QrCodeRef.current = null;
-        const scannerElement = document.getElementById(scannerId);
-        if (scannerElement) {
-          scannerElement.innerHTML = '';
-        }
-      }
-    }
-  };
-
   const startScanner = async () => {
     // 이미 스캔 중이면 재시작하지 않음
     if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      console.log("Scanner already running, skipping start");
       return;
     }
 
     setCameraStatus('loading');
     setErrorMessage(null);
     
-    // 기존 스캐너 완전히 정지 및 정리
-    await stopScanner();
+    // 기존 스캐너가 있으면 정지
+    if (html5QrCodeRef.current) {
+      try {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+      } catch (e) {
+        console.error("Error stopping scanner:", e);
+      }
+    }
     
-    // 약간의 지연을 두어 DOM이 정리될 시간을 줌
-    await new Promise(resolve => setTimeout(resolve, 100));
+    const html5QrCode = new Html5Qrcode(scannerId);
+    html5QrCodeRef.current = html5QrCode;
+    
+    const config = { 
+      fps: 10, 
+      qrbox: { width: 300, height: 300 }, 
+      aspectRatio: 1.0, 
+      formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+    };
     
     try {
-      const html5QrCode = new Html5Qrcode(scannerId);
-      html5QrCodeRef.current = html5QrCode;
-      
-      // qrbox 크기를 더 크게 설정하고, 전체 화면 스캔도 지원하도록 개선
-      const config = { 
-        fps: 10, 
-        qrbox: { width: 300, height: 300 }, 
-        aspectRatio: 1.0, 
-        formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
-        disableFlip: false,
-        rememberLastUsedCamera: true
-      };
-      
       await html5QrCode.start(
         { facingMode: "environment" }, 
         config, 
-        (decodedText, decodedResult) => {
-          console.log("QR Code scanned:", decodedText);
+        (decodedText) => {
           handleScanSuccess(decodedText);
         }, 
-        (errorMessage) => {
-          // 에러는 무시하되, 스캔은 계속 진행
-          // console.log("Scan error (ignored):", errorMessage);
+        () => {
+          // 스캔 에러는 무시
         }
       );
       setCameraStatus('ready');
-      console.log("Scanner started successfully");
     } catch (err: any) {
       console.error("Camera start error:", err);
       setCameraStatus('error');
       setErrorMessage("카메라를 시작할 수 없습니다. 카메라 사용 권한을 확인하세요.");
-      html5QrCodeRef.current = null;
     }
   };
 
   // 리셋 버튼 핸들러
   const handleResetScanner = async () => {
-    console.log("Resetting scanner...");
-    await stopScanner();
-    // 약간의 지연 후 재시작
+    if (html5QrCodeRef.current) {
+      try {
+        if (html5QrCodeRef.current.isScanning) {
+          await html5QrCodeRef.current.stop();
+        }
+        html5QrCodeRef.current = null;
+      } catch (e) {
+        console.error("Error stopping scanner:", e);
+      }
+    }
+    // DOM 정리
+    const scannerElement = document.getElementById(scannerId);
+    if (scannerElement) {
+      scannerElement.innerHTML = '';
+    }
+    // 재시작
     setTimeout(() => {
       startScanner();
-    }, 200);
+    }, 300);
   };
 
   useEffect(() => {
     startScanner();
     return () => { 
-      stopScanner();
+      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+        html5QrCodeRef.current.stop().catch(() => {});
+      }
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleScanSuccess = (decodedText: string) => {
-    // 조건 체크를 먼저 수행하여 불필요한 처리 방지
-    if (showScanModal || showTransferModal || isCoolingDown || isSyncing) {
-      console.log("Scan ignored - modal or process active");
-      return;
-    }
+    if (showScanModal || showTransferModal || isCoolingDown || isSyncing) return;
     
     const trimmedText = decodedText.trim();
-    console.log("Processing scanned text:", trimmedText);
-    
-    if (!trimmedText) {
-      console.warn("Empty scanned text");
-      return;
-    }
+    if (!trimmedText) return;
     
     setScannedResult(trimmedText);
     const match = masterData.find(row => {
@@ -226,18 +204,9 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
       return mgmtNo === trimmedText || assetNo === trimmedText;
     });
     
-    console.log("Match found:", match ? "Yes" : "No");
     setFoundRow(match || null);
     setShowScanModal(true);
-    
-    // 스캔 일시 정지
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-      try {
-        html5QrCodeRef.current.pause();
-      } catch (e) {
-        console.error("Error pausing scanner:", e);
-      }
-    }
+    // pause()를 사용하지 않고, 모달이 열려있으면 자동으로 스캔 무시됨
   };
 
   const handleMockScan = () => {
@@ -253,7 +222,6 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     }
     setFoundRow(match);
     setShowScanModal(true);
-    if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) html5QrCodeRef.current.pause();
   };
 
   const confirmAudit = () => {
@@ -274,22 +242,10 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     setScannedResult(null);
     setFoundRow(null);
     setIsCoolingDown(true);
-    setTimeout(async () => {
+    setTimeout(() => {
       setIsCoolingDown(false);
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        try {
-          // 스캐너가 일시정지 상태인지 확인하고 재개
-          html5QrCodeRef.current.resume();
-          console.log("Scanner resumed");
-        } catch (e) {
-          console.error("Error resuming scanner:", e);
-          // 재개 실패 시 스캐너 완전히 재시작
-          await handleResetScanner();
-        }
-      } else {
-        // 스캐너가 멈춰있거나 없으면 재시작
-        startScanner();
-      }
+      // pause()를 사용하지 않으므로 resume()도 필요 없음
+      // 스캐너는 계속 실행 중이며, 모달이 닫히면 자동으로 스캔 가능
     }, 1500);
   };
 
@@ -370,7 +326,21 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
               <div id={scannerId} className="w-full h-full min-h-[400px] overflow-hidden rounded-2xl"></div>
               {cameraStatus === 'error' && (
                 <div className="absolute inset-0 z-10 bg-gray-900 flex flex-col items-center justify-center text-white p-6 sm:p-8 text-center">
-                  <CameraOff className="w-16 h-16 text-red-500 mb-6 opacity-50" /><p className="font-bold text-lg mb-2">카메라 연결 불가</p><p className="text-xs text-gray-400 mb-6 leading-relaxed">{errorMessage}</p>
+                  <CameraOff className="w-16 h-16 text-red-500 mb-6 opacity-50" />
+                  <p className="font-bold text-lg mb-2">카메라 연결 불가</p>
+                  <p className="text-xs text-gray-400 mb-6 leading-relaxed">{errorMessage}</p>
+                  <button
+                    onClick={handleMockScan}
+                    disabled={showScanModal || showTransferModal || isCoolingDown || isSyncing}
+                    className={`px-6 py-3 rounded-xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${
+                      showScanModal || showTransferModal || isCoolingDown || isSyncing
+                        ? "bg-gray-600 cursor-not-allowed"
+                        : "bg-blue-600 hover:bg-blue-700 hover:shadow-blue-200"
+                    }`}
+                  >
+                    <ScanQrCode className="w-5 h-5" />
+                    테스트 스캔 실행
+                  </button>
                 </div>
               )}
               {cameraStatus === 'loading' && (
