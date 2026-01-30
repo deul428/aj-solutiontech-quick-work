@@ -207,7 +207,7 @@ const MainApp: React.FC = () => {
           path="/audit"
           element={
             userIsUser ? (
-              <CountAuditPage masterData={masterData} setMasterData={setMasterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} />
+              <CountAuditPage masterData={masterData} setMasterData={setMasterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} isDataLoading={isInitialLoading} />
             ) : (
               <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
             )

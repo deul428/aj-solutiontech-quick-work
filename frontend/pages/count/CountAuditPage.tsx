@@ -30,6 +30,7 @@ interface CountAuditPageProps {
   setMasterData: React.Dispatch<React.SetStateAction<MasterDataRow[]>>;
   serviceUrl: string;
   selectedSheet?: string;
+  isDataLoading?: boolean;
 }
 
 const MOCK_SCAN_DATA = [
@@ -42,7 +43,7 @@ const MOCK_SCAN_DATA = [
   { mgmt: "TY15C109", asset: "81600897", code: "851BX341", name: "전동 좌식 1.5톤 2단 3000", brand: "도요타", model: "7FBL15", year: "2007", serial: "7FB18-17471" },
 ];
 
-const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterData, serviceUrl, selectedSheet }) => {
+const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterData, serviceUrl, selectedSheet, isDataLoading = false }) => {
   const [scannedResult, setScannedResult] = useState<string | null>(null);
   const [foundRow, setFoundRow] = useState<MasterDataRow | null>(null);
   const [showScanModal, setShowScanModal] = useState(false);
@@ -181,15 +182,24 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     }, 300);
   };
 
+  // 동기화가 완료된 후에만 카메라 시작
   useEffect(() => {
-    startScanner();
-    return () => {
-      if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-        html5QrCodeRef.current.stop().catch(() => { });
-      }
-    };
+    // 동기화 중이 아니고, 컴포넌트가 마운트된 상태일 때만 카메라 시작
+    if (!isDataLoading) {
+      // 동기화 완료 후 약간의 지연을 두어 DOM이 완전히 렌더링된 후 카메라 시작
+      const timer = setTimeout(() => {
+        startScanner();
+      }, 500);
+      
+      return () => {
+        clearTimeout(timer);
+        if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
+          html5QrCodeRef.current.stop().catch(() => { });
+        }
+      };
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isDataLoading]);
 
   const handleScanSuccess = (decodedText: string) => {
     if (showScanModal || showTransferModal || isCoolingDown || isSyncing) return;
