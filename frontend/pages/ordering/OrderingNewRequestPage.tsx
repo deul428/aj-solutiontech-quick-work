@@ -519,7 +519,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <img
                 src={photoPreview}
                 alt="미리보기"
-                className="max-w-xs max-h-xs rounded-xl border-2 border-gray-200"
+                className="max-h-xs rounded-xl border-2 border-gray-200 max-w-full sm:max-w-xs"
               />
               <button
                 type="button"
