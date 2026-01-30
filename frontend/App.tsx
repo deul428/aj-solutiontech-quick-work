@@ -143,22 +143,26 @@ const MainApp: React.FC = () => {
   useEffect(() => {
     // to-be: 홈 진입만으로 마스터파일을 자동 동기화하지 않음.
     // 마스터 참조가 필요한 화면(체크리스트/실사/장비홈)에서만 필요 시 로드.
+    if (!isUserLoggedIn) {
+      navigate('/login', { state: { from: location.pathname }, replace: true });
+    }
     const needsMaster =
       location.pathname === "/checklist" ||
       location.pathname === "/audit" ||
       location.pathname === "/equipment";
 
-    if (needsMaster && masterData.length === 0 && !isInitialLoading) {
+    // 로그인되어 있을 때만 동기화 수행
+    if (needsMaster && masterData.length === 0 && !isInitialLoading && isUserLoggedIn) {
       loadData().catch(() => { });
     }
     // masterData/isInitialLoading은 의도적으로 deps에서 제외(무한루프 방지).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname]);
+  }, [location.pathname, isUserLoggedIn]);
 
   const handleSheetSwitch = (sheetName: string) => {
     loadData(serviceUrl, sheetName).catch(() => alert("시트 데이터를 불러오지 못했습니다."));
   };
-  
+
   const handleLogout = () => {
     logout();
     setCurrentUserState(null);
@@ -215,12 +219,12 @@ const MainApp: React.FC = () => {
         />
         {/* Ordering Routes를 MainApp 내부로 통합하여 네비게이션 바 유지 */}
         <Route path="/ordering/*" element={<OrderingRoutes />} />
-        
+
         {/* 내 정보 변경 - 상위 레벨로 이동 (로그인한 모든 사용자) */}
         {isUserLoggedIn && (
           <Route path="/info" element={<OrderingMyInfoPage />} />
         )}
-        
+
         {/* 관리자 라우트 */}
         {isAdmin(getCurrentUser()) && (
           <>
@@ -231,7 +235,7 @@ const MainApp: React.FC = () => {
             <Route path="/admin/delivery-places" element={<AdminDeliveryPlaceManagementPage />} />
           </>
         )}
-        
+
         {/* 사용자 라우트 */}
         {isUser(getCurrentUser()) && (
           <Route path="/user" element={<UserDashboardPage />} />
@@ -272,7 +276,7 @@ const App: React.FC = () => {
     window.fetch = async (...args) => {
       try {
         const response = await originalFetch(...args);
-        
+
         // 404나 인증 에러 처리
         if ((response.status === 404 || response.status === 401 || response.status === 403) && location.pathname !== '/login') {
           // 응답 본문 확인 (404 not_found 메시지 체크)
@@ -289,13 +293,13 @@ const App: React.FC = () => {
           } catch (e) {
             // 응답 본문 읽기 실패는 무시
           }
-          
+
           // 인증 에러인 경우 로그인으로 리다이렉트
           if ((response.status === 401 || response.status === 403) && !isLoggedIn()) {
             navigate('/login', { state: { from: location.pathname }, replace: true });
           }
         }
-        
+
         return response;
       } catch (error: any) {
         // 네트워크 에러나 기타 에러 처리
@@ -311,7 +315,7 @@ const App: React.FC = () => {
     // 전역 에러 이벤트 리스너
     const handleError = (event: ErrorEvent) => {
       const errorMessage = event.message || event.error?.message || '';
-      
+
       // 404 에러나 인증 관련 에러 감지
       if ((errorMessage.includes('404') || errorMessage.includes('not_found') || errorMessage.includes('401') || errorMessage.includes('403')) && location.pathname !== '/login') {
         if (!isLoggedIn()) {
@@ -321,7 +325,7 @@ const App: React.FC = () => {
     };
 
     window.addEventListener('error', handleError);
-    
+
     return () => {
       window.removeEventListener('error', handleError);
       window.fetch = originalFetch;
