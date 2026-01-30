@@ -1,0 +1,7 @@
+{
+  "name": "Asset Management Checklist Tool",
+  "description": "A tool to search asset master data by management number and generate specialized Excel checklists.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
