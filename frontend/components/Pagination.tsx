@@ -22,7 +22,8 @@ const Pagination: React.FC<PaginationProps> = ({
   pageSizeOptions = [10, 15, 30, 50],
   disabled
 }) => {
-  if (totalPages <= 1) return null;
+  // totalPages가 1 이하일 때도 페이지 크기 변경이 필요하므로 항상 렌더링
+  // 단, 페이지 번호와 네비게이션 버튼은 totalPages > 1일 때만 표시
 
   const getPageNumbers = () => {
     const pages: number[] = [];
@@ -73,36 +74,41 @@ const Pagination: React.FC<PaginationProps> = ({
           </select>
         )}
 
-        <button
-          onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-          disabled={disabled || currentPage === 1}
-          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        <div className="flex items-center gap-1">
-          {pageNumbers.map((p) => (
+        {/* 페이지 번호와 네비게이션 버튼은 totalPages > 1일 때만 표시 */}
+        {totalPages > 1 && (
+          <>
             <button
-              key={p}
-              onClick={() => onPageChange(p)}
-              disabled={disabled}
-              className={`px-3 py-1 rounded-lg text-sm font-bold transition-colors ${
-                currentPage === p ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+              disabled={disabled || currentPage === 1}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {p}
+              <ChevronLeft className="w-5 h-5" />
             </button>
-          ))}
-        </div>
 
-        <button
-          onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-          disabled={disabled || currentPage === totalPages}
-          className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+            <div className="flex items-center gap-1">
+              {pageNumbers.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => onPageChange(p)}
+                  disabled={disabled}
+                  className={`px-3 py-1 rounded-lg text-sm font-bold transition-colors ${
+                    currentPage === p ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+              disabled={disabled || currentPage === totalPages}
+              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </>
+        )}
       </div>
     </div>
   );

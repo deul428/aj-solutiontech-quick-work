@@ -32,22 +32,70 @@ async function fetchOrderingData<T = any>(
             .join('&');
         const fetchUrl = `${url}${separator}action=${action}${paramString ? '&' + paramString : ''}&t=${Date.now()}`;
 
+        console.log(`[fetchOrderingData] Fetching: ${action}`, { 
+            url, 
+            action,
+            params: Object.keys(params),
+            paramValues: params, // 실제 파라미터 값도 로깅
+            fullUrl: fetchUrl // 전체 URL 로깅
+        });
+
         const response = await fetch(fetchUrl, {
             redirect: 'follow' // 리다이렉트 자동 따라가기
         });
+
+        console.log(`[fetchOrderingData] Response status: ${response.status}, ok: ${response.ok}`);
 
         // 302는 리다이렉트 중간 상태이므로, 최종 응답 확인
         // fetch는 자동으로 리다이렉트를 따라가므로 최종 상태 코드 확인
         if (response.status >= 400) {
             const errorText = await response.text();
-            console.error(`HTTP error! status: ${response.status}`, errorText);
+            console.error(`[fetchOrderingData] HTTP error! status: ${response.status}`, errorText);
             throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        const data = await response.json();
-        return data as T;
+        // 응답을 먼저 텍스트로 읽어서 확인
+        const responseText = await response.text();
+        console.log(`[fetchOrderingData] Response text (first 500 chars):`, responseText.substring(0, 500));
+        console.log(`[fetchOrderingData] Response text length:`, responseText.length);
+
+        // 빈 응답 체크
+        if (!responseText || responseText.trim() === '') {
+            console.warn(`[fetchOrderingData] Empty response for action: ${action}`);
+            // 빈 응답인 경우 빈 배열 반환 (하위 호환성)
+            return [] as T;
+        }
+
+        // JSON 파싱 시도
+        try {
+            const data = JSON.parse(responseText);
+            console.log(`[fetchOrderingData] Parsed JSON successfully for action: ${action}`, {
+                isArray: Array.isArray(data),
+                length: Array.isArray(data) ? data.length : 'N/A',
+                hasData: data && typeof data === 'object' && 'data' in data,
+                data: data // 실제 데이터 내용도 로깅
+            });
+            
+            // 에러 응답 체크 (서버가 에러를 객체로 반환하는 경우)
+            if (data && typeof data === 'object' && !Array.isArray(data) && 'error' in data) {
+                console.error(`[fetchOrderingData] Server returned error:`, data);
+                throw new Error(data.error || '서버에서 오류가 발생했습니다.');
+            }
+            
+            // success: false 체크
+            if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+                console.error(`[fetchOrderingData] Server returned success: false:`, data);
+                throw new Error(data.message || '요청이 실패했습니다.');
+            }
+            
+            return data as T;
+        } catch (parseError: any) {
+            console.error(`[fetchOrderingData] JSON parse error for action ${action}:`, parseError);
+            console.error(`[fetchOrderingData] Full response text:`, responseText);
+            throw new Error(`Failed to parse JSON response for ${action}: ${parseError.message || parseError}`);
+        }
     } catch (error) {
-        console.error(`Error fetching ${action}:`, error);
+        console.error(`[fetchOrderingData] Error fetching ${action}:`, error);
         throw error;
     }
 }
@@ -215,6 +263,8 @@ export async function getAllRequestsOrdering(
     sessionToken: string
 ): Promise<Request[] | PaginatedResult<Request>> {
     try {
+        console.log('[getAllRequestsOrdering] Calling API with:', { url, filter, hasToken: !!sessionToken });
+        
         const result = await fetchOrderingData<Request[] | PaginatedResult<Request>>(
             url,
             'getAllRequests',
@@ -224,15 +274,29 @@ export async function getAllRequestsOrdering(
             }
         );
         
+        console.log('[getAllRequestsOrdering] API response:', {
+            result,
+            isArray: Array.isArray(result),
+            hasData: result && typeof result === 'object' && 'data' in result,
+            length: Array.isArray(result) ? result.length : (result && typeof result === 'object' && 'data' in result ? (result as PaginatedResult<Request>).data?.length : 'N/A')
+        });
+        
         // 페이징 결과인 경우
         if (result && typeof result === 'object' && 'data' in result) {
-            return result as PaginatedResult<Request>;
+            const paginatedResult = result as PaginatedResult<Request>;
+            console.log('[getAllRequestsOrdering] Returning paginated result:', {
+                dataLength: paginatedResult.data?.length || 0,
+                total: paginatedResult.total || 0
+            });
+            return paginatedResult;
         }
         
         // 배열 결과인 경우 (하위 호환성)
-        return Array.isArray(result) ? result : [];
+        const arrayResult = Array.isArray(result) ? result : [];
+        console.log('[getAllRequestsOrdering] Returning array result:', { length: arrayResult.length });
+        return arrayResult;
     } catch (error) {
-        console.error('Failed to get all requests:', error);
+        console.error('[getAllRequestsOrdering] Failed to get all requests:', error);
         throw error;
     }
 }

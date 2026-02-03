@@ -78,7 +78,7 @@ Desktop.ini
 .temp/
 *.history
 frontend/*.history
-backend/*.history
+backend/*.history 
 
 # Google Apps Script
 .clasp.json

@@ -2,7 +2,7 @@
  * 부품발주 시스템 인증 유틸리티
  */
 
-import { User } from '../types/ordering';
+import { User } from '../types/ordering'; 
 
 /**
  * 현재 사용자 가져오기
@@ -63,7 +63,7 @@ export function isLoggedIn(): boolean {
 export function logout(): void {
   if (typeof window !== 'undefined' && window.sessionStorage) {
     sessionStorage.removeItem('ordering_current_user');
-    sessionStorage.removeItem('ordering_session_token');
+    sessionStorage.removeItem('ordering_session_token'); 
   }
 }
 
