@@ -53,18 +53,48 @@ const Pagination: React.FC<PaginationProps> = ({
   const endIndex = total > 0 ? Math.min(currentPage * pageSize, total) : 0;
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mt-6 pt-6 border-t border-gray-200">
-      <div className="text-sm font-bold text-gray-600">
-        {total > 0 ? `${startIndex} - ${endIndex} / ${total}건` : '0건'}
-      </div>
+    <div className="flex flex-col sm:flex-row justify-start items-center gap-4 mt-6 pt-6 border-t border-gray-200">
+      <div className='w-[30%]'></div>
+      <div className="flex justify-center items-center gap-2 w-[40%]">
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+            disabled={disabled || currentPage === 1}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
 
-      <div className="flex items-center gap-2">
-        {onPageSizeChange && (
+          <div className="flex items-center gap-1">
+            {pageNumbers.map((p) => (
+              <button
+                key={p}
+                onClick={() => onPageChange(p)}
+                disabled={disabled}
+                className={`px-3 py-1 rounded-lg text-sm font-bold transition-colors ${currentPage === p ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
+            disabled={disabled || currentPage === totalPages}
+            className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+      {onPageSizeChange && (
+        <div className='w-[30%] flex justify-end'>
           <select
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
             disabled={disabled}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {pageSizeOptions.map((opt) => (
               <option key={opt} value={opt}>
@@ -72,45 +102,10 @@ const Pagination: React.FC<PaginationProps> = ({
               </option>
             ))}
           </select>
-        )}
-
-        {/* 페이지 번호와 네비게이션 버튼은 totalPages > 1일 때만 표시 */}
-        {totalPages > 1 && (
-          <>
-            <button
-              onClick={() => onPageChange(Math.max(1, currentPage - 1))}
-              disabled={disabled || currentPage === 1}
-              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-1">
-              {pageNumbers.map((p) => (
-                <button
-                  key={p}
-                  onClick={() => onPageChange(p)}
-                  disabled={disabled}
-                  className={`px-3 py-1 rounded-lg text-sm font-bold transition-colors ${
-                    currentPage === p ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-
-            <button
-              onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
-              disabled={disabled || currentPage === totalPages}
-              className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </button>
-          </>
-        )}
-      </div>
+        </div>
+      )}
     </div>
+
   );
 };
 

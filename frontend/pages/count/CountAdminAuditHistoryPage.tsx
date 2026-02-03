@@ -138,8 +138,8 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   const [inputSearchTerm, setInputSearchTerm] = useState(''); // 입력 중인 검색어
   const [activeSearchTerm, setActiveSearchTerm] = useState(''); // 실제 검색에 사용되는 검색어
   const [auditStatusFilter, setAuditStatusFilter] = useState<'all' | 'O' | 'X'>('all'); // 자산실사 여부 필터
-  const [sortBy, setSortBy] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+  const [sortBy, setSortBy] = useState<string | null>('자산실사일');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isDownloading, setIsDownloading] = useState(false);
   const [showExcelDateFilter, setShowExcelDateFilter] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
