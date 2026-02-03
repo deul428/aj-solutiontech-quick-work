@@ -4,6 +4,7 @@ import { loginOrdering, ORDERING_GAS_URL } from '../services/orderingService';
 import { setCurrentUser, isAdmin, isUser } from '../utils/orderingAuth';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useNavigate, useLocation } from 'react-router-dom';
+import logo from '../assets/icons/android-icon-512x512.png';
 
 const LoginPage: React.FC = () => {
   const [userId, setUserId] = useState('');
@@ -41,8 +42,8 @@ const LoginPage: React.FC = () => {
         // 권한에 따라 리다이렉트 경로 결정
         let redirectPath = getRedirectPath();
         if (isAdmin(result.user)) {
-          // 관리자는 /admin이 홈 역할
-          redirectPath = '/admin';
+          // 관리자는 /console이 홈 역할
+          redirectPath = '/console';
         } else if (isUser(result.user)) {
           // 사용자는 /user가 홈 역할
           redirectPath = '/user';
@@ -65,11 +66,11 @@ const LoginPage: React.FC = () => {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-8">
         {/* 헤더 */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
-            <Key className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-16 h-16 ">
+            <img src={logo} alt="logo" className="w-full w-full" />
+            {/* <Key className="w-8 h-8 text-white" /> */}
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 mb-2">시스템 로그인</h1>
-          <p className="text-gray-600 font-bold">로그인이 필요합니다</p>
         </div>
 
         {/* 에러 메시지 */}

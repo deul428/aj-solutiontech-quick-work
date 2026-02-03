@@ -173,8 +173,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
   }, [requests.length, filterRequests]); // requests.length 변경 시 필터링 실행
 
   useEffect(() => {
+    // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
-      navigate('/');
+      alert('접근 권한이 없습니다.');
+      navigate('/user', { replace: true });
       return;
     }
     loadRequests();

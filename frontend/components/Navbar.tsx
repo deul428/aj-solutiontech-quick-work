@@ -32,7 +32,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
     for (const role of item.roles) {
       if (role === 'guest' && !loggedIn) return true;
       if (role === 'all' && loggedIn) return true;
-      if (role === 'admin' && loggedIn && userIsAdmin) return true;
+      if (role === 'console' && loggedIn && userIsAdmin) return true;
       if (role === 'user' && loggedIn && userIsUser) return true;
     }
 

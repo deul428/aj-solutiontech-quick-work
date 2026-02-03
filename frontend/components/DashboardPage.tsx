@@ -6,7 +6,7 @@ import { DashboardSection, DashboardMenuItem, colorClasses } from '../config/das
 interface DashboardPageProps {
   sections: DashboardSection[];
   headerTitle: string;
-  userRole: 'admin' | 'user';
+  userRole: 'console' | 'user';
   userName?: string;
   userTeam?: string;
 }

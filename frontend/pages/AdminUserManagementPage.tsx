@@ -174,8 +174,10 @@ const AdminUserManagementPage: React.FC = () => {
   }, [filteredUsers.length, pageSize]);
 
   useEffect(() => {
+    // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
-      navigate('/');
+      alert('접근 권한이 없습니다.');
+      navigate('/user', { replace: true });
       return;
     }
     loadUsers();

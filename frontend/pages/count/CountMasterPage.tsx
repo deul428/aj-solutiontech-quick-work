@@ -166,7 +166,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
         {/* Connection Status Section */}
         <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-100 flex flex-col h-full ring-1 ring-gray-100">
-          <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="text-xl font-black text-gray-800 flex items-center gap-2">
               <Database className="w-6 h-6 text-blue-600" /> 데이터베이스 상태
             </h3>
@@ -181,7 +181,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
             )}
           </div>
           {userIsAdmin && masterData.length > 0 && (
-            <div>
+            <div className="mb-4">
               <a
                 href={GOOGLE_SHEET_URL}
                 target="_blank"

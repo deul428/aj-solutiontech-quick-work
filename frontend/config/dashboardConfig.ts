@@ -23,8 +23,8 @@ export interface DashboardMenuItem {
     icon: LucideIcon;
     path: string;
     color: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
-    // 표시 조건: 'admin' | 'user' | 'all'
-    roles?: ('admin' | 'user' | 'all')[];
+    // 표시 조건: 'console' | 'user' | 'all'
+    roles?: ('console' | 'user' | 'all')[];
     // 숨김 여부
     hidden?: boolean;
     // Navbar에 표시할지 여부 (true면 navbar에 표시, false면 표시 안 함)
@@ -137,7 +137,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: ClipboardCheck,
                 path: '/checklist',
                 color: 'blue',
-                roles: ['admin'],
+                roles: ['console'],
                 navbar: true,
                 navbarLabel: '체크리스트 생성',
                 navbarOrder: 2
@@ -147,9 +147,9 @@ export const adminDashboardSections: DashboardSection[] = [
                 title: '자산 실사 내역 확인',
                 description: '체크리스트 데이터 조회 및 관리',
                 icon: FileText,
-                path: '/admin/audit-history',
+                path: '/console/audit-history',
                 color: 'green',
-                roles: ['admin'],
+                roles: ['console'],
                 navbar: true,
                 navbarOrder: 3
             },
@@ -160,7 +160,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: RefreshCcw,
                 path: '/equipment',
                 color: 'purple',
-                roles: ['admin'],
+                roles: ['console'],
                 navbar: false // 대시보드에만 표시
             }
         ]
@@ -178,7 +178,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['admin'],
+                roles: ['console'],
                 navbar: true,
                 navbarLabel: '부품 신청',
                 navbarActivePath: '/ordering',
@@ -189,9 +189,9 @@ export const adminDashboardSections: DashboardSection[] = [
                 title: '부품 신청 현황',
                 description: '전체 신청 목록 조회 및 관리',
                 icon: Package,
-                path: '/admin/requests',
+                path: '/console/requests',
                 color: 'orange',
-                roles: ['admin'],
+                roles: ['console'],
                 navbar: true,
                 navbarLabel: '부품 신청 현황',
                 navbarOrder: 21
@@ -209,9 +209,9 @@ export const adminDashboardSections: DashboardSection[] = [
                 title: '사용자 관리',
                 description: '사용자 등록/수정/삭제',
                 icon: Users,
-                path: '/admin/users',
+                path: '/console/users',
                 color: 'indigo',
-                roles: ['admin'],
+                roles: ['console'],
                 navbar: false // 대시보드에만 표시
             },
             {
@@ -219,9 +219,9 @@ export const adminDashboardSections: DashboardSection[] = [
                 title: '부품 배송지 관리',
                 description: '배송지 등록/수정/삭제',
                 icon: MapPin,
-                path: '/admin/delivery-places',
+                path: '/console/delivery-places',
                 color: 'red',
-                roles: ['admin'],
+                roles: ['console'],
                 navbar: false // 대시보드에만 표시
             }
         ]
@@ -241,8 +241,8 @@ export interface SystemHomeCard {
     iconBgColor: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
     // 클릭 시 이동할 경로 또는 함수
     navigateTo: string | ((isAdmin: boolean, isUser: boolean) => string);
-    // 표시 조건: 'admin' | 'user' | 'all'
-    roles?: ('admin' | 'user' | 'all')[];
+    // 표시 조건: 'console' | 'user' | 'all'
+    roles?: ('console' | 'user' | 'all')[];
     // 숨김 여부
     hidden?: boolean;
 }
@@ -309,7 +309,7 @@ export interface NavbarOnlyMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: ('admin' | 'user' | 'all' | 'guest')[];
+    roles?: ('console' | 'user' | 'all' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -335,9 +335,9 @@ export const navbarOnlyMenuItems: NavbarOnlyMenuItem[] = [
     {
         id: 'admin-home',
         label: '관리자 홈',
-        path: '/admin',
+        path: '/console',
         icon: HomeIcon,
-        roles: ['admin'],
+        roles: ['console'],
         navbarOrder: 1
     },
     {
@@ -386,7 +386,7 @@ export interface NavbarMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: ('admin' | 'user' | 'all' | 'guest')[];
+    roles?: ('console' | 'user' | 'all' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -466,7 +466,7 @@ export const systemHomeCards: SystemHomeCard[] = [
             if (isUser) return '/audit';
             return '/login';
         },
-        roles: ['admin', 'user']
+        roles: ['console', 'user']
     },
     {
         id: 'ordering',
@@ -478,11 +478,11 @@ export const systemHomeCards: SystemHomeCard[] = [
         icon: Package,
         iconBgColor: 'green',
         navigateTo: (isAdmin: boolean, isUser: boolean) => {
-            if (isAdmin) return '/admin';
+            if (isAdmin) return '/console';
             if (isUser) return '/ordering';
             return '/login';
         },
-        roles: ['admin', 'user']
+        roles: ['console', 'user']
     }
 ];
 

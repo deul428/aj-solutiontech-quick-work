@@ -25,6 +25,42 @@ import { isLoggedIn, getCurrentUser, isAdmin, isUser, logout } from "./utils/ord
 
 type ViewType = "home" | "checklist" | "audit";
 
+// 관리자 라우트 보호 컴포넌트
+interface ProtectedAdminRouteProps {
+  children: React.ReactElement;
+}
+
+const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children }) => {
+  const navigate = useNavigate();
+  const currentUser = getCurrentUser();
+  const isUserLoggedIn = isLoggedIn();
+  const userIsAdmin = isAdmin(currentUser);
+  const userIsUser = isUser(currentUser);
+
+  useEffect(() => {
+    // 로그인하지 않은 경우
+    if (!isUserLoggedIn) {
+      alert('로그인이 필요합니다.');
+      navigate('/login', { state: { from: window.location.pathname }, replace: true });
+      return;
+    }
+
+    // 로그인했지만 관리자가 아닌 경우
+    if (!userIsAdmin) {
+      alert('접근 권한이 없습니다.');
+      navigate('/user', { replace: true });
+      return;
+    }
+  }, [isUserLoggedIn, userIsAdmin, navigate]);
+
+  // 로그인하지 않았거나 관리자가 아닌 경우 로딩 표시
+  if (!isUserLoggedIn || !userIsAdmin) {
+    return <LoadingOverlay message="권한 확인 중..." />;
+  }
+
+  return children;
+};
+
 // Ordering Router Component
 const OrderingRoutes: React.FC = () => {
   const navigate = useNavigate();
@@ -210,7 +246,7 @@ const MainApp: React.FC = () => {
         <Route
           path="/audit"
           element={
-            userIsUser ? (
+            (userIsUser || userIsAdmin) ? (
               <CountAuditPage masterData={masterData} setMasterData={setMasterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} isDataLoading={isInitialLoading} />
             ) : (
               <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
@@ -225,19 +261,15 @@ const MainApp: React.FC = () => {
           <Route path="/info" element={<OrderingMyInfoPage />} />
         )}
 
-        {/* 관리자 라우트 */}
-        {isAdmin(getCurrentUser()) && (
-          <>
-            <Route path="/admin" element={<AdminDashboardPage />} />
-            <Route path="/admin/audit-history" element={<CountAdminAuditHistoryPage />} />
-            <Route path="/admin/requests" element={<OrderingAdminRequestsPage />} />
-            <Route path="/admin/users" element={<AdminUserManagementPage />} />
-            <Route path="/admin/delivery-places" element={<AdminDeliveryPlaceManagementPage />} />
-          </>
-        )}
+        {/* 관리자 라우트 - 보호된 라우트 */}
+        <Route path="/console" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
+        <Route path="/console/audit-history" element={<ProtectedAdminRoute><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
+        <Route path="/console/requests" element={<ProtectedAdminRoute><OrderingAdminRequestsPage /></ProtectedAdminRoute>} />
+        <Route path="/console/users" element={<ProtectedAdminRoute><AdminUserManagementPage /></ProtectedAdminRoute>} />
+        <Route path="/console/delivery-places" element={<ProtectedAdminRoute><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
 
-        {/* 사용자 라우트 */}
-        {isUser(getCurrentUser()) && (
+        {/* 사용자 라우트 - 관리자도 접근 가능 */}
+        {(isUser(getCurrentUser()) || isAdmin(getCurrentUser())) && (
           <Route path="/user" element={<UserDashboardPage />} />
         )}
       </Routes>

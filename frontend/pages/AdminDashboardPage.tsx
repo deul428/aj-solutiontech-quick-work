@@ -14,9 +14,10 @@ const AdminDashboardPage: React.FC = () => {
   const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
 
   useEffect(() => {
-    // 권한 체크
+    // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
-      navigate('/');
+      alert('접근 권한이 없습니다.');
+      navigate('/user', { replace: true });
       return;
     }
     setIsLoading(false);
@@ -30,7 +31,7 @@ const AdminDashboardPage: React.FC = () => {
     <DashboardPage
       sections={adminDashboardSections}
       headerTitle="관리자 대시보드"
-      userRole="admin"
+      userRole="console"
       userName={user?.name}
       userTeam={user?.team}
     />

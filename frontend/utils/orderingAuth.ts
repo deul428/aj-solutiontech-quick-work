@@ -80,7 +80,7 @@ export function initSession(): void {
 export function isAdmin(user: User | null): boolean {
   if (!user || !user.role) return false;
   const role = String(user.role).toLowerCase();
-  return role.includes('관리자') || role.includes('admin');
+  return role.includes('관리자') || role.includes('console');
 }
 
 /**
