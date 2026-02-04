@@ -148,7 +148,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 description: '체크리스트 데이터 조회 및 관리',
                 icon: FileText,
                 path: '/console/audit-history',
-                color: 'green',
+                color: 'pink',
                 roles: ['console'],
                 navbar: true,
                 navbarOrder: 3
@@ -201,7 +201,7 @@ export const adminDashboardSections: DashboardSection[] = [
     {
         id: 'master-data',
         title: '기준 정보 관리',
-        titleColor: 'indigo',
+        titleColor: 'yellow',
         gridCols: '2',
         menus: [
             {
@@ -210,7 +210,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 description: '사용자 등록/수정/삭제',
                 icon: Users,
                 path: '/console/users',
-                color: 'indigo',
+                color: 'yellow',
                 roles: ['console'],
                 navbar: false // 대시보드에만 표시
             },

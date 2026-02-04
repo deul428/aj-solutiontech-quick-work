@@ -34,7 +34,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
       purple: 'group-hover:text-purple-600',
       orange: 'group-hover:text-orange-600',
       indigo: 'group-hover:text-indigo-600',
-      red: 'group-hover:text-red-600'
+      red: 'group-hover:text-red-600',
+      pink: 'group-hover:text-pink-600',
+      yellow: 'group-hover:text-yellow-600'
     };
 
     return (
