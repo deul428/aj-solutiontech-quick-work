@@ -15,6 +15,7 @@ import requestCache from '../../utils/orderingCache';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import DataTable, { TableColumn } from '../../components/DataTable';
 import Toast from '../../components/Toast';
+import Header from '@/components/Header';
 
 interface OrderingMyRequestsPageProps {
   onNavigate?: (view: string, requestNo?: string) => void;
@@ -174,7 +175,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
   // 정렬된 데이터 (클라이언트 측 정렬)
   const sortedAndFilteredRequests = useMemo(() => {
     let sorted = [...filteredRequests];
-    
+
     if (sortField) {
       sorted.sort((a, b) => {
         let aValue: any;
@@ -206,7 +207,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
         return 0;
       });
     }
-    
+
     return sorted;
   }, [filteredRequests, sortField, sortDirection]);
 
@@ -505,18 +506,9 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-6 md:py-12 px-4 md:px-6">
+    <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
       {/* 헤더 */}
-      <div className="flex items-center gap-4 mb-6 md:mb-8">
-        <button
-          onClick={goBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5 md:w-6 md:h-6 text-gray-600" />
-        </button>
-        <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900">내 신청 목록</h1>
-      </div>
-
+      <Header headerTitle="내 신청 목록 조회" headerSubTitle="부품 발주 시스템" level={2} /> 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
           <p className="text-red-700 font-bold text-sm">{error}</p>

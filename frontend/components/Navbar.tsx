@@ -80,7 +80,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
         <div className="flex justify-between items-center h-16 md:justify-center">
           {/* Desktop Menu */}
           <div className="hidden sm:ml-6 sm:flex sm:space-x-4 items-center">
-            {visibleMenuItems.map((item) => {
+            {visibleMenuItems.map((item, idx) => {
               const Icon = item.icon;
               const active = isActive(item);
 
@@ -89,10 +89,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                   key={item.id}
                   onClick={() => handleMenuClick(item)}
                   className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active
-                      ? "bg-blue-50 text-blue-700"
-                      : item.isLogout
-                        ? "text-gray-500 hover:text-red-600 hover:bg-gray-50"
-                        : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    ? "bg-blue-50 text-blue-700"
+                    : item.isLogout
+                      ? "text-gray-500 hover:text-red-600 hover:bg-gray-50"
+                      : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                     }`}
                 >
                   <Icon className="w-4 h-4" /> {item.label}
@@ -100,7 +100,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
               );
             })}
           </div>
-
           {/* Mobile Menu Button */}
           <div className="flex items-center sm:hidden gap-4">
             <button onClick={toggleMenu} className="p-2 text-gray-500">
@@ -122,10 +121,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                 key={item.id}
                 onClick={() => handleMenuClick(item)}
                 className={`flex items-center gap-3 w-full px-4 py-3 text-base font-medium rounded-lg transition-colors ${active
-                    ? "bg-blue-50 text-blue-700"
-                    : item.isLogout
-                      ? "text-red-600 hover:bg-red-50"
-                      : "text-gray-600 hover:bg-gray-50"
+                  ? "bg-blue-50 text-blue-700"
+                  : item.isLogout
+                    ? "text-red-600 hover:bg-red-50"
+                    : "text-gray-600 hover:bg-gray-50"
                   }`}
               >
                 <Icon className="w-5 h-5" /> {item.label}

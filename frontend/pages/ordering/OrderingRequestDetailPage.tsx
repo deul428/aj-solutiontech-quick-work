@@ -14,6 +14,7 @@ import { formatDate, getStatusColor, getImageUrl } from '../../utils/orderingHel
 import requestCache from '../../utils/orderingCache';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Toast from '../../components/Toast';
+import Header from '@/components/Header';
 
 interface OrderingRequestDetailPageProps {
   requestNo?: string;
@@ -308,7 +309,8 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
         {processing && <LoadingOverlay message="처리 중..." />}
 
         {/* 헤더 */}
-        <div className="mb-6 flex items-center gap-4">
+        <Header headerTitle="신청 상세 정보" headerSubTitle="부품 발주 시스템" level={2} />
+        {/* <div className="mb-4 sm:mb-6 flex items-center gap-4">
           <button
             onClick={goBack}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -316,7 +318,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
             <ArrowLeft className="w-6 h-6 text-gray-600" />
           </button>
           <h1 className="text-2xl font-bold text-gray-900">신청 상세 정보</h1>
-        </div>
+        </div> */}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">

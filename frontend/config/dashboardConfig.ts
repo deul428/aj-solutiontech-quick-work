@@ -252,6 +252,8 @@ export interface SystemHomeCard {
  * 
  * 메뉴를 추가/제거하려면 이 배열을 수정하세요.
  */
+import { getCurrentUser } from '../utils/orderingAuth';
+const currentUser = getCurrentUser();
 export const userDashboardSections: DashboardSection[] = [
     {
         id: 'equipment',
@@ -351,7 +353,7 @@ export const navbarOnlyMenuItems: NavbarOnlyMenuItem[] = [
     // 공통 메뉴
     {
         id: 'info',
-        label: '내 정보 변경',
+        label: currentUser ? `${currentUser?.name} (${currentUser?.team})` : '내 정보',
         path: '/info',
         icon: UserIcon,
         roles: ['all'],

@@ -17,6 +17,7 @@ import { formatDate, getStatusColor, getImageUrl } from '../../utils/orderingHel
 import LoadingOverlay from '../../components/LoadingOverlay';
 import DataTable, { TableColumn } from '../../components/DataTable';
 import Toast from '../../components/Toast';
+import Header from '@/components/Header';
 
 const OrderingAdminRequestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -625,9 +626,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
+      <Header headerTitle="부품 신청 현황 (전체 조회)" headerSubTitle="부품 발주 시스템" level={1} />
       <div className="max-w-[85dvw] mx-auto px-4 sm:px-4 lg:px-8">
         <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900">부품 신청 현황</h1>
           <p className="mt-2 text-gray-600">
             총 {total}건의 신청이 있습니다.
           </p>

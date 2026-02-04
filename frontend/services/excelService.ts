@@ -87,17 +87,23 @@ export const parseMasterExcel = (file: File): Promise<MasterDataRow[]> => {
 export const syncChecklistToCloud = async (url: string, data: ChecklistData[], _unused?: string): Promise<{ success: boolean; count: number }> => {
   if (data.length === 0) return { success: false, count: 0 };
 
-  const rows = data.map((item) => ({
-    [CHECKLIST_COLUMNS.MGMT_NO]: String(item.mgmtNumber || "").trim(),
-    [CHECKLIST_COLUMNS.ASSET_NO]: String(item.assetNumber || "").trim(),
-    [CHECKLIST_COLUMNS.PROD_CODE]: String(item.productCode || "").trim(),
-    [CHECKLIST_COLUMNS.PROD_NAME]: String(item.productName || "").trim(),
-    [CHECKLIST_COLUMNS.MANUFACTURER]: String(item.manufacturer || "").trim(),
-    [CHECKLIST_COLUMNS.MODEL]: String(item.model || "").trim(),
-    [CHECKLIST_COLUMNS.YEAR]: String(item.year || "").trim(),
-    [CHECKLIST_COLUMNS.VEHICLE_NO]: String(item.vehicleNumber || "").trim(),
-    [CHECKLIST_COLUMNS.SERIAL_NO]: String(item.serialNumber || "").trim(),
-  }));
+  const rows = data.map((item) => {
+    const assetNumber = String(item.assetNumber || "").trim();
+    const isAbnormalAsset = !assetNumber || assetNumber === "" || assetNumber === "null";
+    
+    return {
+      [CHECKLIST_COLUMNS.MGMT_NO]: String(item.mgmtNumber || "").trim(),
+      [CHECKLIST_COLUMNS.ASSET_NO]: assetNumber,
+      [CHECKLIST_COLUMNS.PROD_CODE]: String(item.productCode || "").trim(),
+      [CHECKLIST_COLUMNS.PROD_NAME]: String(item.productName || "").trim(),
+      [CHECKLIST_COLUMNS.MANUFACTURER]: String(item.manufacturer || "").trim(),
+      [CHECKLIST_COLUMNS.MODEL]: String(item.model || "").trim(),
+      [CHECKLIST_COLUMNS.YEAR]: String(item.year || "").trim(),
+      [CHECKLIST_COLUMNS.VEHICLE_NO]: String(item.vehicleNumber || "").trim(),
+      [CHECKLIST_COLUMNS.SERIAL_NO]: String(item.serialNumber || "").trim(),
+      ...(isAbnormalAsset && { [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: 'O' }),
+    };
+  });
 
   const payload = {
     action: "checklist",
@@ -133,13 +139,19 @@ export const syncAuditDataToCloud = async (
 
   const payload = {
     action: "audit",
-    rows: auditedItems.map((row) => ({
-      [CHECKLIST_COLUMNS.MGMT_NO]: String(row[MASTER_COLUMNS.MGMT_NO] || row[CHECKLIST_COLUMNS.MGMT_NO] || "").trim(),
-      [CHECKLIST_COLUMNS.AUDIT_DATE]: row[CHECKLIST_COLUMNS.AUDIT_DATE] || row['자산실사일'] || new Date().toLocaleDateString(),
-      [CHECKLIST_COLUMNS.AUDIT_STATUS]: "O",
-      [CHECKLIST_COLUMNS.CENTER_LOC]: centerLocation || "",
-      [CHECKLIST_COLUMNS.ASSET_LOC]: assetLocation || ""
-    }))
+    rows: auditedItems.map((row) => {
+      const assetNumber = String(row[MASTER_COLUMNS.ASSET_NO] || row[CHECKLIST_COLUMNS.ASSET_NO] || "").trim();
+      const isAbnormalAsset = !assetNumber || assetNumber === "" || assetNumber === "null";
+      
+      return {
+        [CHECKLIST_COLUMNS.MGMT_NO]: String(row[MASTER_COLUMNS.MGMT_NO] || row[CHECKLIST_COLUMNS.MGMT_NO] || "").trim(),
+        [CHECKLIST_COLUMNS.AUDIT_DATE]: row[CHECKLIST_COLUMNS.AUDIT_DATE] || row['자산실사일'] || new Date().toLocaleDateString(),
+        [CHECKLIST_COLUMNS.AUDIT_STATUS]: "O",
+        [CHECKLIST_COLUMNS.CENTER_LOC]: centerLocation || "",
+        [CHECKLIST_COLUMNS.ASSET_LOC]: assetLocation || "",
+        ...(isAbnormalAsset && { [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: 'O' }),
+      };
+    })
   };
 
   try {

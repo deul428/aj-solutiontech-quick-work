@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { DashboardSection, DashboardMenuItem, colorClasses } from '../config/dashboardConfig';
+import Header from './Header';
 
 interface DashboardPageProps {
   sections: DashboardSection[];
@@ -55,15 +56,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   };
 
   return (
-    <div className="max-w-7xl mx-auto py-12 px-6">
+    <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
       {/* 헤더 */}
-      <div className="text-center mb-6">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-red-500 mb-2 tracking-tight">AJ솔루션테크</h2>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight leading-tight">{headerTitle}</h2>
-        {(userName || userTeam) && (
-          <p className="text-gray-600 text-sm font-bold">👤 {userName} {userTeam && `(${userTeam})`}</p>
-        )}
-      </div>
+      <Header headerTitle={headerTitle} headerSubTitle="AJ솔루션테크" level={1} />
 
       {/* 섹션별 메뉴 렌더링 */}
       {sections.map((section) => {

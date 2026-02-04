@@ -5,6 +5,7 @@ import { changePasswordOrdering, ORDERING_GAS_URL } from '../../services/orderin
 import { getCurrentUser, getSessionToken } from '../../utils/orderingAuth';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Toast from '../../components/Toast';
+import Header from '@/components/Header';
 
 const OrderingMyInfoPage: React.FC = () => {
   const navigate = useNavigate();
@@ -97,15 +98,7 @@ const OrderingMyInfoPage: React.FC = () => {
       {submitting && <LoadingOverlay message="비밀번호 변경 중..." />}
 
       {/* 헤더 */}
-      <div className="flex items-center gap-4 mb-8">
-        <button
-          onClick={goBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-600" />
-        </button>
-        <h1 className="text-3xl font-extrabold text-gray-900">내 정보</h1>
-      </div>
+      <Header headerTitle="기본 정보 조회" headerSubTitle="내 정보 관리" level={2} />
 
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">

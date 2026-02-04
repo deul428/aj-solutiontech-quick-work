@@ -28,6 +28,7 @@ import { MasterDataRow } from "../../types";
 import { parseMasterExcel } from "../../services/excelService";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { getCurrentUser, isAdmin, isUser, isLoggedIn } from "../../utils/orderingAuth";
+import Header from "@/components/Header";
 
 interface CountMasterPageProps {
   masterData: MasterDataRow[];
@@ -158,10 +159,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
     <div className="max-w-4xl mx-auto py-12 px-6">
       {isProcessing && <LoadingOverlay message="데이터 동기화 중..." />}
 
-      <div className="text-center mb-12">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-red-500 mb-2 tracking-tight">장비 점검, 실사, QR생성 서비스</h2>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight leading-tight">마스터 파일 관리</h2>
-      </div>
+      <Header headerTitle="마스터 파일 관리" headerSubTitle="장비 점검, 실사, QR생성" level={1} />
 
       <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
         {/* Connection Status Section */}

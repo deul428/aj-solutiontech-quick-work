@@ -9,6 +9,7 @@ import {
 import { getCurrentUser, getSessionToken } from '../../utils/orderingAuth';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Toast from '../../components/Toast';
+import Header from '@/components/Header';
 
 interface OrderingNewRequestPageProps {
   onNavigate?: (view: string) => void;
@@ -88,7 +89,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    console.log(file, file.size); 
+    console.log(file, file.size);
 
     if (file.size > 5 * 1024 * 1024) {
       alert('파일 크기는 5MB를 초과할 수 없습니다.');
@@ -301,16 +302,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
       {submitting && <LoadingOverlay message="신청 처리 중..." />}
 
       {/* 헤더 */}
-      <div className="flex items-center gap-4 mb-6">
-        <button
-          onClick={goBack}
-          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="w-6 h-6 text-gray-600" />
-        </button>
-        <h1 className="text-3xl font-extrabold text-gray-900">신청 등록</h1>
-      </div>
-
+      <Header headerTitle="새 신청 등록" headerSubTitle="부품 발주 시스템" level={2} />
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
           <div className="flex items-center gap-2">

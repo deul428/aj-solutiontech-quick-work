@@ -53,6 +53,7 @@ export const CHECKLIST_COLUMNS = {
   SERIAL_NO: '차대번호',
   AUDIT_DATE: '자산실사일',
   AUDIT_STATUS: '자산실사 여부',
+  ABNORMAL_ASSET: '이상자산구분',
   QR: 'QR',
   CENTER_LOC: '센터위치',
   ASSET_LOC: '자산위치'

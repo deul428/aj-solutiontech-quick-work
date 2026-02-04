@@ -21,6 +21,7 @@ import {
 import { getCurrentUser, getSessionToken, logout } from '../../utils/orderingAuth';
 import { formatDate, getStatusColor } from '../../utils/orderingHelpers';
 import LoadingOverlay from '../../components/LoadingOverlay';
+import Header from '@/components/Header';
 
 interface OrderingPageProps {
   onNavigate?: (view: string) => void;
@@ -128,21 +129,9 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-12 px-6">
+    <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
       {loading && <LoadingOverlay message="대시보드 로딩 중..." />}
-
-      <div className="text-center mb-12 relative">
-        {/* <button
-          onClick={handleLogout}
-          className="absolute top-0 right-0 flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold transition-colors"
-        >
-          <LogOut className="w-4 h-4" />
-          로그아웃
-        </button> */}
-        <h2 className="text-xl sm:text-2xl font-extrabold text-red-500 mb-2 tracking-tight">AJ솔루션테크</h2>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight leading-tight">부품 발주 시스템</h2>
-        <p className="text-gray-600 text-sm font-bold">👤 {user.name} ({user.team})</p>
-      </div>
+      <Header headerTitle="신청 등록, 조회" headerSubTitle="부품 발주 시스템" level={2} />
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">

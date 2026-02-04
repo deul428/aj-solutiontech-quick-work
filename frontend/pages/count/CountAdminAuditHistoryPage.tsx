@@ -6,6 +6,7 @@ import { getChecklistData, getAllChecklistData, downloadChecklistHistoryExcel } 
 import LoadingOverlay from '../../components/LoadingOverlay';
 import ExcelDateRangeModal, { ExcelDateRangeResult } from '../../components/ExcelDateRangeModal';
 import DataTable, { TableColumn } from '../../components/DataTable';
+import Header from '@/components/Header';
 
 interface ChecklistDataItem {
   [key: string]: any;
@@ -91,6 +92,12 @@ const getColumns = (onImageClick: (url: string) => void): TableColumn<ChecklistD
       render: (value) => formatCellValue(value)
     },
     {
+      key: '이상자산구분',
+      label: '이상자산구분',
+      sortable: false,
+      render: (value) => formatCellValue(value)
+    },
+    {
       key: 'QR',
       label: 'QR',
       sortable: false,
@@ -138,6 +145,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   const [inputSearchTerm, setInputSearchTerm] = useState(''); // 입력 중인 검색어
   const [activeSearchTerm, setActiveSearchTerm] = useState(''); // 실제 검색에 사용되는 검색어
   const [auditStatusFilter, setAuditStatusFilter] = useState<'all' | 'O' | 'X'>('all'); // 자산실사 여부 필터
+  const [abnormalAssetFilter, setAbnormalAssetFilter] = useState<'all' | 'O' | 'X'>('all'); // 이상자산 여부 필터
   const [sortBy, setSortBy] = useState<string | null>('자산실사일');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -233,11 +241,37 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     });
   }, []);
 
+  // 이상자산 여부 필터링 함수
+  const filterByAbnormalAsset = useCallback((data: ChecklistDataItem[], filter: 'all' | 'O' | 'X'): ChecklistDataItem[] => {
+    if (filter === 'all') {
+      return data;
+    }
+
+    return data.filter((item) => {
+      const abnormalAssetStatus = item['이상자산구분'];
+
+      if (filter === 'O') {
+        // O인 경우: "O"이거나 true인 경우만
+        return abnormalAssetStatus === 'O' || abnormalAssetStatus === true || String(abnormalAssetStatus).toUpperCase() === 'O';
+      } else if (filter === 'X') {
+        // X인 경우: "X"이거나 false이거나 null이거나 "-"인 경우
+        if (abnormalAssetStatus === null || abnormalAssetStatus === undefined || abnormalAssetStatus === false) {
+          return true;
+        }
+        const statusStr = String(abnormalAssetStatus).trim();
+        return statusStr === 'X' || statusStr === 'x' || statusStr === '-' || statusStr === '';
+      }
+
+      return true;
+    });
+  }, []);
+
   useEffect(() => {
-    // 클라이언트 측 필터링 (자산실사 여부 필터 적용)
-    const filtered = filterByAuditStatus(checklistData, auditStatusFilter);
+    // 클라이언트 측 필터링 (자산실사 여부 필터와 이상자산 여부 필터 적용)
+    let filtered = filterByAuditStatus(checklistData, auditStatusFilter);
+    filtered = filterByAbnormalAsset(filtered, abnormalAssetFilter);
     setFilteredData(filtered);
-  }, [checklistData, auditStatusFilter, filterByAuditStatus]);
+  }, [checklistData, auditStatusFilter, abnormalAssetFilter, filterByAuditStatus, filterByAbnormalAsset]);
 
 
   const handleRefresh = () => {
@@ -245,6 +279,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     setInputSearchTerm('');
     setActiveSearchTerm('');
     setAuditStatusFilter('all');
+    setAbnormalAssetFilter('all');
     setSortBy(null);
     setSortOrder('asc');
     setCurrentPage(1);
@@ -362,17 +397,11 @@ const CountAdminAuditHistoryPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <div className="text-center mb-6">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-red-500 mb-2 tracking-tight">장비 점검, 실사, QR생성 서비스</h2>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight leading-tight">마스터 파일 관리</h2>
-      </div> 
+      <Header headerTitle="자산 실사내역 확인" headerSubTitle="장비 점검, 실사, QR생성" level={1} />
       <div className="max-w-[85dvw] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">자산 실사내역 확인</h1>
-            <p className="mt-2 text-gray-600">전체 {total}건{total > filteredData.length ? `, 필터링 ${filteredData.length}건` : ''}
-            </p>
-          </div>
+          <p className="mt-2 text-gray-600">전체 {total}건{total > filteredData.length ? `, 필터링 ${filteredData.length}건` : ''}
+          </p>
           <div className="flex gap-2">
             <button
               onClick={handleRefresh}
@@ -419,13 +448,26 @@ const CountAdminAuditHistoryPage: React.FC = () => {
                 검색
               </button>
             </div>
-            {/* 자산실사 여부 필터 */}
+            {/* 자산실사 여부 및 이상자산 여부 필터 */}
             <div className="flex gap-2 justify-end items-center gap-4">
               <h2>자산 실사 여부</h2>
               <select
                 value={auditStatusFilter}
                 onChange={(e) => {
                   setAuditStatusFilter(e.target.value as 'all' | 'O' | 'X');
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+              >
+                <option value="all">전체</option>
+                <option value="O">O</option>
+                <option value="X">X</option>
+              </select>
+              <h2>이상 자산 여부</h2>
+              <select
+                value={abnormalAssetFilter}
+                onChange={(e) => {
+                  setAbnormalAssetFilter(e.target.value as 'all' | 'O' | 'X');
                   setCurrentPage(1);
                 }}
                 className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"

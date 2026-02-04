@@ -106,7 +106,7 @@ function doPost(e) {
 function handleChecklistSync(ss, rowsToProcess) {
   const sheetName = "체크리스트_데이터";
   let sheet = ss.getSheetByName(sheetName);
-  const targetHeaders = ["관리번호", "자산번호", "상품코드", "상품명", "제조사", "모델", "년식", "차량번호", "차대번호", "자산실사일", "자산실사 여부", "QR", "센터위치", "자산위치"];
+  const targetHeaders = ["관리번호", "자산번호", "상품코드", "상품명", "제조사", "모델", "년식", "차량번호", "차대번호", "자산실사일", "자산실사 여부", "이상자산구분", "QR", "센터위치", "자산위치"];
   if (!sheet) {
     sheet = ss.insertSheet(sheetName);
     sheet.appendRow(targetHeaders);

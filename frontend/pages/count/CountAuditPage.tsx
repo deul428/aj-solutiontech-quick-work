@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { MasterDataRow, MASTER_COLUMNS, AUDIT_COLUMNS } from "../../types";
 import { syncAuditDataToCloud, fetchLocationOptions } from "../../services/excelService";
+import Header from "@/components/Header";
 
 interface CountAuditPageProps {
   masterData: MasterDataRow[];
@@ -190,7 +191,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
       const timer = setTimeout(() => {
         startScanner();
       }, 500);
-      
+
       return () => {
         clearTimeout(timer);
         if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
@@ -306,30 +307,19 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 relative">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div className="flex items-center gap-3">
-          <div className="bg-purple-600 p-2.5 rounded-xl text-white shadow-lg shadow-purple-100"><ScanQrCode className="w-6 h-6" /></div>
-          <div>
-            <h2 className="text-2xl font-black text-gray-900 leading-tight">현장 자산 실사</h2>
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-[11px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded">시트: {selectedSheet || "기본"}</span>
-              <a href={SHARED_SHEET_URL} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded transition-colors hidden">
-                <ExternalLink className="w-3 h-3 " /> 공유 시트 보기</a>
-              {lastSyncTime && <p className="text-[10px] text-green-600 font-black flex items-center gap-1"><Check className="w-3 h-3" /> 마지막 전송: {lastSyncTime}</p>}
-            </div>
-          </div>
-        </div>
-      </div>
+      {/* 헤더 */}
+      <Header headerTitle="현장 자산 실사" headerSubTitle="장비 점검, 실사, QR생성" level={2} /> 
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         <div className="space-y-6">
           <div className="bg-white rounded-[2rem] shadow-2xl border border-gray-100 overflow-hidden ring-1 ring-gray-100">
-            <div className="p-5 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
-              <div className="flex items-center gap-4">
-                <span className="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wider">
-                  <div className={`w-2 h-2 rounded-full ${cameraStatus === 'ready' ? (isCoolingDown ? 'bg-amber-500 animate-pulse' : 'bg-green-500') : 'bg-red-500'}`}></div>{cameraStatus === 'ready' ? '스캔 중...' : '스캔 준비 중...'}
-                </span>
-                {/* <button
+            <div className="flex flex-col">
+              <div className="m-4 mb-2 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
+                <div className="flex items-center gap-4">
+                  <span className="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <div className={`w-2 h-2 rounded-full ${cameraStatus === 'ready' ? (isCoolingDown ? 'bg-amber-500 animate-pulse' : 'bg-green-500') : 'bg-red-500'}`}></div>{cameraStatus === 'ready' ? '스캔 중...' : '스캔 준비 중...'}
+                  </span>
+                  {/* <button
                   onClick={handleMockScan}
                   disabled={showScanModal || showTransferModal || isCoolingDown || isSyncing}
                   className={`px-4 py-2 rounded-xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${showScanModal || showTransferModal || isCoolingDown || isSyncing
@@ -340,8 +330,15 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                   <ScanQrCode className="w-5 h-5" />
                   테스트 스캔 실행
                 </button> */}
+                </div>
+                <button onClick={handleResetScanner} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 flex items-center gap-1 text-xs font-bold"><RefreshCcw className="w-4 h-4" /> 리셋</button>
               </div>
-              <button onClick={handleResetScanner} className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors text-gray-500 flex items-center gap-1 text-xs font-bold"><RefreshCcw className="w-4 h-4" /> 리셋</button>
+              <div className="flex justify-start m-4 mt-0 text-center">
+                <span className="text-[11px] font-black text-purple-600 bg-purple-50 px-2 py-0.5 rounded">연결된 데이터베이스: {selectedSheet || "기본"}</span>
+                <a href={SHARED_SHEET_URL} target="_blank" rel="noreferrer" className="text-[11px] font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded transition-colors hidden">
+                  <ExternalLink className="w-3 h-3 " /> 공유 시트 보기</a>
+                {lastSyncTime && <p className="text-[10px] text-green-600 font-black flex items-center gap-1"><Check className="w-3 h-3" /> 마지막 전송: {lastSyncTime}</p>}
+              </div>
             </div>
             <div className="p-4 bg-black min-h-[400px] flex items-center justify-center relative">
               <div id={scannerId} className="w-full h-full min-h-[400px] overflow-hidden rounded-2xl"></div>
@@ -418,7 +415,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                         {centerOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                         <option value="custom">+ 직접 입력하기</option>
                       </select>
-                     {/*  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div> */}
+                      {/*  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div> */}
                     </div>
                   ) : (
                     <div className="flex gap-2 animate-in slide-in-from-right-2"><input type="text" autoFocus value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-blue-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-blue-50" /><button onClick={() => { setIsCustomCenter(false); setSelectedCenter(""); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200"><RefreshCcw className="w-5 h-5" /></button></div>

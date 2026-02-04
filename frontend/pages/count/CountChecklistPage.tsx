@@ -8,13 +8,15 @@ import {
   FileText,
   Loader2,
   ListFilter,
-  CloudUpload
+  CloudUpload,
+  RotateCcw
 } from "lucide-react";
 import { MasterDataRow, ChecklistData, MASTER_COLUMNS } from "../../types";
 import { downloadChecklistExcel, syncChecklistToCloud } from "../../services/excelService";
 import { downloadChecklistPDF } from "../../services/pdfService";
 import ChecklistPreview from "../../components/ChecklistPreview";
 import LoadingOverlay from "../../components/LoadingOverlay";
+import Header from "@/components/Header";
 
 interface CountChecklistPageProps {
   masterData: MasterDataRow[];
@@ -127,6 +129,10 @@ const CountChecklistPage: React.FC<CountChecklistPageProps> = ({ masterData, ser
     }
   };
 
+  const handleClear = () => {
+    setMgmtNumbersInput("");
+  };
+
   const handlePdfExport = async () => {
     if (currentChecklists.length === 0) return;
 
@@ -152,25 +158,19 @@ const CountChecklistPage: React.FC<CountChecklistPageProps> = ({ masterData, ser
     <div className="max-w-5xl mx-auto py-10 px-6">
       {isProcessing && <LoadingOverlay message={processingMessage} />}
       <div className="text-center mb-12">
-        <h2 className="text-xl sm:text-2xl font-extrabold text-red-500 mb-2 tracking-tight">장비 점검, 실사, QR생성 서비스</h2>
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-4 tracking-tight leading-tight">마스터 파일 관리</h2>
+        <Header headerTitle="체크리스트 일괄 생성" headerSubTitle="장비 점검, 실사, QR생성" level={1} />
       </div>
-      <div className="flex items-center gap-3 mb-8">
-        <div className="bg-blue-600 p-2 rounded-lg text-white shadow-lg shadow-blue-100">
-          <ListFilter className="w-6 h-6" />
-        </div>
-
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">체크리스트 일괄 생성</h2>
-          {selectedSheet && <p className="text-xs font-bold text-blue-500 mt-1">참조: {selectedSheet}</p>}
-        </div>
-      </div>
-
+      {selectedSheet && <p className="text-xs font-bold text-blue-500 mb-4 text-right">참조: {selectedSheet}</p>}
       <div className="space-y-6">
         <section className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-            <Search className="w-5 h-5 text-blue-600" /> 1. 관리번호 입력 (공백/줄바꿈 구분)
-          </h3>
+          <div className="flex flex-row justify-between items-center mb-4">
+            <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+              <Search className="w-5 h-5 text-blue-600" /> 1. 관리번호 입력 (공백/줄바꿈 구분)
+            </h3>
+            <button onClick={handleClear} className="text-sm font-bold text-gray-800 flex items-center gap-2">
+              <RotateCcw className="w-5 h-5 text-gray-900" /> 초기화
+            </button>
+          </div>
           <textarea
             value={mgmtNumbersInput}
             onChange={(e) => setMgmtNumbersInput(e.target.value && e.target.value.toUpperCase())}

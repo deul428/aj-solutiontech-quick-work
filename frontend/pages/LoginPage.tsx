@@ -64,7 +64,7 @@ const LoginPage: React.FC = () => {
       {loading && <LoadingOverlay message="로그인 중..." />}
 
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-8">
-        {/* 헤더 */}
+        {/* 헤더 */} 
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 ">
             <img src={logo} alt="logo" className="w-full w-full" />
