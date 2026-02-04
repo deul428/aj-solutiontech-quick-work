@@ -50,8 +50,8 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
   const isConfirmDisabled = !excelDateRangeAll && (!excelDateFrom || !excelDateTo);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-lg w-full">
+    <div className="fixed inset-0 bg-black  bounding-box bg-opacity-50 flex items-center justify-center z-50 p-4 ">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xl w-full">
         <h3 className="text-xl font-black text-gray-800 mb-4">{title}</h3>
 
         <div className="space-y-4">
@@ -62,8 +62,8 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
               <button
                 onClick={() => handleQuickExcelDateFilter('today')}
                 className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('today').dateFrom
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 오늘
@@ -71,8 +71,8 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
               <button
                 onClick={() => handleQuickExcelDateFilter('thisWeek')}
                 className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('thisWeek').dateFrom
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 이번 주
@@ -80,8 +80,8 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
               <button
                 onClick={() => handleQuickExcelDateFilter('thisMonth')}
                 className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('thisMonth').dateFrom
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 이번 달
@@ -89,8 +89,8 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
               <button
                 onClick={() => handleQuickExcelDateFilter('last3Months')}
                 className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('last3Months').dateFrom
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
               >
                 최근 3개월

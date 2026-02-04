@@ -159,8 +159,7 @@ const OrderingMyInfoPage: React.FC = () => {
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">현재 비밀번호</label>
               <input
-                type="password"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                type="password" 
                 value={passwordData.currentPassword}
                 onChange={(e) =>
                   setPasswordData({ ...passwordData, currentPassword: e.target.value })
@@ -172,8 +171,7 @@ const OrderingMyInfoPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">새 비밀번호</label>
                 <input
-                  type="password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                  type="password" 
                   value={passwordData.newPassword}
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
@@ -186,8 +184,7 @@ const OrderingMyInfoPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">새 비밀번호 확인</label>
                 <input
-                  type="password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                  type="password" 
                   value={passwordData.confirmPassword}
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, confirmPassword: e.target.value })

@@ -58,7 +58,7 @@ const DataTable = <T extends Record<string, any>>({
     if (sortBy !== sortKey) {
       return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
     }
-    return sortOrder === 'asc' 
+    return sortOrder === 'asc'
       ? <ArrowUp className="w-4 h-4 text-blue-600" />
       : <ArrowDown className="w-4 h-4 text-blue-600" />;
   };
@@ -97,9 +97,8 @@ const DataTable = <T extends Record<string, any>>({
                   <th
                     key={column.key}
                     onClick={() => handleSort(column)}
-                    className={`px-4 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                      column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
-                    } ${column.headerClassName || ''}`}
+                    className={`px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
+                      } ${column.headerClassName || ''}`}
                   >
                     <div className="flex items-center gap-2">
                       {column.label}
@@ -114,14 +113,14 @@ const DataTable = <T extends Record<string, any>>({
                 <tr>
                   <td
                     colSpan={visibleColumns.length}
-                    className="px-4 py-8 text-center text-sm text-gray-500"
+                    className="px-3 py-8 text-center text-sm text-gray-500"
                   >
                     {emptyMessage}
                   </td>
                 </tr>
               ) : (
                 paginatedData.map((row, index) => {
-                  const key = keyExtractor 
+                  const key = keyExtractor
                     ? keyExtractor(row, index)
                     : (row.id || row.key || index);
                   return (
@@ -134,7 +133,7 @@ const DataTable = <T extends Record<string, any>>({
                         return (
                           <td
                             key={column.key}
-                            className={`px-4 py-4 whitespace-nowrap text-sm text-gray-900 ${column.className || ''}`}
+                            className={`px-3 py-2 whitespace-nowrap text-sm text-gray-900 ${column.className || ''}`}
                           >
                             {cellContent}
                           </td>

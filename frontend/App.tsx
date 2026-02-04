@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from "react";
 import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
+import "./app.css";
 import { MasterDataRow } from "./types";
 import CountMasterPage from "./pages/count/CountMasterPage";
 import SystemHomePage from "./pages/SystemHomePage";

@@ -8,7 +8,6 @@ import {
 } from '../../services/orderingService';
 import { getCurrentUser, getSessionToken } from '../../utils/orderingAuth';
 import LoadingOverlay from '../../components/LoadingOverlay';
-import Toast from '../../components/Toast';
 import Header from '@/components/Header';
 
 interface OrderingNewRequestPageProps {
@@ -37,7 +36,19 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+
+  const showRequiredFieldAlert = (label: string) => {
+    alert(`${label} 란을 입력하세요.`);
+  };
+
+  const focusFieldByName = (name: string) => {
+    // name 기반으로 input/select/textarea 찾아서 포커스
+    const el = document.querySelector<HTMLElement>(`[name="${name}"]`);
+    if (el && "focus" in el) {
+      (el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).focus();
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  };
 
   useEffect(() => {
     loadInitialData();
@@ -177,9 +188,33 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
     setError('');
     setSuccess('');
 
+    // required 필드 수동 검증 (브라우저 기본 required 경고 대신 토스트 표시)
+    const requiredFields: Array<{ name: string; label: string; isMissing: () => boolean }> = [
+      { name: "itemName", label: "품명", isMissing: () => !formData.itemName?.trim() },
+      { name: "quantity", label: "수량", isMissing: () => !formData.quantity || Number(formData.quantity) < 1 },
+      { name: "assetNo", label: "관리번호", isMissing: () => !formData.assetNo?.trim() },
+    ];
+
+    // 배송지 '기타' 선택 시 직접 입력은 필수로 처리
+    if (formData.deliveryPlace === "기타") {
+      requiredFields.push({
+        name: "customDeliveryPlace",
+        label: "배송지 직접 입력",
+        isMissing: () => !formData.customDeliveryPlace?.trim(),
+      });
+    }
+
+    const firstMissing = requiredFields.find((f) => f.isMissing());
+    if (firstMissing) {
+      showRequiredFieldAlert(firstMissing.label);
+      focusFieldByName(firstMissing.name);
+      return;
+    }
+
     // 사진은 필수
     if (!photoFile) {
       setError('사진을 첨부해 주세요.');
+      alert('사진을 첨부해 주세요.');
       return;
     }
 
@@ -266,18 +301,17 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
       const result = await createRequestOrdering(ORDERING_GAS_URL, requestData, sessionToken);
 
       if (result.success) {
-        setToast({ message: result.message || '신청이 완료되었습니다.', type: 'success' });
-        setTimeout(() => {
-          if (onNavigate) {
-            onNavigate('ordering');
-          }
-        }, 1500);
+        alert(result.message || '신청이 완료되었습니다.');
+        if (onNavigate) {
+          onNavigate('ordering');
+        }
       } else {
         setError(result.message || '신청 처리에 실패했습니다.');
-        setToast({ message: result.message || '신청 처리에 실패했습니다.', type: 'error' });
+        alert(result.message || '신청 처리에 실패했습니다.');
       }
     } catch (err: any) {
       setError(err.message || '신청 처리 중 오류가 발생했습니다.');
+      alert(err.message || '신청 처리 중 오류가 발생했습니다.');
     } finally {
       setSubmitting(false);
     }
@@ -318,7 +352,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} noValidate className="space-y-6">
         {/* 신청자 정보 */}
         <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-8">
           <h3 className="text-xl font-black text-gray-800 mb-4">신청자 정보</h3>
@@ -327,7 +361,6 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <label className="block text-sm font-bold text-gray-700 mb-2">이름</label>
               <input
                 type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 font-bold"
                 value={user.name}
                 readOnly
               />
@@ -336,7 +369,6 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <label className="block text-sm font-bold text-gray-700 mb-2">소속팀</label>
               <input
                 type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 font-bold"
                 value={user.team}
                 readOnly
               />
@@ -345,7 +377,6 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <label className="block text-sm font-bold text-gray-700 mb-2">지역</label>
               <input
                 type="text"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl bg-gray-50 font-bold"
                 value={user.region}
                 readOnly
               />
@@ -364,7 +395,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <input
                 type="text"
                 name="itemName"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                label="품명"
                 placeholder="예: 연료필터"
                 value={formData.itemName}
                 onChange={handleInputChange}
@@ -376,7 +407,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <input
                 type="text"
                 name="modelName"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                label="규격"
                 placeholder="예: HD-123"
                 value={formData.modelName}
                 onChange={handleInputChange}
@@ -389,7 +420,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <input
                 type="number"
                 name="quantity"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                label="수량"
                 min="1"
                 value={formData.quantity}
                 onChange={handleInputChange}
@@ -403,7 +434,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <input
                 type="text"
                 name="assetNo"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                label="관리번호"
                 placeholder="예: DS25C305"
                 value={formData.assetNo}
                 onChange={handleInputChange}
@@ -415,7 +446,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <input
                 type="text"
                 name="serialNo"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                label="시리얼번호"
                 placeholder="예: SN-12345"
                 value={formData.serialNo}
                 onChange={handleInputChange}
@@ -432,7 +463,6 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <label className="block text-sm font-bold text-gray-700 mb-2">배송지</label>
               <select
                 name="deliveryPlace"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
                 value={formData.deliveryPlace}
                 onChange={handleInputChange}
               >
@@ -451,7 +481,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
                 <input
                   type="text"
                   name="customDeliveryPlace"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                  label="배송지 직접 입력"
                   placeholder="배송지를 입력하세요"
                   value={formData.customDeliveryPlace}
                   onChange={handleInputChange}
@@ -463,7 +493,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <input
                 type="tel"
                 name="phone"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                label="전화번호"
                 placeholder="010-1234-5678"
                 value={formData.phone}
                 onChange={handleInputChange}
@@ -474,7 +504,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               <input
                 type="text"
                 name="company"
-                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+                label="업체명"
                 placeholder="협력 업체명"
                 value={formData.company}
                 onChange={handleInputChange}
@@ -537,7 +567,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
           <h3 className="text-xl font-black text-gray-800 mb-4">신청자 비고</h3>
           <textarea
             name="remarks"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold"
+            label="신청자 비고"
             rows={4}
             placeholder="추가로 전달할 내용이 있으면 입력하세요."
             value={formData.remarks}
@@ -564,14 +594,6 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
         </div>
       </form>
 
-      {/* Toast 메시지 */}
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
     </div>
   );
 };

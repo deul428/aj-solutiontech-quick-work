@@ -1250,25 +1250,57 @@ function createUser(userData, sessionToken) {
     // 헤더 확인 및 생성
     const data = userModel.sheet.getDataRange().getValues();
     if (data.length === 0) {
-      userModel.sheet.getRange(1, 1, 1, 8).setValues([[
-        '사용자ID', '비밀번호해시', '이름', '기사코드', '소속팀', '지역', '역할', '활성화'
+      userModel.sheet.getRange(1, 1, 1, 9).setValues([[
+        '사용자ID', '비밀번호해시', '비밀번호', '이름', '기사코드', '소속팀', '지역', '역할', '활성화'
       ]]);
+    }
+    
+    // 헤더 확인 및 '비밀번호' 컬럼 추가 (없으면)
+    const headers = data.length > 0 ? data[0] : [];
+    const passwordCol = headers.indexOf('비밀번호');
+    if (passwordCol < 0 && data.length > 0) {
+      // '비밀번호해시' 다음에 '비밀번호' 컬럼 추가
+      const passwordHashCol = headers.indexOf('비밀번호해시');
+      if (passwordHashCol >= 0) {
+        userModel.sheet.insertColumnAfter(passwordHashCol + 1);
+        userModel.sheet.getRange(1, passwordHashCol + 2).setValue('비밀번호');
+        // 헤더 다시 읽기
+        const newData = userModel.sheet.getDataRange().getValues();
+        headers.length = 0;
+        headers.push(...newData[0]);
+      }
     }
     
     // 비밀번호 해시 생성
     const passwordHash = userData.password ? hashPassword(userData.password) : '';
+    // 평문 비밀번호 (passwordPlain이 있으면 사용, 없으면 password 사용)
+    const passwordPlain = userData.passwordPlain || userData.password || '';
     
-    // 새 행 추가
-    const newRow = [
-      userData.userId,
-      passwordHash,
-      userData.name || '',
-      userData.employeeCode || '',
-      userData.team || '',
-      userData.region || '',
-      userData.role || '신청자',
-      userData.active || 'Y'
-    ];
+    // 헤더 인덱스 찾기
+    const finalHeaders = userModel.sheet.getDataRange().getValues()[0];
+    const userIdCol = finalHeaders.indexOf('사용자ID');
+    const passwordHashCol = finalHeaders.indexOf('비밀번호해시');
+    const passwordPlainCol = finalHeaders.indexOf('비밀번호');
+    const nameCol = finalHeaders.indexOf('이름');
+    const employeeCodeCol = finalHeaders.indexOf('기사코드');
+    const teamCol = finalHeaders.indexOf('소속팀');
+    const regionCol = finalHeaders.indexOf('지역');
+    const roleCol = finalHeaders.indexOf('역할');
+    const activeCol = finalHeaders.indexOf('활성화');
+    
+    // 새 행 생성 (모든 컬럼에 맞춰서)
+    const maxCol = Math.max(userIdCol, passwordHashCol, passwordPlainCol, nameCol, employeeCodeCol, teamCol, regionCol, roleCol, activeCol) + 1;
+    const newRow = new Array(maxCol).fill('');
+    
+    if (userIdCol >= 0) newRow[userIdCol] = userData.userId;
+    if (passwordHashCol >= 0) newRow[passwordHashCol] = passwordHash;
+    if (passwordPlainCol >= 0) newRow[passwordPlainCol] = passwordPlain;
+    if (nameCol >= 0) newRow[nameCol] = userData.name || '';
+    if (employeeCodeCol >= 0) newRow[employeeCodeCol] = userData.employeeCode || '';
+    if (teamCol >= 0) newRow[teamCol] = userData.team || '';
+    if (regionCol >= 0) newRow[regionCol] = userData.region || '';
+    if (roleCol >= 0) newRow[roleCol] = userData.role || '신청자';
+    if (activeCol >= 0) newRow[activeCol] = userData.active || 'Y';
     
     userModel.sheet.appendRow(newRow);
     
@@ -1323,6 +1355,26 @@ function updateUser(userId, userData, sessionToken) {
     const headers = data[0];
     const userIdCol = headers.indexOf('사용자ID');
     const passwordHashCol = headers.indexOf('비밀번호해시');
+    let passwordPlainCol = headers.indexOf('비밀번호');
+    
+    // '비밀번호' 컬럼이 없으면 추가
+    if (passwordPlainCol < 0) {
+      if (passwordHashCol >= 0) {
+        userModel.sheet.insertColumnAfter(passwordHashCol + 1);
+        userModel.sheet.getRange(1, passwordHashCol + 2).setValue('비밀번호');
+        // 헤더 다시 읽기
+        const newData = userModel.sheet.getDataRange().getValues();
+        passwordPlainCol = newData[0].indexOf('비밀번호');
+        // 기존 데이터 행들에 빈 값 추가
+        for (let i = 1; i < newData.length; i++) {
+          const row = newData[i];
+          if (row.length <= passwordPlainCol) {
+            row[passwordPlainCol] = '';
+          }
+        }
+      }
+    }
+    
     const nameCol = headers.indexOf('이름');
     const employeeCodeCol = headers.indexOf('기사코드');
     const teamCol = headers.indexOf('소속팀');
@@ -1332,16 +1384,26 @@ function updateUser(userId, userData, sessionToken) {
     
     const normalizedUserId = String(userId).trim();
     
-    for (let i = 1; i < data.length; i++) {
-      const sheetUserId = String(data[i][userIdCol] || '').trim();
+    // 헤더 다시 읽기 (컬럼 추가 후)
+    const finalData = userModel.sheet.getDataRange().getValues();
+    const finalHeaders = finalData[0];
+    const finalPasswordPlainCol = finalHeaders.indexOf('비밀번호');
+    
+    for (let i = 1; i < finalData.length; i++) {
+      const sheetUserId = String(finalData[i][userIdCol] || '').trim();
       if (sheetUserId === normalizedUserId) {
         const rowNum = i + 1;
         
-        // 비밀번호 변경이 있으면 해시 생성
+        // 비밀번호 변경이 있으면 해시 생성 및 평문 저장
         if (userData.password) {
           const newHash = hashPassword(userData.password);
           if (passwordHashCol >= 0) {
             userModel.sheet.getRange(rowNum, passwordHashCol + 1).setValue(newHash);
+          }
+          // 평문 비밀번호 저장 (passwordPlain이 있으면 사용, 없으면 password 사용)
+          const passwordPlain = userData.passwordPlain || userData.password || '';
+          if (finalPasswordPlainCol >= 0) {
+            userModel.sheet.getRange(rowNum, finalPasswordPlainCol + 1).setValue(passwordPlain);
           }
         }
         

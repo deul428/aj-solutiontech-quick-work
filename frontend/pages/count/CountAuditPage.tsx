@@ -308,7 +308,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 relative">
       {/* 헤더 */}
-      <Header headerTitle="현장 자산 실사" headerSubTitle="장비 점검, 실사, QR생성" level={2} /> 
+      <Header headerTitle="현장 자산 실사" headerSubTitle="장비 점검, 실사, QR생성" level={2} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
         <div className="space-y-6">
@@ -418,7 +418,13 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                       {/*  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div> */}
                     </div>
                   ) : (
-                    <div className="flex gap-2 animate-in slide-in-from-right-2"><input type="text" autoFocus value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-blue-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-blue-50" /><button onClick={() => { setIsCustomCenter(false); setSelectedCenter(""); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200"><RefreshCcw className="w-5 h-5" /></button></div>
+                    <div className="flex gap-2 animate-in slide-in-from-right-2">
+                      <input type="text" autoFocus value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-blue-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-blue-50" />
+                      <button onClick={() => { setIsCustomCenter(false); setSelectedCenter(""); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200">
+
+                        <RefreshCcw className="w-5 h-5" />
+                      </button>
+                    </div>
                   )}
                 </div>
                 <div className="space-y-2">
@@ -433,7 +439,12 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                       {/* <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div> */}
                     </div>
                   ) : (
-                    <div className="flex gap-2 animate-in slide-in-from-right-2"><input type="text" autoFocus value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-purple-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-purple-50" /><button onClick={() => { setIsCustomZone(false); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200"><RefreshCcw className="w-5 h-5" /></button></div>
+                    <div className="flex gap-2 animate-in slide-in-from-right-2">
+                      <input type="text" autoFocus value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-purple-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-purple-50" />
+                      <button onClick={() => { setIsCustomZone(false); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200">
+                        <RefreshCcw className="w-5 h-5" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>

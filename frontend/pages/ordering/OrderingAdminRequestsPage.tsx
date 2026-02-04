@@ -1,7 +1,19 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, Download, Edit, UserPlus, Eye, X, Maximize2 } from 'lucide-react';
-import { isAdmin, getCurrentUser, getSessionToken } from '../../utils/orderingAuth';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Search,
+  Download,
+  Edit,
+  UserPlus,
+  Eye,
+  X,
+  Maximize2,
+} from "lucide-react";
+import {
+  isAdmin,
+  getCurrentUser,
+  getSessionToken,
+} from "../../utils/orderingAuth";
 import {
   getAllRequestsOrdering,
   updateRequestStatusOrdering,
@@ -9,15 +21,19 @@ import {
   getRequestDetailOrdering,
   updateHandlerRemarksOrdering,
   PaginatedResult,
-  ORDERING_GAS_URL
-} from '../../services/orderingService';
-import { getAllUsers } from '../../services/adminService';
-import { Request, User } from '../../types/ordering';
-import { formatDate, getStatusColor, getImageUrl } from '../../utils/orderingHelpers';
-import LoadingOverlay from '../../components/LoadingOverlay';
-import DataTable, { TableColumn } from '../../components/DataTable';
-import Toast from '../../components/Toast';
-import Header from '@/components/Header';
+  ORDERING_GAS_URL,
+} from "../../services/orderingService";
+import { getAllUsers } from "../../services/adminService";
+import { Request, User } from "../../types/ordering";
+import {
+  formatDate,
+  getStatusColor,
+  getImageUrl,
+} from "../../utils/orderingHelpers";
+import LoadingOverlay from "../../components/LoadingOverlay";
+import DataTable, { TableColumn } from "../../components/DataTable";
+import Toast from "../../components/Toast";
+import Header from "@/components/Header";
 
 const OrderingAdminRequestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -25,11 +41,11 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<string>('requestNo');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("requestNo");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -38,21 +54,27 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const [showHandlerModal, setShowHandlerModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [detailRequest, setDetailRequest] = useState<Request | null>(null);
-  const [selectedRequests, setSelectedRequests] = useState<Set<string>>(new Set());
-  const [newStatus, setNewStatus] = useState('');
-  const [handlerName, setHandlerName] = useState('');
-  const [remarks, setRemarks] = useState('');
-  const [detailRemarks, setDetailRemarks] = useState('');
-  const [detailRequesterRemarks, setDetailRequesterRemarks] = useState('');
-  const [originalDetailRemarks, setOriginalDetailRemarks] = useState('');
-  const [originalDetailRequesterRemarks, setOriginalDetailRequesterRemarks] = useState('');
+  const [selectedRequests, setSelectedRequests] = useState<Set<string>>(
+    new Set(),
+  );
+  const [newStatus, setNewStatus] = useState("");
+  const [handlerName, setHandlerName] = useState("");
+  const [remarks, setRemarks] = useState("");
+  const [detailRemarks, setDetailRemarks] = useState("");
+  const [detailRequesterRemarks, setDetailRequesterRemarks] = useState("");
+  const [originalDetailRemarks, setOriginalDetailRemarks] = useState("");
+  const [originalDetailRequesterRemarks, setOriginalDetailRequesterRemarks] =
+    useState("");
   const [processing, setProcessing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
   const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       return window.innerWidth < 768;
     }
     return false;
@@ -65,8 +87,8 @@ const OrderingAdminRequestsPage: React.FC = () => {
       setPageSize(mobile ? 9999 : 10);
       setCurrentPage(1);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // user의 userId를 메모이제이션하여 안정적인 참조 생성
@@ -78,10 +100,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const loadRequests = useCallback(async () => {
     try {
       setLoading(true);
-      setError('');
+      setError("");
       const sessionToken = getSessionToken();
       if (!sessionToken) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
@@ -92,52 +114,61 @@ const OrderingAdminRequestsPage: React.FC = () => {
         ORDERING_GAS_URL,
         {
           page: 1,
-          pageSize: 9999 // 전체 데이터를 가져옴
+          pageSize: 9999, // 전체 데이터를 가져옴
           // sortBy, sortOrder는 클라이언트에서 처리하므로 서버에 전달하지 않음
         },
-        sessionToken
+        sessionToken,
       );
 
-      const newRequests = Array.isArray(result) ? result : (result.data || []);
+      const newRequests = Array.isArray(result) ? result : result.data || [];
 
-      console.log('loadRequests: 데이터 로드 완료', newRequests.length, '건');
-      console.log('loadRequests: 첫 번째 항목 상태', newRequests[0]?.status);
+      console.log("loadRequests: 데이터 로드 완료", newRequests.length, "건");
+      console.log("loadRequests: 첫 번째 항목 상태", newRequests[0]?.status);
 
       // 상태 업데이트 - 강제로 새 배열로 설정하여 리렌더링 보장
       setRequests([...newRequests]);
       setTotal(newRequests.length);
       setTotalPages(1);
     } catch (err: any) {
-      console.error('Failed to load requests:', err);
-      setError(err.message || '데이터를 불러오는 중 오류가 발생했습니다.');
+      console.error("Failed to load requests:", err);
+      setError(err.message || "데이터를 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
   }, [navigate]); // sortBy, sortOrder 제거 - 클라이언트에서만 정렬
 
   const filterRequests = useCallback(() => {
-    console.log('filterRequests: 실행됨', requests.length, '건');
+    console.log("filterRequests: 실행됨", requests.length, "건");
     let filtered = [...requests];
 
     // 검색 필터
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(req =>
-        String(req.requestNo || '').toLowerCase().includes(term) ||
-        String(req.requesterName || '').toLowerCase().includes(term) ||
-        String(req.itemName || '').toLowerCase().includes(term) ||
-        String(req.status || '').toLowerCase().includes(term)
+      filtered = filtered.filter(
+        (req) =>
+          String(req.requestNo || "")
+            .toLowerCase()
+            .includes(term) ||
+          String(req.requesterName || "")
+            .toLowerCase()
+            .includes(term) ||
+          String(req.itemName || "")
+            .toLowerCase()
+            .includes(term) ||
+          String(req.status || "")
+            .toLowerCase()
+            .includes(term),
       );
     }
 
     // 상태 필터
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(req => req.status === statusFilter);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((req) => req.status === statusFilter);
     }
 
-    console.log('filterRequests: 필터링 완료', filtered.length, '건');
+    console.log("filterRequests: 필터링 완료", filtered.length, "건");
     if (filtered.length > 0) {
-      console.log('filterRequests: 첫 번째 항목 상태', filtered[0]?.status);
+      console.log("filterRequests: 첫 번째 항목 상태", filtered[0]?.status);
     }
     setFilteredRequests(filtered);
   }, [requests, searchTerm, statusFilter]);
@@ -148,10 +179,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
     if (sortBy) {
       sorted.sort((a, b) => {
-        const aValue = a[sortBy as keyof Request] || '';
-        const bValue = b[sortBy as keyof Request] || '';
-        if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-        if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+        const aValue = a[sortBy as keyof Request] || "";
+        const bValue = b[sortBy as keyof Request] || "";
+        if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+        if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
         return 0;
       });
     }
@@ -161,14 +192,18 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   // requests가 변경되면 자동으로 필터링 실행
   useEffect(() => {
-    console.log('useEffect: filterRequests 실행', requests.length, '건');
+    console.log("useEffect: filterRequests 실행", requests.length, "건");
     filterRequests();
   }, [filterRequests]);
 
   // requests가 직접 변경되면 필터링 실행 (이중 보장)
   useEffect(() => {
     if (requests.length > 0) {
-      console.log('useEffect: requests 변경 감지, 필터링 실행', requests.length, '건');
+      console.log(
+        "useEffect: requests 변경 감지, 필터링 실행",
+        requests.length,
+        "건",
+      );
       filterRequests();
     }
   }, [requests.length, filterRequests]); // requests.length 변경 시 필터링 실행
@@ -176,8 +211,8 @@ const OrderingAdminRequestsPage: React.FC = () => {
   useEffect(() => {
     // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
-      alert('접근 권한이 없습니다.');
-      navigate('/user', { replace: true });
+      alert("접근 권한이 없습니다.");
+      navigate("/user", { replace: true });
       return;
     }
     loadRequests();
@@ -185,111 +220,128 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   const handleSort = (key: string) => {
     if (sortBy === key) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
       setSortBy(key);
-      setSortOrder('asc');
+      setSortOrder("asc");
     }
   };
 
   // 테이블 컬럼 설정 - 여기서 쉽게 헤더 관리 가능
-  const columns: TableColumn<Request>[] = useMemo(() => [
-    {
-      key: 'checkbox',
-      label: '',
-      sortable: false,
-      headerClassName: 'w-12',
-      render: (_, row) => (
-        <input
-          type="checkbox"
-          checked={selectedRequests.has(row.requestNo)}
-          onChange={() => handleSelectRequest(row.requestNo)}
-          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-        />
-      )
-    },
-    {
-      key: 'requestNo',
-      label: '신청번호',
-      sortable: true,
-      sortKey: 'requestNo',
-      render: (value) => <span className="font-medium">{value}</span>
-    },
-    {
-      key: 'status',
-      label: '상태',
-      sortable: true,
-      sortKey: 'status',
-      render: (value) => (
-        <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(value)}`}>
-          {value}
-        </span>
-      )
-    },
-    {
-      key: 'requestDate',
-      label: '신청일시',
-      sortable: true,
-      sortKey: 'requestDate',
-      render: (value) => value || '-'
-    },
-    {
-      key: 'requester',
-      label: '신청자',
-      sortable: false,
-      render: (_, row) => (
-        <div>
-          <p>{row.requesterName}</p>
-          <p className="text-xs text-gray-500">{row.region} - {row.team}</p>
-        </div>
-      )
-    },
-    {
-      key: 'itemName',
-      label: '품명',
-      sortable: false,
-      render: (value) => value || '-'
-    },
-    {
-      key: 'quantity',
-      label: '수량',
-      sortable: false,
-      render: (value) => value || '-'
-    },
-    {
-      key: 'assetNo',
-      label: '관리번호',
-      sortable: false,
-      render: (value) => value || '-'
-    },
-    {
-      key: 'handler',
-      label: '접수담당자',
-      sortable: false,
-      render: (value) => value || '-'
-    },
-    {
-      key: 'actions',
-      label: '상세',
-      sortable: false,
-      render: (_, row) => (
-        <button
-          onClick={() => handleShowDetail(row)}
-          className="text-blue-600 hover:text-blue-900"
-          title="상세 보기"
-        >
-          <Eye className="w-4 h-4" />
-        </button>
-      )
-    }
-  ], [selectedRequests]);
+  const columns: TableColumn<Request>[] = useMemo(
+    () => [
+      {
+        key: "checkbox",
+        label: "",
+        sortable: false,
+        headerClassName: "w-12",
+        render: (_, row) => (
+          <input
+            type="checkbox"
+            checked={selectedRequests.has(row.requestNo)}
+            onChange={() => handleSelectRequest(row.requestNo)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+        ),
+      },
+      {
+        key: "requestNo",
+        label: "신청번호",
+        sortable: true,
+        sortKey: "requestNo",
+        render: (value, row) => (
+          <button
+            onClick={() => handleShowDetail(row)}
+            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
+            title="상세 보기"
+          >
+            {value}
+          </button>
+        ),
+      },
+      {
+        key: "status",
+        label: "상태",
+        sortable: true,
+        sortKey: "status",
+        render: (value) => (
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(value)}`}
+          >
+            {value}
+          </span>
+        ),
+      },
+      {
+        key: "requestDate",
+        label: "신청일시",
+        sortable: true,
+        sortKey: "requestDate",
+        render: (value) => value || "-",
+      },
+      {
+        key: "requester",
+        label: "신청자",
+        sortable: false,
+        render: (_, row) => (
+          <div>
+            <p>{row.requesterName}</p>
+            <p className="text-xs text-gray-500">
+              {row.region} - {row.team}
+            </p>
+          </div>
+        ),
+      },
+      {
+        key: "itemName",
+        label: "품명",
+        sortable: false,
+        render: (value, row) => (
+          <button
+            onClick={() => handleShowDetail(row)}
+            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
+            title="상세 보기"
+          >
+            {value || "-"}
+          </button>
+        ),
+      },
+      {
+        key: "quantity",
+        label: "수량",
+        sortable: false,
+        render: (value) => value || "-",
+      },
+      {
+        key: "assetNo",
+        label: "관리번호",
+        sortable: false,
+        render: (value, row) => (
+          <button
+            onClick={() => handleShowDetail(row)}
+            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
+            title="상세 보기"
+          >
+            {value || "-"}
+          </button>
+        ),
+      },
+      {
+        key: "handler",
+        label: "접수담당자",
+        sortable: false,
+        render: (value) => value || "-",
+      },
+    ],
+    [selectedRequests],
+  );
 
   const statusOptions = [
-    '접수중',
-    '발주완료(납기미정)',
-    '발주완료(납기확인)',
-    '처리완료',
-    '접수취소'
+    "접수중",
+    "발주완료(납기미정)",
+    "발주완료(납기확인)",
+    "처리완료",
+    "접수취소",
   ];
 
   // 사용자 목록 로드
@@ -301,7 +353,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         const userList = await getAllUsers(sessionToken);
         setUsers(userList);
       } catch (err) {
-        console.error('Failed to load users:', err);
+        console.error("Failed to load users:", err);
       }
     };
     if (isUserAdmin) {
@@ -325,17 +377,19 @@ const OrderingAdminRequestsPage: React.FC = () => {
     if (selectedRequests.size === sortedAndFilteredRequests.length) {
       setSelectedRequests(new Set());
     } else {
-      setSelectedRequests(new Set(sortedAndFilteredRequests.map(r => r.requestNo)));
+      setSelectedRequests(
+        new Set(sortedAndFilteredRequests.map((r) => r.requestNo)),
+      );
     }
   };
 
   // 상세 모달 열기
   const handleShowDetail = async (request: Request) => {
     setDetailRequest(request);
-    setDetailRemarks(request.handlerRemarks || '');
-    setDetailRequesterRemarks(request.remarks || '');
-    setOriginalDetailRemarks(request.handlerRemarks || '');
-    setOriginalDetailRequesterRemarks(request.remarks || '');
+    setDetailRemarks(request.handlerRemarks || "");
+    setDetailRequesterRemarks(request.remarks || "");
+    setOriginalDetailRemarks(request.handlerRemarks || "");
+    setOriginalDetailRequesterRemarks(request.remarks || "");
     setHasChanges(false);
     setShowDetailModal(true);
 
@@ -343,17 +397,21 @@ const OrderingAdminRequestsPage: React.FC = () => {
     try {
       const sessionToken = getSessionToken();
       if (!sessionToken) return;
-      const detail = await getRequestDetailOrdering(ORDERING_GAS_URL, request.requestNo, sessionToken);
+      const detail = await getRequestDetailOrdering(
+        ORDERING_GAS_URL,
+        request.requestNo,
+        sessionToken,
+      );
       if (detail) {
         setDetailRequest(detail);
-        setDetailRemarks(detail.handlerRemarks || '');
-        setDetailRequesterRemarks(detail.remarks || '');
-        setOriginalDetailRemarks(detail.handlerRemarks || '');
-        setOriginalDetailRequesterRemarks(detail.remarks || '');
+        setDetailRemarks(detail.handlerRemarks || "");
+        setDetailRequesterRemarks(detail.remarks || "");
+        setOriginalDetailRemarks(detail.handlerRemarks || "");
+        setOriginalDetailRequesterRemarks(detail.remarks || "");
         setHasChanges(false);
       }
     } catch (err) {
-      console.error('Failed to load detail:', err);
+      console.error("Failed to load detail:", err);
     }
   };
 
@@ -361,10 +419,17 @@ const OrderingAdminRequestsPage: React.FC = () => {
   useEffect(() => {
     if (detailRequest) {
       const remarksChanged = detailRemarks !== originalDetailRemarks;
-      const requesterRemarksChanged = detailRequesterRemarks !== originalDetailRequesterRemarks;
+      const requesterRemarksChanged =
+        detailRequesterRemarks !== originalDetailRequesterRemarks;
       setHasChanges(remarksChanged || requesterRemarksChanged);
     }
-  }, [detailRemarks, detailRequesterRemarks, originalDetailRemarks, originalDetailRequesterRemarks, detailRequest]);
+  }, [
+    detailRemarks,
+    detailRequesterRemarks,
+    originalDetailRemarks,
+    originalDetailRequesterRemarks,
+    detailRequest,
+  ]);
 
   // 상세 모달의 모든 변경사항 저장
   const saveDetailChanges = async () => {
@@ -374,7 +439,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       setProcessing(true);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
@@ -384,12 +449,15 @@ const OrderingAdminRequestsPage: React.FC = () => {
           ORDERING_GAS_URL,
           detailRequest.requestNo,
           detailRemarks,
-          sessionToken
+          sessionToken,
         );
 
         if (!result.success) {
-          setError(result.message || '접수 담당자 비고 저장에 실패했습니다.');
-          setToast({ message: result.message || '접수 담당자 비고 저장에 실패했습니다.', type: 'error' });
+          setError(result.message || "접수 담당자 비고 저장에 실패했습니다.");
+          setToast({
+            message: result.message || "접수 담당자 비고 저장에 실패했습니다.",
+            type: "error",
+          });
           setProcessing(false);
           return;
         }
@@ -397,18 +465,22 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
       // 데이터 새로고침
       await loadRequests();
-      const updated = await getRequestDetailOrdering(ORDERING_GAS_URL, detailRequest.requestNo, sessionToken);
+      const updated = await getRequestDetailOrdering(
+        ORDERING_GAS_URL,
+        detailRequest.requestNo,
+        sessionToken,
+      );
       if (updated) {
         setDetailRequest(updated);
-        setDetailRemarks(updated.handlerRemarks || '');
-        setDetailRequesterRemarks(updated.remarks || '');
-        setOriginalDetailRemarks(updated.handlerRemarks || '');
-        setOriginalDetailRequesterRemarks(updated.remarks || '');
+        setDetailRemarks(updated.handlerRemarks || "");
+        setDetailRequesterRemarks(updated.remarks || "");
+        setOriginalDetailRemarks(updated.handlerRemarks || "");
+        setOriginalDetailRequesterRemarks(updated.remarks || "");
         setHasChanges(false);
-        setToast({ message: '저장되었습니다.', type: 'success' });
+        setToast({ message: "저장되었습니다.", type: "success" });
       }
     } catch (err: any) {
-      setError(err.message || '저장 중 오류가 발생했습니다.');
+      setError(err.message || "저장 중 오류가 발생했습니다.");
     } finally {
       setProcessing(false);
     }
@@ -417,16 +489,16 @@ const OrderingAdminRequestsPage: React.FC = () => {
   // 모달 닫기 (변경사항 확인)
   const handleCloseDetailModal = () => {
     if (hasChanges) {
-      if (!confirm('저장되지 않은 변경사항이 있습니다. 정말 닫으시겠습니까?')) {
+      if (!confirm("저장되지 않은 변경사항이 있습니다. 정말 닫으시겠습니까?")) {
         return;
       }
     }
     setShowDetailModal(false);
     setDetailRequest(null);
-    setDetailRemarks('');
-    setDetailRequesterRemarks('');
-    setOriginalDetailRemarks('');
-    setOriginalDetailRequesterRemarks('');
+    setDetailRemarks("");
+    setDetailRequesterRemarks("");
+    setOriginalDetailRemarks("");
+    setOriginalDetailRequesterRemarks("");
     setHasChanges(false);
     setExpandedImage(null);
   };
@@ -434,11 +506,11 @@ const OrderingAdminRequestsPage: React.FC = () => {
   // 일괄 상태 변경
   const handleBatchStatusChange = () => {
     if (selectedRequests.size === 0) {
-      setError('선택된 항목이 없습니다.');
+      setError("선택된 항목이 없습니다.");
       return;
     }
-    setNewStatus('');
-    setRemarks('');
+    setNewStatus("");
+    setRemarks("");
     setShowStatusModal(true);
   };
 
@@ -450,7 +522,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       setProcessing(true);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
@@ -468,7 +540,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
             remarks,
             undefined,
             undefined,
-            sessionToken
+            sessionToken,
           );
           if (result.success) {
             successCount++;
@@ -486,15 +558,19 @@ const OrderingAdminRequestsPage: React.FC = () => {
       // 모든 업데이트 작업이 완료될 때까지 대기
       await Promise.all(updatePromises);
 
-      console.log('saveBatchStatusChange: 업데이트 완료', successCount, '건 성공');
+      console.log(
+        "saveBatchStatusChange: 업데이트 완료",
+        successCount,
+        "건 성공",
+      );
 
       if (successCount > 0) {
         setShowStatusModal(false);
         setSelectedRequests(new Set());
 
         // 로컬 상태 즉시 업데이트 (낙관적 업데이트)
-        setRequests(prevRequests => {
-          const updatedRequests = prevRequests.map(req => {
+        setRequests((prevRequests) => {
+          const updatedRequests = prevRequests.map((req) => {
             if (requestNos.includes(req.requestNo)) {
               return { ...req, status: newStatus };
             }
@@ -504,21 +580,30 @@ const OrderingAdminRequestsPage: React.FC = () => {
         });
 
         // 백그라운드에서 데이터 새로고침 (비동기)
-        loadRequests().catch(err => {
-          console.error('saveBatchStatusChange: 데이터 새로고침 실패', err);
+        loadRequests().catch((err) => {
+          console.error("saveBatchStatusChange: 데이터 새로고침 실패", err);
         });
         if (failCount > 0) {
           setError(`${successCount}건 성공, ${failCount}건 실패했습니다.`);
-          setToast({ message: `${successCount}건 성공, ${failCount}건 실패했습니다.`, type: 'error' });
+          setToast({
+            message: `${successCount}건 성공, ${failCount}건 실패했습니다.`,
+            type: "error",
+          });
         } else {
-          setToast({ message: `${successCount}건의 상태가 변경되었습니다.`, type: 'success' });
+          setToast({
+            message: `${successCount}건의 상태가 변경되었습니다.`,
+            type: "success",
+          });
         }
       } else {
-        setError('모든 항목의 상태 변경에 실패했습니다.');
-        setToast({ message: '모든 항목의 상태 변경에 실패했습니다.', type: 'error' });
+        setError("모든 항목의 상태 변경에 실패했습니다.");
+        setToast({
+          message: "모든 항목의 상태 변경에 실패했습니다.",
+          type: "error",
+        });
       }
     } catch (err: any) {
-      setError(err.message || '일괄 상태 변경 중 오류가 발생했습니다.');
+      setError(err.message || "일괄 상태 변경 중 오류가 발생했습니다.");
     } finally {
       setProcessing(false);
     }
@@ -527,10 +612,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
   // 일괄 담당자 배정
   const handleBatchHandlerAssign = () => {
     if (selectedRequests.size === 0) {
-      setError('선택된 항목이 없습니다.');
+      setError("선택된 항목이 없습니다.");
       return;
     }
-    setHandlerName('');
+    setHandlerName("");
     setShowHandlerModal(true);
   };
 
@@ -542,14 +627,14 @@ const OrderingAdminRequestsPage: React.FC = () => {
       setProcessing(true);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
-        navigate('/login');
+        navigate("/login");
         return;
       }
 
       // 사용자 목록에서 이름으로 찾기
-      const matchedUser = users.find(u => u.name === handlerName.trim());
+      const matchedUser = users.find((u) => u.name === handlerName.trim());
       if (!matchedUser) {
-        setError('배정자가 존재하지 않습니다.');
+        setError("배정자가 존재하지 않습니다.");
         setProcessing(false);
         return;
       }
@@ -565,7 +650,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
             ORDERING_GAS_URL,
             requestNo,
             matchedUser.userId, // userId를 handlerEmail로 사용
-            sessionToken
+            sessionToken,
           );
           if (result.success) {
             successCount++;
@@ -588,8 +673,8 @@ const OrderingAdminRequestsPage: React.FC = () => {
         setSelectedRequests(new Set());
 
         // 로컬 상태 즉시 업데이트 (낙관적 업데이트)
-        setRequests(prevRequests => {
-          const updatedRequests = prevRequests.map(req => {
+        setRequests((prevRequests) => {
+          const updatedRequests = prevRequests.map((req) => {
             if (requestNos.includes(req.requestNo)) {
               return { ...req, handler: matchedUser.name };
             }
@@ -599,22 +684,31 @@ const OrderingAdminRequestsPage: React.FC = () => {
         });
 
         // 백그라운드에서 데이터 새로고침 (비동기)
-        loadRequests().catch(err => {
-          console.error('saveBatchHandlerAssign: 데이터 새로고침 실패', err);
+        loadRequests().catch((err) => {
+          console.error("saveBatchHandlerAssign: 데이터 새로고침 실패", err);
         });
 
         if (failCount > 0) {
           setError(`${successCount}건 성공, ${failCount}건 실패했습니다.`);
-          setToast({ message: `${successCount}건 성공, ${failCount}건 실패했습니다.`, type: 'error' });
+          setToast({
+            message: `${successCount}건 성공, ${failCount}건 실패했습니다.`,
+            type: "error",
+          });
         } else {
-          setToast({ message: `${successCount}건의 담당자가 배정되었습니다.`, type: 'success' });
+          setToast({
+            message: `${successCount}건의 담당자가 배정되었습니다.`,
+            type: "success",
+          });
         }
       } else {
-        setError('모든 항목의 담당자 배정에 실패했습니다.');
-        setToast({ message: '모든 항목의 담당자 배정에 실패했습니다.', type: 'error' });
+        setError("모든 항목의 담당자 배정에 실패했습니다.");
+        setToast({
+          message: "모든 항목의 담당자 배정에 실패했습니다.",
+          type: "error",
+        });
       }
     } catch (err: any) {
-      setError(err.message || '일괄 담당자 배정 중 오류가 발생했습니다.');
+      setError(err.message || "일괄 담당자 배정 중 오류가 발생했습니다.");
     } finally {
       setProcessing(false);
     }
@@ -626,12 +720,14 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      <Header headerTitle="부품 신청 현황 (전체 조회)" headerSubTitle="부품 발주 시스템" level={1} />
+      <Header
+        headerTitle="부품 신청 현황 (전체 조회)"
+        headerSubTitle="부품 발주 시스템"
+        level={1}
+      />
       <div className="max-w-[85dvw] mx-auto px-4 sm:px-4 lg:px-8">
         <div className="mb-6">
-          <p className="mt-2 text-gray-600">
-            총 {total}건의 신청이 있습니다.
-          </p>
+          <p className="mt-2 text-gray-600">총 {total}건의 신청이 있습니다.</p>
         </div>
 
         {/* 필터 및 검색 */}
@@ -640,20 +736,22 @@ const OrderingAdminRequestsPage: React.FC = () => {
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
+              data-type="search"
               placeholder="신청번호, 신청자, 품명으로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              onChange={(e) => setSearchTerm(e.target.value)} 
             />
           </div>
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
           >
             <option value="all">전체 상태</option>
-            {statusOptions.map(status => (
-              <option key={status} value={status}>{status}</option>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
             ))}
           </select>
         </div>
@@ -689,14 +787,20 @@ const OrderingAdminRequestsPage: React.FC = () => {
             <input
               id="selectAll"
               type="checkbox"
-              checked={selectedRequests.size === sortedAndFilteredRequests.length && sortedAndFilteredRequests.length > 0}
+              checked={
+                selectedRequests.size === sortedAndFilteredRequests.length &&
+                sortedAndFilteredRequests.length > 0
+              }
               onChange={handleSelectAll}
               className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
-            <label htmlFor="selectAll" className="text-sm text-gray-600">전체 선택</label>
+            <label htmlFor="selectAll" className="text-sm text-gray-600 cursor-pointer">
+              전체 선택
+            </label>
           </div>
           <p className="mt-2 mb-2 text-red-600">
-            데이터의 동기화가 다소 느릴 수 있습니다. 동기화가 되지 않을 경우, 잠시 기다렸다 새로고침해 주세요.
+            데이터의 동기화가 다소 느릴 수 있습니다. 동기화가 되지 않을 경우,
+            잠시 기다렸다 새로고침해 주세요.
           </p>
           <DataTable
             data={sortedAndFilteredRequests}
@@ -733,11 +837,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-full"
                   >
                     <option value="">상태를 선택하세요</option>
-                    {statusOptions.map(status => (
-                      <option key={status} value={status}>{status}</option>
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -758,8 +864,8 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowStatusModal(false);
-                    setNewStatus('');
-                    setRemarks('');
+                    setNewStatus("");
+                    setRemarks("");
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md"
                 >
@@ -770,7 +876,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                   disabled={processing || !newStatus}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
                 >
-                  {processing ? '저장 중...' : '저장'}
+                  {processing ? "저장 중..." : "저장"}
                 </button>
               </div>
             </div>
@@ -793,11 +899,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
                     type="text"
                     value={handlerName}
                     onChange={(e) => setHandlerName(e.target.value)}
-                    placeholder="관리자 이름을 입력하세요"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    placeholder="관리자 이름을 입력하세요" 
                   />
                   <p className="mt-1 text-xs text-gray-500">
-                    사용자관리 시트에 등록된 관리자 이름을 정확히 입력하세요
+                    사용자 관리 시트에 등록된 관리자 이름을 정확히 입력하세요.
                   </p>
                 </div>
               </div>
@@ -805,7 +910,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 <button
                   onClick={() => {
                     setShowHandlerModal(false);
-                    setHandlerName('');
+                    setHandlerName("");
                   }}
                   className="px-4 py-2 border border-gray-300 rounded-md"
                 >
@@ -816,7 +921,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                   disabled={processing || !handlerName.trim()}
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
                 >
-                  {processing ? '저장 중...' : '배정'}
+                  {processing ? "저장 중..." : "배정"}
                 </button>
               </div>
             </div>
@@ -829,7 +934,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
             <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full m-4 max-h-[90vh] overflow-y-auto">
               {/* 헤더 */}
               <div className="sticky top-0 bg-white border-b border-gray-200 px-4 py-4 flex justify-between items-center z-10">
-                <h1 className="text-2xl font-bold text-gray-900">신청 상세 정보</h1>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  신청 상세 정보
+                </h1>
                 <button
                   onClick={handleCloseDetailModal}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -842,7 +949,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 {/* 기본 정보 테이블 */}
                 <div className="bg-gray-50 rounded-lg overflow-hidden">
                   <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-                    <h2 className="text-lg font-semibold text-gray-800">기본 정보</h2>
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      기본 정보
+                    </h2>
                   </div>
                   <table className="min-w-full divide-y divide-gray-200">
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -868,8 +977,12 @@ const OrderingAdminRequestsPage: React.FC = () => {
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
                           <div>
-                            <p className="font-medium">{detailRequest.requesterName}</p>
-                            <p className="text-xs text-gray-500 mt-1">{detailRequest.region} - {detailRequest.team}</p>
+                            <p className="font-medium">
+                              {detailRequest.requesterName}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {detailRequest.region} - {detailRequest.team}
+                            </p>
                           </div>
                         </td>
                       </tr>
@@ -878,7 +991,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           현재 상태
                         </td>
                         <td className="px-4 py-4">
-                          <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(detailRequest.status)}`}>
+                          <span
+                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(detailRequest.status)}`}
+                          >
                             {detailRequest.status}
                           </span>
                         </td>
@@ -888,7 +1003,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           신청자 비고
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequesterRemarks || '-'}
+                          {detailRequesterRemarks || "-"}
                         </td>
                       </tr>
                     </tbody>
@@ -898,7 +1013,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 {/* 부품 정보 테이블 */}
                 <div className="bg-gray-50 rounded-lg overflow-hidden">
                   <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-                    <h2 className="text-lg font-semibold text-gray-800">부품 정보</h2>
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      부품 정보
+                    </h2>
                   </div>
                   <table className="min-w-full divide-y divide-gray-200">
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -915,7 +1032,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           모델명
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest.modelName || '-'}
+                          {detailRequest.modelName || "-"}
                         </td>
                       </tr>
                       <tr>
@@ -939,7 +1056,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           수령 연락처
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest.phone || '-'}
+                          {detailRequest.phone || "-"}
                         </td>
                       </tr>
                       <tr>
@@ -947,7 +1064,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           업체명
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest.company || '-'}
+                          {detailRequest.company || "-"}
                         </td>
                       </tr>
                     </tbody>
@@ -958,7 +1075,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 {detailRequest.photoUrl && (
                   <div className="bg-gray-50 rounded-lg overflow-hidden">
                     <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-                      <h2 className="text-lg font-semibold text-gray-800">첨부사진</h2>
+                      <h2 className="text-lg font-semibold text-gray-800">
+                        첨부사진
+                      </h2>
                     </div>
                     <div className="p-6 bg-white">
                       <div className="flex justify-center">
@@ -966,10 +1085,16 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           src={getImageUrl(detailRequest.photoUrl)}
                           alt="첨부사진"
                           className="max-h-[300px] h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity shadow-md"
-                          onClick={() => setExpandedImage(getImageUrl(detailRequest.photoUrl!))}
+                          onClick={() =>
+                            setExpandedImage(
+                              getImageUrl(detailRequest.photoUrl!),
+                            )
+                          }
                         />
                       </div>
-                      <p className="text-xs text-gray-500 text-center mt-2">클릭하면 원본 크기로 확대됩니다</p>
+                      <p className="text-xs text-gray-500 text-center mt-2">
+                        클릭하면 원본 크기로 확대됩니다
+                      </p>
                     </div>
                   </div>
                 )}
@@ -977,7 +1102,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 {/* 접수 담당자 및 비고 */}
                 <div className="bg-gray-50 rounded-lg overflow-hidden">
                   <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-                    <h2 className="text-lg font-semibold text-gray-800">접수 담당자 및 비고</h2>
+                    <h2 className="text-lg font-semibold text-gray-800">
+                      접수 담당자 및 비고
+                    </h2>
                   </div>
                   <table className="min-w-full divide-y divide-gray-200">
                     <tbody className="bg-white divide-y divide-gray-200">
@@ -986,7 +1113,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           접수 담당자
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest.handler || '-'}
+                          {detailRequest.handler || "-"}
                         </td>
                       </tr>
                       <tr>
@@ -1006,7 +1133,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                             disabled={processing}
                             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 transition-colors w-full sm:w-auto"
                           >
-                            {processing ? '저장 중...' : '저장'}
+                            {processing ? "저장 중..." : "저장"}
                           </button>
                         </td>
                       </tr>
@@ -1071,4 +1198,3 @@ const OrderingAdminRequestsPage: React.FC = () => {
 };
 
 export default OrderingAdminRequestsPage;
-

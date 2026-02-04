@@ -11,7 +11,7 @@ import ExcelJS from 'exceljs';
  * 기본 구글 앱스 스크립트 배포 URL (부품발주 시스템)
  * 환경 변수에서 가져오거나 기본값 사용
  */
-export const ORDERING_GAS_URL = (import.meta.env?.VITE_ORDERING_GAS_URL as string) || "https://script.google.com/macros/s/AKfycbwJ8Q2AiRkOXs4Gyay_gjYA8_W4mu4EloDphIgwEu1Di3YxbcHKZBOfcdyvZEgOLOts/exec";
+export const ORDERING_GAS_URL = (import.meta.env?.VITE_ORDERING_GAS_URL as string) || "https://script.google.com/macros/s/AKfycbx5AfI7xiJLaWSmZ4Yq8p7Sq6R_LJ80ZXqCSfR7-kIOOrboAkZxDSjk_EFoixIWUwJ6/exec";
 
 /**
  * GET 요청 헬퍼 함수
@@ -32,20 +32,10 @@ async function fetchOrderingData<T = any>(
             .join('&');
         const fetchUrl = `${url}${separator}action=${action}${paramString ? '&' + paramString : ''}&t=${Date.now()}`;
 
-        console.log(`[fetchOrderingData] Fetching: ${action}`, { 
-            url, 
-            action,
-            params: Object.keys(params),
-            paramValues: params, // 실제 파라미터 값도 로깅
-            fullUrl: fetchUrl // 전체 URL 로깅
-        });
 
         const response = await fetch(fetchUrl, {
             redirect: 'follow' // 리다이렉트 자동 따라가기
         });
-
-        console.log(`[fetchOrderingData] Response status: ${response.status}, ok: ${response.ok}`);
-
         // 302는 리다이렉트 중간 상태이므로, 최종 응답 확인
         // fetch는 자동으로 리다이렉트를 따라가므로 최종 상태 코드 확인
         if (response.status >= 400) {
@@ -56,8 +46,6 @@ async function fetchOrderingData<T = any>(
 
         // 응답을 먼저 텍스트로 읽어서 확인
         const responseText = await response.text();
-        console.log(`[fetchOrderingData] Response text (first 500 chars):`, responseText.substring(0, 500));
-        console.log(`[fetchOrderingData] Response text length:`, responseText.length);
 
         // 빈 응답 체크
         if (!responseText || responseText.trim() === '') {
@@ -69,25 +57,18 @@ async function fetchOrderingData<T = any>(
         // JSON 파싱 시도
         try {
             const data = JSON.parse(responseText);
-            console.log(`[fetchOrderingData] Parsed JSON successfully for action: ${action}`, {
-                isArray: Array.isArray(data),
-                length: Array.isArray(data) ? data.length : 'N/A',
-                hasData: data && typeof data === 'object' && 'data' in data,
-                data: data // 실제 데이터 내용도 로깅
-            });
-            
             // 에러 응답 체크 (서버가 에러를 객체로 반환하는 경우)
             if (data && typeof data === 'object' && !Array.isArray(data) && 'error' in data) {
                 console.error(`[fetchOrderingData] Server returned error:`, data);
                 throw new Error(data.error || '서버에서 오류가 발생했습니다.');
             }
-            
+
             // success: false 체크
             if (data && typeof data === 'object' && 'success' in data && data.success === false) {
                 console.error(`[fetchOrderingData] Server returned success: false:`, data);
                 throw new Error(data.message || '요청이 실패했습니다.');
             }
-            
+
             return data as T;
         } catch (parseError: any) {
             console.error(`[fetchOrderingData] JSON parse error for action ${action}:`, parseError);
@@ -119,8 +100,6 @@ async function postOrderingData<T = any>(
 
         const bodyString = JSON.stringify(requestBody);
 
-        console.log(`[postOrderingData] POST ${url}, body length: ${bodyString.length}`);
-
         const response = await fetch(url, {
             method: 'POST',
             redirect: 'follow',
@@ -130,9 +109,6 @@ async function postOrderingData<T = any>(
             },
             body: bodyString
         });
-
-        console.log(`[postOrderingData] Response status: ${response.status}, ok: ${response.ok}`);
-
         if (!response.ok) {
             const errorText = await response.text();
             console.error(`HTTP error! status: ${response.status}`, errorText);
@@ -141,7 +117,6 @@ async function postOrderingData<T = any>(
 
         // 응답을 먼저 텍스트로 읽어서 확인
         const responseText = await response.text();
-        console.log(`[postOrderingData] Response text (first 500 chars):`, responseText.substring(0, 500));
 
         // 빈 응답 체크
         if (!responseText || responseText.trim() === '') {
@@ -152,7 +127,6 @@ async function postOrderingData<T = any>(
         // JSON 파싱 시도
         try {
             const data = JSON.parse(responseText);
-            console.log(`[postOrderingData] Parsed JSON successfully for action: ${action}`);
             return data as T;
         } catch (parseError: any) {
             console.error(`[postOrderingData] JSON parse error for action ${action}:`, parseError);
@@ -210,9 +184,9 @@ export interface PaginatedResult<T> {
  */
 export async function getMyRequestsOrdering(
     url: string,
-    filter: { 
-        status?: string; 
-        dateFrom?: string; 
+    filter: {
+        status?: string;
+        dateFrom?: string;
         dateTo?: string;
         page?: number;
         pageSize?: number;
@@ -230,12 +204,12 @@ export async function getMyRequestsOrdering(
                 token: sessionToken
             }
         );
-        
+
         // 페이징 결과인 경우
         if (result && typeof result === 'object' && 'data' in result) {
             return result as PaginatedResult<Request>;
         }
-        
+
         // 배열 결과인 경우 (하위 호환성)
         return Array.isArray(result) ? result : [];
     } catch (error) {
@@ -250,10 +224,10 @@ export async function getMyRequestsOrdering(
  */
 export async function getAllRequestsOrdering(
     url: string,
-    filter: { 
-        status?: string; 
+    filter: {
+        status?: string;
         region?: string;
-        dateFrom?: string; 
+        dateFrom?: string;
         dateTo?: string;
         page?: number;
         pageSize?: number;
@@ -263,8 +237,6 @@ export async function getAllRequestsOrdering(
     sessionToken: string
 ): Promise<Request[] | PaginatedResult<Request>> {
     try {
-        console.log('[getAllRequestsOrdering] Calling API with:', { url, filter, hasToken: !!sessionToken });
-        
         const result = await fetchOrderingData<Request[] | PaginatedResult<Request>>(
             url,
             'getAllRequests',
@@ -273,27 +245,15 @@ export async function getAllRequestsOrdering(
                 token: sessionToken
             }
         );
-        
-        console.log('[getAllRequestsOrdering] API response:', {
-            result,
-            isArray: Array.isArray(result),
-            hasData: result && typeof result === 'object' && 'data' in result,
-            length: Array.isArray(result) ? result.length : (result && typeof result === 'object' && 'data' in result ? (result as PaginatedResult<Request>).data?.length : 'N/A')
-        });
-        
+
         // 페이징 결과인 경우
         if (result && typeof result === 'object' && 'data' in result) {
             const paginatedResult = result as PaginatedResult<Request>;
-            console.log('[getAllRequestsOrdering] Returning paginated result:', {
-                dataLength: paginatedResult.data?.length || 0,
-                total: paginatedResult.total || 0
-            });
             return paginatedResult;
         }
-        
+
         // 배열 결과인 경우 (하위 호환성)
         const arrayResult = Array.isArray(result) ? result : [];
-        console.log('[getAllRequestsOrdering] Returning array result:', { length: arrayResult.length });
         return arrayResult;
     } catch (error) {
         console.error('[getAllRequestsOrdering] Failed to get all requests:', error);
@@ -587,11 +547,11 @@ export async function loginOrdering(
     password: string
 ): Promise<{ success: boolean; message?: string; sessionToken?: string; user?: User }> {
     try {
-        const result = await postOrderingData<{ 
-            success: boolean; 
-            message?: string; 
-            sessionToken?: string; 
-            user?: User 
+        const result = await postOrderingData<{
+            success: boolean;
+            message?: string;
+            sessionToken?: string;
+            user?: User
         }>(
             url,
             'login',
@@ -961,7 +921,7 @@ export async function downloadMyRequestsExcel(
             });
             // 최소 높이 20, 최대 높이 100, 줄당 약 15px
             row.height = Math.min(Math.max(maxLines * 15, 20), 100);
-            
+
             row.eachCell((cell) => {
                 cell.style = dataStyle;
                 // 텍스트 줄바꿈 활성화

@@ -1,46 +1,69 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { ArrowLeft, FileText, Search, Filter, Eye, X, CheckCircle2, Download, Calendar } from 'lucide-react';
-import { Request } from '../../types/ordering';
+import React, { useEffect, useState, useMemo, useCallback } from "react";
+import {
+  ArrowLeft,
+  FileText,
+  Search,
+  Filter,
+  Eye,
+  X,
+  CheckCircle2,
+  Download,
+  Calendar,
+} from "lucide-react";
+import { Request } from "../../types/ordering";
 import {
   getMyRequestsOrdering,
   cancelRequestOrdering,
   confirmReceiptOrdering,
   downloadMyRequestsExcel,
   PaginatedResult,
-  ORDERING_GAS_URL
-} from '../../services/orderingService';
-import { getSessionToken } from '../../utils/orderingAuth';
-import { formatDate, getStatusColor, getDateRange, preloadImage } from '../../utils/orderingHelpers';
-import requestCache from '../../utils/orderingCache';
-import LoadingOverlay from '../../components/LoadingOverlay';
-import DataTable, { TableColumn } from '../../components/DataTable';
-import Toast from '../../components/Toast';
-import Header from '@/components/Header';
+  ORDERING_GAS_URL,
+} from "../../services/orderingService";
+import { getSessionToken } from "../../utils/orderingAuth";
+import {
+  formatDate,
+  getStatusColor,
+  getDateRange,
+  preloadImage,
+} from "../../utils/orderingHelpers";
+import requestCache from "../../utils/orderingCache";
+import LoadingOverlay from "../../components/LoadingOverlay";
+import DataTable, { TableColumn } from "../../components/DataTable";
+import Toast from "../../components/Toast";
+import ExcelDateRangeModal, {
+  ExcelDateRangeResult,
+} from "../../components/ExcelDateRangeModal";
+import Header from "@/components/Header";
 
 interface OrderingMyRequestsPageProps {
   onNavigate?: (view: string, requestNo?: string) => void;
 }
 
-type SortField = 'requestNo' | 'status' | 'requestDate' | null;
-type SortDirection = 'asc' | 'desc';
+type SortField = "requestNo" | "status" | "requestDate" | null;
+type SortDirection = "asc" | "desc";
 
-const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavigate }) => {
+const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
+  onNavigate,
+}) => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [sortField, setSortField] = useState<SortField>('requestDate');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortField, setSortField] = useState<SortField>("requestDate");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [processing, setProcessing] = useState<string | null>(null);
-  const [success, setSuccess] = useState('');
+  const [success, setSuccess] = useState("");
   const [isDownloading, setIsDownloading] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
 
   // 모바일 감지 (초기값은 window가 있을 때만 체크)
   const [isMobile, setIsMobile] = useState(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       return window.innerWidth < 768; // Tailwind md breakpoint
     }
     return false;
@@ -50,7 +73,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
   const [currentPage, setCurrentPage] = useState(1);
   // PC: 15건씩, 모바일: 페이징 없이 전체 표시 (성능 최적화를 위해 큰 값 사용)
   const [pageSize, setPageSize] = useState(() => {
-    if (typeof window !== 'undefined') {
+    if (typeof window !== "undefined") {
       return window.innerWidth < 768 ? 9999 : 10; // 모바일은 페이징 없음
     }
     return 10;
@@ -72,18 +95,15 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
       setCurrentPage(1); // 페이지 리셋
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   // 기간 필터 상태
-  const [dateFrom, setDateFrom] = useState<string>('');
-  const [dateTo, setDateTo] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
   const [showDateFilter, setShowDateFilter] = useState(false);
   const [showExcelDateFilter, setShowExcelDateFilter] = useState(false);
-  const [excelDateFrom, setExcelDateFrom] = useState<string>('');
-  const [excelDateTo, setExcelDateTo] = useState<string>('');
-  const [excelDateRangeAll, setExcelDateRangeAll] = useState(false);
 
   useEffect(() => {
     loadRequests();
@@ -96,18 +116,18 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
   const loadRequests = async () => {
     try {
       setLoading(true);
-      setError('');
+      setError("");
 
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate("ordering-login");
         }
         return;
       }
 
       if (!ORDERING_GAS_URL) {
-        console.warn('ORDERING_GAS_URL이 설정되지 않았습니다.');
+        console.warn("ORDERING_GAS_URL이 설정되지 않았습니다.");
         setRequests([]);
         return;
       }
@@ -116,22 +136,29 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
       const filter: any = {
         page: 1,
         pageSize: 9999, // 전체 데이터를 가져옴
-        sortBy: sortField || 'requestDate',
-        sortOrder: sortDirection
+        sortBy: sortField || "requestDate",
+        sortOrder: sortDirection,
       };
 
       if (dateFrom) filter.dateFrom = dateFrom;
       if (dateTo) filter.dateTo = dateTo;
 
-      const result = await getMyRequestsOrdering(ORDERING_GAS_URL, filter, sessionToken);
+      const result = await getMyRequestsOrdering(
+        ORDERING_GAS_URL,
+        filter,
+        sessionToken,
+      );
 
       // result가 배열이면 그대로 사용, 객체면 result.data 사용
-      const newRequests = Array.isArray(result) ? result : (result.data || []);
+      const newRequests = Array.isArray(result) ? result : result.data || [];
 
-      console.log('loadRequests: 데이터 로드 완료', newRequests.length, '건');
-      console.log('loadRequests: result 타입', Array.isArray(result) ? '배열' : '객체');
+      console.log("loadRequests: 데이터 로드 완료", newRequests.length, "건");
+      console.log(
+        "loadRequests: result 타입",
+        Array.isArray(result) ? "배열" : "객체",
+      );
       if (!Array.isArray(result) && result.data) {
-        console.log('loadRequests: result.data 길이', result.data.length);
+        console.log("loadRequests: result.data 길이", result.data.length);
       }
 
       setRequests(newRequests);
@@ -141,7 +168,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
       // 캐시에 저장
       requestCache.setMany(newRequests);
     } catch (err: any) {
-      setError(err.message || '신청 목록 로딩 실패');
+      setError(err.message || "신청 목록 로딩 실패");
       setRequests([]);
       setTotal(0);
       setTotalPages(1);
@@ -154,17 +181,22 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
     let filtered = [...requests];
 
     // 상태 필터
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter(req => req.status === statusFilter);
+    if (statusFilter !== "all") {
+      filtered = filtered.filter((req) => req.status === statusFilter);
     }
 
     // 검색 필터
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(req =>
-        String(req.requestNo || '').toLowerCase().includes(term) ||
-        String(req.itemName || '').toLowerCase().includes(term) ||
-        (req.assetNo && String(req.assetNo).toLowerCase().includes(term))
+      filtered = filtered.filter(
+        (req) =>
+          String(req.requestNo || "")
+            .toLowerCase()
+            .includes(term) ||
+          String(req.itemName || "")
+            .toLowerCase()
+            .includes(term) ||
+          (req.assetNo && String(req.assetNo).toLowerCase().includes(term)),
       );
     }
 
@@ -182,15 +214,15 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
         let bValue: any;
 
         switch (sortField) {
-          case 'requestNo':
-            aValue = a.requestNo || '';
-            bValue = b.requestNo || '';
+          case "requestNo":
+            aValue = a.requestNo || "";
+            bValue = b.requestNo || "";
             break;
-          case 'status':
-            aValue = a.status || '';
-            bValue = b.status || '';
+          case "status":
+            aValue = a.status || "";
+            bValue = b.status || "";
             break;
-          case 'requestDate':
+          case "requestDate":
             aValue = new Date(a.requestDate || 0).getTime();
             bValue = new Date(b.requestDate || 0).getTime();
             break;
@@ -199,10 +231,10 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
         }
 
         if (aValue < bValue) {
-          return sortDirection === 'asc' ? -1 : 1;
+          return sortDirection === "asc" ? -1 : 1;
         }
         if (aValue > bValue) {
-          return sortDirection === 'asc' ? 1 : -1;
+          return sortDirection === "asc" ? 1 : -1;
         }
         return 0;
       });
@@ -214,192 +246,241 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
   const handleSort = (key: string) => {
     const field = key as SortField;
     if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
       setSortField(field);
-      setSortDirection('desc');
+      setSortDirection("desc");
     }
   };
 
   const canCancel = (status: string) => {
-    return status === '접수중';
+    return status === "접수중";
   };
 
   const canConfirmReceipt = (status: string) => {
-    return status === '발주완료(납기확인)' || status === '발주완료(납기미정)';
+    return status === "발주완료(납기확인)" || status === "발주완료(납기미정)";
   };
+
+  const handleViewDetail = useCallback(
+    (requestNo: string) => {
+      // 해당 신청의 이미지를 프리로딩
+      const request = requests.find((r) => r.requestNo === requestNo);
+      if (request && request.photoUrl) {
+        // 프리로딩 시작 (비동기, 블로킹하지 않음)
+        preloadImage(request.photoUrl).catch(() => {
+          // 프리로딩 실패해도 상세 페이지는 정상 진입
+        });
+      }
+
+      if (onNavigate) {
+        onNavigate("ordering-detail", requestNo);
+      }
+    },
+    [requests, onNavigate],
+  );
 
   // 테이블 컬럼 설정 - 여기서 쉽게 헤더 관리 가능
-  const columns: TableColumn<Request>[] = useMemo(() => [
-    {
-      key: 'requestNo',
-      label: '신청번호',
-      sortable: true,
-      sortKey: 'requestNo',
-      render: (value) => <span className="font-black text-blue-600">{value}</span>
-    },
-    {
-      key: 'itemName',
-      label: '품명',
-      sortable: false,
-      render: (value) => <span className="font-bold">{value}</span>
-    },
-    {
-      key: 'quantity',
-      label: '수량',
-      sortable: false,
-      render: (value) => <span className="font-bold">{value}</span>
-    },
-    {
-      key: 'assetNo',
-      label: '관리번호',
-      sortable: false,
-      render: (value) => <span className="font-bold text-gray-600">{value || '-'}</span>
-    },
-    {
-      key: 'status',
-      label: '상태',
-      sortable: true,
-      sortKey: 'status',
-      render: (value) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-black ${getStatusColor(value)}`}>
-          {value}
-        </span>
-      )
-    },
-    {
-      key: 'requestDate',
-      label: '신청일',
-      sortable: true,
-      sortKey: 'requestDate',
-      render: (value) => <span className="font-bold text-gray-600">{formatDate(value, 'date')}</span>
-    },
-    {
-      key: 'actions',
-      label: '작업',
-      sortable: false,
-      render: (_, row) => (
-        <div className="flex items-center gap-2">
+  const columns: TableColumn<Request>[] = useMemo(
+    () => [
+      {
+        key: "requestNo",
+        label: "신청번호",
+        sortable: true,
+        sortKey: "requestNo",
+        render: (value, row) => (
           <button
             onClick={() => handleViewDetail(row.requestNo)}
-            className="flex items-center gap-1 px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-bold transition-colors"
+            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
           >
-            <Eye className="w-4 h-4" />
-            상세
+            {value}
           </button>
-          {canCancel(row.status) && (
+        ),
+      },
+      {
+        key: "itemName",
+        label: "품명",
+        sortable: false,
+        render: (value, row) => (
+          <button
+            onClick={() => handleViewDetail(row.requestNo)}
+            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
+          >
+            {value}
+          </button>
+        ),
+      },
+      {
+        key: "quantity",
+        label: "수량",
+        sortable: false,
+        render: (value) => <span className="">{value}</span>,
+      },
+      {
+        key: "assetNo",
+        label: "관리번호",
+        sortable: false,
+        render: (value, row) => {
+          if (!value || value === "-") {
+            return <span className="">-</span>;
+          }
+          return (
             <button
-              onClick={() => handleCancel(row.requestNo)}
-              disabled={processing === row.requestNo}
-              className="flex items-center gap-1 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold transition-colors disabled:opacity-50"
+              onClick={() => handleViewDetail(row.requestNo)}
+              className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
             >
-              <X className="w-4 h-4" />
-              취소
+              {value}
             </button>
-          )}
-          {canConfirmReceipt(row.status) && (
-            <button
-              onClick={() => handleConfirmReceipt(row.requestNo)}
-              disabled={processing === row.requestNo}
-              className="flex items-center gap-1 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg font-bold transition-colors disabled:opacity-50"
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              수령 확인
-            </button>
-          )}
-        </div>
-      )
-    }
-  ], [processing]);
-
-  const handleViewDetail = (requestNo: string) => {
-    // 해당 신청의 이미지를 프리로딩
-    const request = requests.find(r => r.requestNo === requestNo);
-    if (request && request.photoUrl) {
-      // 프리로딩 시작 (비동기, 블로킹하지 않음)
-      preloadImage(request.photoUrl).catch(() => {
-        // 프리로딩 실패해도 상세 페이지는 정상 진입
-      });
-    }
-
-    if (onNavigate) {
-      onNavigate('ordering-detail', requestNo);
-    }
-  };
+          );
+        },
+      },
+      {
+        key: "status",
+        label: "상태",
+        sortable: true,
+        sortKey: "status",
+        render: (value) => (
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(value)}`}
+          >
+            {value}
+          </span>
+        ),
+      },
+      {
+        key: "requestDate",
+        label: "신청일",
+        sortable: true,
+        sortKey: "requestDate",
+        render: (value) => (
+          <span className="">{formatDate(value, "date")}</span>
+        ),
+      },
+      {
+        key: "actions",
+        label: "작업",
+        sortable: false,
+        render: (_, row) => (
+          <div className="flex items-center gap-2">
+            {canCancel(row.status) && (
+              <button
+                onClick={() => handleCancel(row.requestNo)}
+                disabled={processing === row.requestNo}
+                className="flex items-center gap-1 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold transition-colors disabled:opacity-50"
+              >
+                <X className="w-4 h-4" />
+                접수 취소
+              </button>
+            )}
+            {canConfirmReceipt(row.status) && (
+              <button
+                onClick={() => handleConfirmReceipt(row.requestNo)}
+                disabled={processing === row.requestNo}
+                className="flex items-center gap-1 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg font-bold transition-colors disabled:opacity-50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                수령 확인
+              </button>
+            )}
+          </div>
+        ),
+      },
+    ],
+    [processing, handleViewDetail],
+  );
 
   const handleCancel = async (requestNo: string) => {
-    if (!confirm('정말로 이 신청을 취소하시겠습니까?')) {
+    if (!confirm("정말로 이 신청을 취소하시겠습니까?")) {
       return;
     }
 
     try {
       setProcessing(requestNo);
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
 
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate("ordering-login");
         }
         return;
       }
 
       if (!ORDERING_GAS_URL) {
-        throw new Error('GAS URL이 설정되지 않았습니다.');
+        throw new Error("GAS URL이 설정되지 않았습니다.");
       }
 
-      const result = await cancelRequestOrdering(ORDERING_GAS_URL, requestNo, sessionToken);
+      const result = await cancelRequestOrdering(
+        ORDERING_GAS_URL,
+        requestNo,
+        sessionToken,
+      );
 
       if (result.success) {
         await loadRequests(); // 목록 새로고침
         // 데이터 동기화 완료 후 toast 메시지 표시
-        setToast({ message: result.message || '신청이 취소되었습니다.', type: 'success' });
+        setToast({
+          message: result.message || "신청이 취소되었습니다.",
+          type: "success",
+        });
       } else {
-        setError(result.message || '취소 처리에 실패했습니다.');
-        setToast({ message: result.message || '취소 처리에 실패했습니다.', type: 'error' });
+        setError(result.message || "취소 처리에 실패했습니다.");
+        setToast({
+          message: result.message || "취소 처리에 실패했습니다.",
+          type: "error",
+        });
       }
     } catch (err: any) {
-      setError(err.message || '취소 처리 중 오류가 발생했습니다.');
+      setError(err.message || "취소 처리 중 오류가 발생했습니다.");
     } finally {
       setProcessing(null);
     }
   };
 
   const handleConfirmReceipt = async (requestNo: string) => {
-    if (!confirm('수령 확인을 하시겠습니까?')) {
+    if (!confirm("수령 확인을 하시겠습니까?")) {
       return;
     }
 
     try {
       setProcessing(requestNo);
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
 
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate("ordering-login");
         }
         return;
       }
 
       if (!ORDERING_GAS_URL) {
-        throw new Error('GAS URL이 설정되지 않았습니다.');
+        throw new Error("GAS URL이 설정되지 않았습니다.");
       }
 
-      const result = await confirmReceiptOrdering(ORDERING_GAS_URL, requestNo, sessionToken);
+      const result = await confirmReceiptOrdering(
+        ORDERING_GAS_URL,
+        requestNo,
+        sessionToken,
+      );
 
       if (result.success) {
         await loadRequests(); // 목록 새로고침
         // 데이터 동기화 완료 후 toast 메시지 표시
-        setToast({ message: result.message || '수령 확인이 완료되었습니다.', type: 'success' });
+        setToast({
+          message: result.message || "수령 확인이 완료되었습니다.",
+          type: "success",
+        });
       } else {
-        setError(result.message || '수령 확인 처리에 실패했습니다.');
-        setToast({ message: result.message || '수령 확인 처리에 실패했습니다.', type: 'error' });
+        setError(result.message || "수령 확인 처리에 실패했습니다.");
+        setToast({
+          message: result.message || "수령 확인 처리에 실패했습니다.",
+          type: "error",
+        });
       }
     } catch (err: any) {
-      setError(err.message || '수령 확인 처리 중 오류가 발생했습니다.');
+      setError(err.message || "수령 확인 처리 중 오류가 발생했습니다.");
     } finally {
       setProcessing(null);
     }
@@ -407,98 +488,77 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
 
   const goBack = () => {
     if (onNavigate) {
-      onNavigate('ordering');
+      onNavigate("ordering");
     }
   };
 
-  const handleDownloadExcel = async () => {
-    try {
-      const sessionToken = getSessionToken();
-      if (!sessionToken) {
-        if (onNavigate) {
-          onNavigate('ordering-login');
-        }
-        return;
+  const handleDownloadExcel = () => {
+    const sessionToken = getSessionToken();
+    if (!sessionToken) {
+      if (onNavigate) {
+        onNavigate("ordering-login");
       }
-
-      if (!ORDERING_GAS_URL) {
-        throw new Error('GAS URL이 설정되지 않았습니다.');
-      }
-
-      // 기간 필터가 설정되어 있으면 사용, 없으면 모달 표시
-      if (!excelDateRangeAll && (!excelDateFrom || !excelDateTo)) {
-        setShowExcelDateFilter(true);
-        return;
-      }
-
-      // 실제 다운로드 실행
-      await executeDownload();
-    } catch (err: any) {
-      setError(err.message || '엑셀 다운로드 중 오류가 발생했습니다.');
+      return;
     }
+
+    if (!ORDERING_GAS_URL) {
+      setError("GAS URL이 설정되지 않았습니다.");
+      return;
+    }
+
+    // 모달 표시
+    setShowExcelDateFilter(true);
   };
 
-  const executeDownload = async () => {
+  const handleExcelDateRangeConfirm = async (result: ExcelDateRangeResult) => {
     try {
       setIsDownloading(true);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate("ordering-login");
         }
         return;
       }
 
       if (!ORDERING_GAS_URL) {
-        throw new Error('GAS URL이 설정되지 않았습니다.');
+        throw new Error("GAS URL이 설정되지 않았습니다.");
       }
 
-      // 전체 다운로드인 경우 빈 값 전달, 아니면 기간 필터 전달
+      // 전체 다운로드인 경우 undefined 전달, 아니면 기간 필터 전달
       await downloadMyRequestsExcel(
         ORDERING_GAS_URL,
         sessionToken,
-        excelDateRangeAll ? undefined : excelDateFrom,
-        excelDateRangeAll ? undefined : excelDateTo
+        result.all
+          ? undefined
+          : (result as { all: false; dateFrom: string; dateTo: string })
+            .dateFrom,
+        result.all
+          ? undefined
+          : (result as { all: false; dateFrom: string; dateTo: string }).dateTo,
       );
-      setSuccess('엑셀 파일이 다운로드되었습니다.');
+      setSuccess("엑셀 파일이 다운로드되었습니다.");
       setShowExcelDateFilter(false);
     } catch (err: any) {
-      setError(err.message || '엑셀 다운로드 중 오류가 발생했습니다.');
+      setError(err.message || "엑셀 다운로드 중 오류가 발생했습니다.");
     } finally {
       setIsDownloading(false);
     }
   };
 
-  const handleQuickDateFilter = (period: 'today' | 'thisWeek' | 'thisMonth' | 'last3Months') => {
+  const handleQuickDateFilter = (
+    period: "today" | "thisWeek" | "thisMonth" | "last3Months",
+  ) => {
     const range = getDateRange(period);
     setDateFrom(range.dateFrom);
     setDateTo(range.dateTo);
     setCurrentPage(1); // 첫 페이지로 리셋
   };
 
-  const handleQuickExcelDateFilter = (period: 'today' | 'thisWeek' | 'thisMonth' | 'last3Months' | 'all') => {
-    if (period === 'all') {
-      setExcelDateFrom('');
-      setExcelDateTo('');
-      setExcelDateRangeAll(true);
-    } else {
-      const range = getDateRange(period);
-      setExcelDateFrom(range.dateFrom);
-      setExcelDateTo(range.dateTo);
-      setExcelDateRangeAll(false);
-    }
-  };
-
   const clearDateFilter = () => {
-    setDateFrom('');
-    setDateTo('');
+    setDateFrom("");
+    setDateTo("");
     setCurrentPage(1);
-  };
-
-  const clearExcelDateFilter = () => {
-    setExcelDateFrom('');
-    setExcelDateTo('');
-    setExcelDateRangeAll(false);
   };
 
   if (loading) {
@@ -508,7 +568,11 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
   return (
     <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
       {/* 헤더 */}
-      <Header headerTitle="내 신청 목록 조회" headerSubTitle="부품 발주 시스템" level={2} /> 
+      <Header
+        headerTitle="내 신청 목록 조회"
+        headerSubTitle="부품 발주 시스템"
+        level={2}
+      />
       {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
           <p className="text-red-700 font-bold text-sm">{error}</p>
@@ -521,9 +585,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
         </div>
       )}
 
-      {processing && (
-        <LoadingOverlay message="처리 중..." />
-      )}
+      {processing && <LoadingOverlay message="처리 중..." />}
 
       {/* 필터 및 검색 */}
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mb-6">
@@ -535,8 +597,8 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <input
                 type="text"
+                data-type="search"
                 placeholder="신청번호, 품명, 관리번호로 검색..."
-                className="w-full text-sm pl-12 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-semibold"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -546,7 +608,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
             <div className="flex items-center gap-2">
               <Filter className="w-5 h-5 text-gray-400" />
               <select
-                className="px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent font-bold w-full sm:w-auto"
+                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -569,37 +631,45 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
             </div>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => handleQuickDateFilter('today')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom && dateTo && dateFrom === getDateRange('today').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                onClick={() => handleQuickDateFilter("today")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                    dateTo &&
+                    dateFrom === getDateRange("today").dateFrom
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 오늘
               </button>
               <button
-                onClick={() => handleQuickDateFilter('thisWeek')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom && dateTo && dateFrom === getDateRange('thisWeek').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                onClick={() => handleQuickDateFilter("thisWeek")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                    dateTo &&
+                    dateFrom === getDateRange("thisWeek").dateFrom
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 이번 주
               </button>
               <button
-                onClick={() => handleQuickDateFilter('thisMonth')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom && dateTo && dateFrom === getDateRange('thisMonth').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                onClick={() => handleQuickDateFilter("thisMonth")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                    dateTo &&
+                    dateFrom === getDateRange("thisMonth").dateFrom
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 이번 달
               </button>
               <button
-                onClick={() => handleQuickDateFilter('last3Months')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom && dateTo && dateFrom === getDateRange('last3Months').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                onClick={() => handleQuickDateFilter("last3Months")}
+                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                    dateTo &&
+                    dateFrom === getDateRange("last3Months").dateFrom
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 최근 3개월
@@ -609,7 +679,6 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="시작일"
                 />
                 <span className="text-gray-500">~</span>
@@ -617,7 +686,6 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="종료일"
                 />
                 {(dateFrom || dateTo) && (
@@ -660,7 +728,9 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
           <div className="text-center py-12">
             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 font-bold text-lg">
-              {searchTerm || statusFilter !== 'all' ? '검색 결과가 없습니다.' : '신청 내역이 없습니다.'}
+              {searchTerm || statusFilter !== "all"
+                ? "검색 결과가 없습니다."
+                : "신청 내역이 없습니다."}
             </p>
           </div>
         ) : (
@@ -696,28 +766,53 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
                 >
                   <div className="flex justify-between items-start mb-3">
                     <div>
-                      <p className="font-black text-blue-600 text-lg">{req.requestNo}</p>
-                      <p className="text-xs text-gray-500 mt-1">{formatDate(req.requestDate, 'date')}</p>
+                      <p className="font-black text-blue-600 text-lg">
+                        {req.requestNo}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        {formatDate(req.requestDate, "date")}
+                      </p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-black max-w-[100px] sm:max-w-none ml-4 sm:ml-0 ${getStatusColor(req.status)} text-center`}>
-                      {req.status && req.status.length > 4 ? req.status.slice(0, 4) : req.status}
-                      {req.status && req.status.length > 4 ? <><br />{req.status.slice(4, req.status.length)}</> : null}
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-black max-w-[100px] sm:max-w-none ml-4 sm:ml-0 ${getStatusColor(req.status)} text-center`}
+                    >
+                      {req.status && req.status.length > 4
+                        ? req.status.slice(0, 4)
+                        : req.status}
+                      {req.status && req.status.length > 4 ? (
+                        <>
+                          <br />
+                          {req.status.slice(4, req.status.length)}
+                        </>
+                      ) : null}
                     </span>
                   </div>
 
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between">
-                      <span className="text-sm font-bold text-gray-500">품명</span>
-                      <span className="text-sm font-black text-gray-800">{req.itemName}</span>
+                      <span className="text-sm font-bold text-gray-500">
+                        품명
+                      </span>
+                      <span className="text-sm text-gray-800">
+                        {req.itemName}
+                      </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-sm font-bold text-gray-500">수량</span>
-                      <span className="text-sm font-black text-gray-800">{req.quantity}</span>
+                      <span className="text-sm font-bold text-gray-500">
+                        수량
+                      </span>
+                      <span className="text-sm text-gray-800">
+                        {req.quantity}
+                      </span>
                     </div>
                     {req.assetNo && (
                       <div className="flex justify-between">
-                        <span className="text-sm font-bold text-gray-500">관리번호</span>
-                        <span className="text-sm font-black text-gray-800">{req.assetNo}</span>
+                        <span className="text-sm font-bold text-gray-500">
+                          관리번호
+                        </span>
+                        <span className="text-sm text-gray-800">
+                          {req.assetNo}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -756,119 +851,16 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
             </div>
           </>
         )}
-
       </div>
 
       {/* 엑셀 다운로드 기간 선택 모달 */}
-      {showExcelDateFilter && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full">
-            <h3 className="text-xl font-black text-gray-800 mb-4">엑셀 다운로드 기간 선택</h3>
-
-            <div className="space-y-4">
-              {/* 퀵 버튼 */}
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">빠른 선택</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5  gap-2">
-                  <button
-                    onClick={() => handleQuickExcelDateFilter('today')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('today').dateFrom
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    오늘
-                  </button>
-                  <button
-                    onClick={() => handleQuickExcelDateFilter('thisWeek')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('thisWeek').dateFrom
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    이번 주
-                  </button>
-                  <button
-                    onClick={() => handleQuickExcelDateFilter('thisMonth')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('thisMonth').dateFrom
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    이번 달
-                  </button>
-                  <button
-                    onClick={() => handleQuickExcelDateFilter('last3Months')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('last3Months').dateFrom
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    최근 3개월
-                  </button>
-                  <button
-                    onClick={() => handleQuickExcelDateFilter('all')}
-                    className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateRangeAll
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                  >
-                    전체
-                  </button>
-                </div>
-              </div>
-
-              {/* 전체 선택 시 경고 문구 */}
-              {excelDateRangeAll && (
-                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-2">
-                  <p className="text-yellow-800 text-sm font-bold">
-                    ⚠️ 전체 다운로드 시 데이터가 많을 경우 다운로드가 느려질 수 있습니다.
-                  </p>
-                </div>
-              )}
-
-              {/* 커스텀 기간 선택 */}
-              <div>
-                <label className="block text-sm font-bold text-gray-600 mb-2">기간 직접 선택</label>
-                <div className="flex items-center gap-2 flex-col sm:flex-row ">
-                  <input
-                    type="date"
-                    value={excelDateFrom}
-                    onChange={(e) => setExcelDateFrom(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto"
-                  />
-                  <span className="text-gray-500">~</span>
-                  <input
-                    type="date"
-                    value={excelDateTo}
-                    onChange={(e) => setExcelDateTo(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:border-transparent w-full sm:w-auto"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end gap-2 mt-6">
-              <button
-                onClick={() => {
-                  setShowExcelDateFilter(false);
-                  clearExcelDateFilter();
-                }}
-                className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold transition-colors"
-              >
-                취소
-              </button>
-              <button
-                onClick={executeDownload}
-                disabled={(!excelDateRangeAll && (!excelDateFrom || !excelDateTo)) || isDownloading}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isDownloading ? '다운로드 중...' : '다운로드'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ExcelDateRangeModal
+        isOpen={showExcelDateFilter}
+        title="엑셀 다운로드 기간 선택"
+        onClose={() => setShowExcelDateFilter(false)}
+        onConfirm={handleExcelDateRangeConfirm}
+        isDownloading={isDownloading}
+      />
 
       {/* Toast 메시지 */}
       {toast && (
@@ -883,5 +875,3 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({ onNavig
 };
 
 export default OrderingMyRequestsPage;
-
-

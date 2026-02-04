@@ -356,6 +356,7 @@ export async function createUser(
   userData: {
     userId: string;
     password?: string;
+    passwordPlain?: string; // 평문 비밀번호 (구글 시트 '비밀번호' 컬럼에 저장)
     name: string;
     employeeCode?: string;
     team: string;
@@ -375,9 +376,13 @@ export async function createUser(
       throw new Error('GAS URL이 설정되지 않았습니다.');
     }
 
+    // 평문 비밀번호를 passwordPlain으로 전달 (password는 해시용으로 유지)
     const payload = {
       token: token,
-      userData: userData
+      userData: {
+        ...userData,
+        passwordPlain: userData.passwordPlain || userData.password // 평문 비밀번호 전달
+      }
     };
 
     const response = await fetch(ORDERING_GAS_URL, {
@@ -422,6 +427,7 @@ export async function updateUser(
     role?: '신청자' | '관리자';
     active?: string;
     password?: string;
+    passwordPlain?: string; // 평문 비밀번호 (구글 시트 '비밀번호' 컬럼에 저장)
   },
   sessionToken?: string
 ): Promise<{ success: boolean; message: string }> {
@@ -435,10 +441,14 @@ export async function updateUser(
       throw new Error('GAS URL이 설정되지 않았습니다.');
     }
 
+    // 평문 비밀번호를 passwordPlain으로 전달 (password는 해시용으로 유지)
     const payload = {
       token: token,
       userId: userId,
-      userData: userData
+      userData: {
+        ...userData,
+        passwordPlain: userData.passwordPlain || userData.password // 평문 비밀번호 전달
+      }
     };
 
     const response = await fetch(ORDERING_GAS_URL, {
