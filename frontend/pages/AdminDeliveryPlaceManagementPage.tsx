@@ -18,6 +18,7 @@ import LoadingOverlay from "../components/LoadingOverlay";
 import DataTable, { TableColumn } from "../components/DataTable";
 import Toast from "../components/Toast";
 import Header from "@/components/Header";
+import Button from "../components/Button";
 
 const AdminDeliveryPlaceManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -85,6 +86,8 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
             .includes(term),
       );
     }
+    // DB에 쌓은 순 내림차순 (최신 것이 위에)
+    filtered.reverse();
     setFilteredPlaces(filtered);
   }, [places, searchTerm]);
 
@@ -140,25 +143,31 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
       },
       {
         key: "actions",
-        label: "작업",
+        label: "데이터 변경",
         sortable: false,
-        render: (_, row) => (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleEdit(row)}
-              className="text-blue-600 hover:text-blue-900"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(row["배송지명"])}
-              disabled={processing}
-              className="text-red-600 hover:text-red-900 disabled:text-gray-400"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ),
+        render: (_, row) => {
+          const isInactive = row["활성화"] === "N";
+          return (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleEdit(row)}
+                disabled={isInactive || processing}
+                variant="icon"
+                icon={Edit}
+                className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
+                title={isInactive ? "비활성화된 배송지는 수정할 수 없습니다." : "수정"}
+              />
+              <Button
+                onClick={() => handleDelete(row["배송지명"])}
+                disabled={isInactive || processing}
+                variant="icon"
+                icon={Trash2}
+                className="text-red-600 hover:text-red-900 disabled:text-gray-400"
+                title={isInactive ? "이미 비활성화된 배송지입니다." : "비활성화"}
+              />
+            </div>
+          );
+        },
       },
     ],
     [processing],
@@ -168,7 +177,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
     setEditingPlace(null);
     setFormData({
       배송지명: "",
-      소속팀: "",
+      소속팀: user?.team || "",
       주소: "",
       연락처: "",
       담당자: "",
@@ -193,7 +202,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
   };
 
   const handleDelete = async (placeName: string) => {
-    if (!confirm(`정말로 배송지 "${placeName}"를 삭제하시겠습니까?`)) {
+    if (!confirm(`정말로 배송지 "${placeName}"를 비활성화하시겠습니까?`)) {
       return;
     }
 
@@ -207,14 +216,14 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
       const result = await deleteDeliveryPlace(placeName, sessionToken);
       if (result.success) {
         await loadPlaces();
-        alert(result.message || "배송지가 삭제되었습니다.");
+        alert(result.message || "배송지가 비활성화되었습니다.");
       } else {
-        const errorMsg = result.message || "배송지 삭제에 실패했습니다.";
+        const errorMsg = result.message || "배송지 비활성화에 실패했습니다.";
         setError(errorMsg);
         alert(errorMsg);
       }
     } catch (err: any) {
-      const errorMsg = err.message || "배송지 삭제 중 오류가 발생했습니다.";
+      const errorMsg = err.message || "배송지 비활성화 중 오류가 발생했습니다.";
       setError(errorMsg);
       alert(errorMsg);
     } finally {
@@ -251,11 +260,11 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
       }
 
       if (result.success) {
+        const successMsg = result.message || (editingPlace ? "배송지 정보가 수정되었습니다." : "배송지가 등록되었습니다.");
         setShowModal(false);
         setEditingPlace(null);
-        await loadPlaces();
-        const successMsg = result.message || (editingPlace ? "배송지 정보가 수정되었습니다." : "배송지가 등록되었습니다.");
         alert(successMsg);
+        await loadPlaces();
       } else {
         const errorMsg = result.message || "저장에 실패했습니다.";
         setError(errorMsg);
@@ -284,13 +293,13 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
           level={1}
         />
         <div className="mb-6 flex justify-end items-center">
-          <button
+          <Button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            variant="primary"
+            icon={Plus}
           >
-            <Plus className="w-4 h-4" />
             배송지 등록
-          </button>
+          </Button>
         </div>
 
         {/* 검색 */}
@@ -321,6 +330,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
           pageSizeOptions={[10, 15, 30, 50]}
           keyExtractor={(row, index) => row["배송지명"] || String(index)}
           emptyMessage="등록된 배송지가 없습니다."
+          getRowClassName={(row) => row["활성화"] === "N" ? "opacity-50 bg-gray-100" : ""}
         />
 
         {/* 등록/수정 모달 */}
@@ -346,7 +356,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    소속팀
+                    소속 팀
                   </label>
                   <input
                     type="text"
@@ -424,22 +434,22 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => {
                     setShowModal(false);
                     setEditingPlace(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
+                  variant="outline"
                 >
                   취소
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleSave}
                   disabled={processing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                  variant="primary"
                 >
                   {processing ? "저장 중..." : "저장"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>

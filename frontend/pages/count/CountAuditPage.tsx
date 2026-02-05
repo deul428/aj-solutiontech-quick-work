@@ -22,7 +22,7 @@ import {
   Building,
   Beaker
 } from "lucide-react";
-import { MasterDataRow, MASTER_COLUMNS, AUDIT_COLUMNS } from "../../types";
+import { MasterDataRow, MASTER_COLUMNS, AUDIT_COLUMNS, CHECKLIST_COLUMNS } from "../../types";
 import { syncAuditDataToCloud, fetchLocationOptions } from "../../services/excelService";
 import Header from "@/components/Header";
 
@@ -245,23 +245,24 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     }
 
     setScannedResult(trimmedText);
-    const match = masterData.find(row => {
+    let match = masterData.find(row => {
       const mgmtNo = String(row[MASTER_COLUMNS.MGMT_NO] || "").trim();
       const assetNo = String(row[MASTER_COLUMNS.ASSET_NO] || "").trim();
       return mgmtNo === trimmedText || assetNo === trimmedText;
     });
 
-    // 데이터 매칭 실패 시 명확한 에러 메시지 표시
+    // 마스터파일에 없는 관리번호인 경우 임시 row 생성 (이상자산구분 'O'으로 설정)
     if (!match) {
-      alert(
-        `스캔 성공: "${trimmedText}"\n\n` +
-        `마스터 데이터에서 해당 관리번호를 찾을 수 없습니다.\n\n` +
-        `확인 사항:\n` +
-        `- 관리번호가 정확한지 확인해주세요\n` +
-        `- 마스터 데이터가 제대로 로드되었는지 확인해주세요\n` +
-        `- 관리번호 형식이 일치하는지 확인해주세요`
-      );
-      return; // 모달을 띄우지 않고 종료
+      const tempRow: MasterDataRow = {
+        [MASTER_COLUMNS.MGMT_NO]: trimmedText,
+        [MASTER_COLUMNS.ASSET_NO]: "", // 자산번호 없음
+        [MASTER_COLUMNS.PROD_NAME]: "마스터파일에 없는 관리번호",
+        [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: 'O', // 이상자산구분 'O' 설정
+        [AUDIT_COLUMNS.STATUS]: ''
+      };
+      // masterData에 추가
+      setMasterData(prev => [tempRow, ...prev]);
+      match = tempRow;
     }
 
     setFoundRow(match);
@@ -290,7 +291,18 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
     setMasterData(prev => prev.map(row => {
       if (row[MASTER_COLUMNS.MGMT_NO] === foundRow[MASTER_COLUMNS.MGMT_NO]) {
-        return { ...row, [AUDIT_COLUMNS.DATE]: dateStr, [AUDIT_COLUMNS.STATUS]: 'O' };
+        const assetNumber = String(row[MASTER_COLUMNS.ASSET_NO] || "").trim();
+        const isAbnormalAsset = !assetNumber || assetNumber === "" || assetNumber === "null";
+        const updatedRow = { 
+          ...row, 
+          [AUDIT_COLUMNS.DATE]: dateStr, 
+          [AUDIT_COLUMNS.STATUS]: 'O' 
+        };
+        // 자산번호가 없으면 이상자산구분 'O' 설정
+        if (isAbnormalAsset) {
+          updatedRow[CHECKLIST_COLUMNS.ABNORMAL_ASSET] = 'O';
+        }
+        return updatedRow;
       }
       return row;
     }));

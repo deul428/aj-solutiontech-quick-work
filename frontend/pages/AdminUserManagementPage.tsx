@@ -11,13 +11,16 @@ import {
   createUser,
   updateUser,
   deleteUser,
+  bulkUpdatePasswordsFromTargetColumn,
+  getRegionTeams,
 } from "../services/adminService";
-import { User } from "../types/ordering";
+import { User, RegionTeam } from "../types/ordering";
 import LoadingOverlay from "../components/LoadingOverlay";
 import Toast from "../components/Toast";
 import DataTable, { TableColumn } from "../components/DataTable";
 import Header from "@/components/Header";
 import TeamManagementModal from "../components/TeamManagementModal";
+import Button from "../components/Button";
 
 const AdminUserManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -56,6 +59,7 @@ const AdminUserManagementPage: React.FC = () => {
   });
   const [processing, setProcessing] = useState(false);
   const [showTeamManagementModal, setShowTeamManagementModal] = useState(false);
+  const [regionTeams, setRegionTeams] = useState<RegionTeam[]>([]);
 
   const showRequiredFieldAlert = (label: string) => {
     alert(`${label} 란을 입력하세요.`);
@@ -64,7 +68,9 @@ const AdminUserManagementPage: React.FC = () => {
   const focusFieldByName = (name: string) => {
     const el = document.querySelector<HTMLElement>(`[name="${name}"]`);
     if (el && "focus" in el) {
-      (el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement).focus();
+      (
+        el as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      ).focus();
       el.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
@@ -91,7 +97,20 @@ const AdminUserManagementPage: React.FC = () => {
     }
   }, [navigate]);
 
-  // 사용 가능한 지역 목록 추출
+  const loadRegionTeams = useCallback(async () => {
+    try {
+      const sessionToken = getSessionToken();
+      if (!sessionToken) {
+        return;
+      }
+      const data = await getRegionTeams(sessionToken);
+      setRegionTeams(data);
+    } catch (err: any) {
+      console.error("Failed to load region teams:", err);
+    }
+  }, []);
+
+  // 사용 가능한 지역 목록 추출 (필터용 - 기존 사용자 데이터에서)
   const availableRegions = useMemo(() => {
     const regions = new Set<string>();
     users.forEach((u) => {
@@ -102,7 +121,7 @@ const AdminUserManagementPage: React.FC = () => {
     return Array.from(regions).sort();
   }, [users]);
 
-  // 선택한 지역에 속한 팀 목록 추출
+  // 선택한 지역에 속한 팀 목록 추출 (필터용 - 기존 사용자 데이터에서)
   const availableTeams = useMemo(() => {
     if (regionFilter === "all") {
       return [];
@@ -115,6 +134,35 @@ const AdminUserManagementPage: React.FC = () => {
     });
     return Array.from(teams).sort();
   }, [users, regionFilter]);
+
+  // 모달용 지역 목록 (활성화된 지역/팀 데이터에서)
+  const modalRegions = useMemo(() => {
+    const regions = new Set<string>();
+    regionTeams
+      .filter((rt) => rt.active === "Y")
+      .forEach((rt) => {
+        if (rt.region) {
+          regions.add(rt.region);
+        }
+      });
+    return Array.from(regions).sort();
+  }, [regionTeams]);
+
+  // 모달용 팀 목록 (선택된 지역에 따라)
+  const modalTeams = useMemo(() => {
+    if (!formData.region) {
+      return [];
+    }
+    const teams = new Set<string>();
+    regionTeams
+      .filter((rt) => rt.active === "Y" && rt.region === formData.region)
+      .forEach((rt) => {
+        if (rt.team) {
+          teams.add(rt.team);
+        }
+      });
+    return Array.from(teams).sort();
+  }, [regionTeams, formData.region]);
 
   // 지역 필터 변경 시 팀 필터 초기화
   useEffect(() => {
@@ -194,6 +242,9 @@ const AdminUserManagementPage: React.FC = () => {
 
         return sortOrder === "asc" ? comparison : -comparison;
       });
+    } else {
+      // sortBy가 null일 때: DB에 쌓은 순 내림차순 (최신 것이 위에)
+      filtered.reverse();
     }
 
     setFilteredUsers(filtered);
@@ -227,7 +278,8 @@ const AdminUserManagementPage: React.FC = () => {
       return;
     }
     loadUsers();
-  }, [isUserAdmin, loadUsers, navigate]);
+    loadRegionTeams();
+  }, [isUserAdmin, loadUsers, loadRegionTeams, navigate]);
 
   useEffect(() => {
     filterUsers();
@@ -245,6 +297,7 @@ const AdminUserManagementPage: React.FC = () => {
       role: "신청자",
       active: "Y",
     });
+    loadRegionTeams(); // 최신 데이터 로드
     setShowModal(true);
   };
 
@@ -260,11 +313,12 @@ const AdminUserManagementPage: React.FC = () => {
       role: user.role || "신청자",
       active: user.active || "Y",
     });
+    loadRegionTeams(); // 최신 데이터 로드
     setShowModal(true);
   };
 
   const handleDelete = async (userId: string) => {
-    if (!confirm(`정말로 사용자 "${userId}"를 삭제하시겠습니까?`)) {
+    if (!confirm(`정말로 사용자 "${userId}"를 비활성화하시겠습니까?`)) {
       return;
     }
 
@@ -278,14 +332,14 @@ const AdminUserManagementPage: React.FC = () => {
       const result = await deleteUser(userId, sessionToken);
       if (result.success) {
         await loadUsers();
-        alert(result.message || "사용자가 삭제되었습니다.");
+        alert(result.message || "사용자가 비활성화되었습니다.");
       } else {
-        const errorMsg = result.message || "사용자 삭제에 실패했습니다.";
+        const errorMsg = result.message || "사용자 비활성화에 실패했습니다.";
         setError(errorMsg);
         alert(errorMsg);
       }
     } catch (err: any) {
-      const errorMsg = err.message || "사용자 삭제 중 오류가 발생했습니다.";
+      const errorMsg = err.message || "사용자 비활성화 중 오류가 발생했습니다.";
       setError(errorMsg);
       alert(errorMsg);
     } finally {
@@ -343,25 +397,31 @@ const AdminUserManagementPage: React.FC = () => {
       },
       {
         key: "actions",
-        label: "작업",
+        label: "데이터 변경",
         sortable: false,
-        render: (_, row) => (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleEdit(row)}
-              className="text-blue-600 hover:text-blue-900"
-            >
-              <Edit className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(row.userId)}
-              disabled={processing}
-              className="text-red-600 hover:text-red-900 disabled:text-gray-400"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        ),
+        render: (_, row) => {
+          const isInactive = row.active === "N";
+          return (
+            <div className="flex gap-2">
+              <Button
+                onClick={() => handleEdit(row)}
+                disabled={isInactive || processing}
+                variant="icon"
+                icon={Edit}
+                className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
+                title={isInactive ? "비활성화된 사용자는 수정할 수 없습니다." : "수정"}
+              />
+              <Button
+                onClick={() => handleDelete(row.userId)}
+                disabled={isInactive || processing}
+                variant="icon"
+                icon={Trash2}
+                className="text-red-600 hover:text-red-900 disabled:text-gray-400"
+                title={isInactive ? "이미 비활성화된 사용자입니다." : "비활성화"}
+              />
+            </div>
+          );
+        },
       },
     ],
     [processing],
@@ -378,16 +438,52 @@ const AdminUserManagementPage: React.FC = () => {
       }
 
       // 모달의 모든 필드는 필수 (등록/수정 동일)
-      const requiredFields: Array<{ name: keyof typeof formData; label: string; isMissing: () => boolean }> = [
-        { name: "userId", label: "사용자 아이디", isMissing: () => !String(formData.userId || "").trim() },
-        { name: "password", label: "비밀번호", isMissing: () => !String(formData.password || "").trim() },
-        { name: "name", label: "이름", isMissing: () => !String(formData.name || "").trim() },
-        { name: "employeeCode", label: "기사코드", isMissing: () => !String(formData.employeeCode || "").trim() },
-        { name: "team", label: "소속팀", isMissing: () => !String(formData.team || "").trim() },
-        { name: "region", label: "지역", isMissing: () => !String(formData.region || "").trim() },
-        { name: "role", label: "권한", isMissing: () => !String(formData.role || "").trim() },
-        { name: "active", label: "활성화", isMissing: () => !String(formData.active || "").trim() },
-      ];
+      const requiredFields: Array<{
+        name: keyof typeof formData;
+        label: string;
+        isMissing: () => boolean;
+      }> = [
+          {
+            name: "userId",
+            label: "사용자 아이디",
+            isMissing: () => !String(formData.userId || "").trim(),
+          },
+          {
+            name: "password",
+            label: "비밀번호",
+            isMissing: () => !String(formData.password || "").trim(),
+          },
+          {
+            name: "name",
+            label: "이름",
+            isMissing: () => !String(formData.name || "").trim(),
+          },
+          {
+            name: "employeeCode",
+            label: "기사코드",
+            isMissing: () => !String(formData.employeeCode || "").trim(),
+          },
+          {
+            name: "region",
+            label: "소속 지역",
+            isMissing: () => !String(formData.region || "").trim(),
+          },
+          {
+            name: "team",
+            label: "소속 팀",
+            isMissing: () => !String(formData.team || "").trim(),
+          },
+          {
+            name: "role",
+            label: "권한",
+            isMissing: () => !String(formData.role || "").trim(),
+          },
+          {
+            name: "active",
+            label: "활성화",
+            isMissing: () => !String(formData.active || "").trim(),
+          },
+        ];
 
       const firstMissing = requiredFields.find((f) => f.isMissing());
       if (firstMissing) {
@@ -400,7 +496,9 @@ const AdminUserManagementPage: React.FC = () => {
       // 비밀번호 길이 검증 (6자리 이상)
       if (formData.password && formData.password.length < 6) {
         alert("비밀번호는 6자리 이상만 가능합니다.");
-        const passwordInput = document.querySelector('input[type="password"]') as HTMLInputElement;
+        const passwordInput = document.querySelector(
+          'input[type="password"]',
+        ) as HTMLInputElement;
         if (passwordInput) {
           passwordInput.focus();
           passwordInput.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -445,11 +543,15 @@ const AdminUserManagementPage: React.FC = () => {
       }
 
       if (result.success) {
+        const successMsg =
+          result.message ||
+          (editingUser
+            ? "사용자 정보가 수정되었습니다."
+            : "사용자가 등록되었습니다.");
         setShowModal(false);
         setEditingUser(null);
-        await loadUsers();
-        const successMsg = result.message || (editingUser ? "사용자 정보가 수정되었습니다." : "사용자가 등록되었습니다.");
         alert(successMsg);
+        await loadUsers();
       } else {
         const errorMsg = result.message || "저장에 실패했습니다.";
         setError(errorMsg);
@@ -470,7 +572,17 @@ const AdminUserManagementPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
-      {processing && <LoadingOverlay message={editingUser ? "사용자 정보를 수정하는 중..." : showModal ? "사용자를 등록하는 중..." : "처리 중..."} />}
+      {processing && (
+        <LoadingOverlay
+          message={
+            editingUser
+              ? "사용자 정보를 수정하는 중..."
+              : showModal
+                ? "사용자를 등록하는 중..."
+                : "처리 중..."
+          }
+        />
+      )}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Header
           headerTitle="사용자 관리"
@@ -478,21 +590,54 @@ const AdminUserManagementPage: React.FC = () => {
           level={1}
         />
 
-        <div className="mb-6 flex justify-end items-center">
-          <button
+        <div className="mb-6 flex justify-end items-center gap-4">
+          <Button
+            onClick={async () => {
+              if (!window.confirm('변경 대상 비밀번호 열의 값으로 모든 사용자의 비밀번호를 일괄 변경하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
+                return;
+              }
+              try {
+                setProcessing(true);
+                const sessionToken = getSessionToken();
+                if (!sessionToken) {
+                  alert('로그인이 필요합니다.');
+                  return;
+                }
+                const result = await bulkUpdatePasswordsFromTargetColumn(sessionToken);
+                if (result.success) {
+                  alert(result.message || `${result.count || 0}명의 비밀번호가 변경되었습니다.`);
+                  await loadUsers();
+                } else {
+                  alert(result.message || '일괄 비밀번호 변경에 실패했습니다.');
+                }
+              } catch (err: any) {
+                console.error('Failed to bulk update passwords:', err);
+                alert(err.message || '일괄 비밀번호 변경 중 오류가 발생했습니다.');
+              } finally {
+                setProcessing(false);
+              }
+            }}
+            disabled={processing}
+            variant="secondary"
+            icon={RefreshCw}
+            className="hidden"
+          >
+            비밀번호 일괄 변경
+          </Button>
+          <Button
             onClick={() => setShowTeamManagementModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold"
+            variant="success"
+            icon={Users}
           >
-            <Users className="w-4 h-4" />
             팀 관리
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold"
+            variant="primary"
+            icon={Plus}
           >
-            <Plus className="w-4 h-4" />
             사용자 등록
-          </button>
+          </Button>
         </div>
         {/* 검색 및 필터 */}
         <div className="mb-6 flex flex-row items-center justify-between gap-4">
@@ -504,7 +649,8 @@ const AdminUserManagementPage: React.FC = () => {
               data-type="search"
               placeholder="사용자 ID, 이름, 소속팀으로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} required={true}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              required={true}
             />
           </div>
 
@@ -512,7 +658,9 @@ const AdminUserManagementPage: React.FC = () => {
           <div className="flex flex-wrap gap-2">
             {/* 권한 필터 */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 hidden ">권한:</label>
+              <label className="text-sm font-medium text-gray-700 hidden ">
+                권한:
+              </label>
               <select
                 value={roleFilter}
                 onChange={(e) =>
@@ -528,7 +676,9 @@ const AdminUserManagementPage: React.FC = () => {
 
             {/* 지역 필터 */}
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 hidden">지역:</label>
+              <label className="text-sm font-medium text-gray-700 hidden">
+                지역:
+              </label>
               <select
                 value={regionFilter}
                 onChange={(e) => setRegionFilter(e.target.value)}
@@ -559,14 +709,16 @@ const AdminUserManagementPage: React.FC = () => {
               </select>
             </div>
           </div>
-          <button onClick={() => {
-            setRegionFilter("all");
-            setTeamFilter("all");
-            setSearchTerm("");
-            setRoleFilter("all");
-          }}
+          <button
+            onClick={() => {
+              setRegionFilter("all");
+              setTeamFilter("all");
+              setSearchTerm("");
+              setRoleFilter("all");
+            }}
             disabled={loading}
-            className="text-sm font-bold text-gray-800 flex items-center gap-2">
+            className="text-sm font-bold text-gray-800 flex items-center gap-2"
+          >
             <RefreshCw
               className={`w-5 h-5 text-gray-900 ${loading ? "animate-spin" : ""}`}
             />
@@ -578,6 +730,7 @@ const AdminUserManagementPage: React.FC = () => {
         <DataTable
           data={filteredUsers}
           columns={columns}
+          getRowClassName={(row) => row.active === "N" ? "opacity-50 bg-gray-100" : ""}
           sortBy={sortBy || undefined}
           sortOrder={sortOrder}
           onSort={handleSort}
@@ -608,8 +761,7 @@ const AdminUserManagementPage: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    사용자 아이디{" "}
-                    {<span className="text-red-500">*</span>}
+                    사용자 아이디 {<span className="text-red-500">*</span>}
                   </label>
                   <input
                     type="text"
@@ -618,19 +770,21 @@ const AdminUserManagementPage: React.FC = () => {
                     label="사용자 아이디"
                     onChange={(e) =>
                       setFormData({ ...formData, userId: e.target.value })
-                    } required={true}
+                    }
+                    required={true}
                     disabled={!!editingUser}
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     비밀번호{" "}
-                    {editingUser ?
+                    {editingUser ? (
                       <span className="text-gray-500 text-xs">
                         (변경 시에만 입력)
-                      </span> :
+                      </span>
+                    ) : (
                       <span className="text-red-500">*</span>
-                    }
+                    )}
                   </label>
                   <input
                     type="password"
@@ -639,7 +793,8 @@ const AdminUserManagementPage: React.FC = () => {
                     label="비밀번호"
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
-                    } required={true}
+                    }
+                    required={true}
                   />
                 </div>
                 <div>
@@ -653,7 +808,8 @@ const AdminUserManagementPage: React.FC = () => {
                     label="이름"
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
-                    } required={true}
+                    }
+                    required={true}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -671,37 +827,8 @@ const AdminUserManagementPage: React.FC = () => {
                           ...formData,
                           employeeCode: e.target.value,
                         })
-                      } required={true}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      소속팀 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="team"
-                      value={formData.team}
-                      label="소속팀"
-                      onChange={(e) =>
-                        setFormData({ ...formData, team: e.target.value })
-                      } required={true}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      지역 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="region"
-                      value={formData.region}
-                      label="지역"
-                      onChange={(e) =>
-                        setFormData({ ...formData, region: e.target.value })
-                      } required={true}
+                      }
+                      required={true}
                     />
                   </div>
                   <div>
@@ -725,6 +852,51 @@ const AdminUserManagementPage: React.FC = () => {
                     </select>
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      소속 지역 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="region"
+                      value={formData.region}
+                      onChange={(e) => {
+                        setFormData({ ...formData, region: e.target.value, team: "" }); // 지역 변경 시 팀 초기화
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required={true}
+                    >
+                      <option value="">지역을 선택하세요</option>
+                      {modalRegions.map((region) => (
+                        <option key={region} value={region}>
+                          {region}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      소속 팀 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="team"
+                      value={formData.team}
+                      onChange={(e) =>
+                        setFormData({ ...formData, team: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required={true}
+                      disabled={!formData.region}
+                    >
+                      <option value="">팀을 선택하세요</option>
+                      {modalTeams.map((team) => (
+                        <option key={team} value={team}>
+                          {team}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     활성화 <span className="text-red-500">*</span>
@@ -744,22 +916,22 @@ const AdminUserManagementPage: React.FC = () => {
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
-                <button
+                <Button
                   onClick={() => {
                     setShowModal(false);
                     setEditingUser(null);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
+                  variant="outline"
                 >
                   취소
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleSave}
                   disabled={processing}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                  variant="primary"
                 >
                   {processing ? "저장 중..." : "저장"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -767,15 +939,13 @@ const AdminUserManagementPage: React.FC = () => {
       </div>
 
       {/* Toast 메시지 */}
-      {
-        toast && (
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        )
-      }
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
 
       {/* 팀 관리 모달 */}
       <TeamManagementModal
@@ -783,9 +953,10 @@ const AdminUserManagementPage: React.FC = () => {
         onClose={() => setShowTeamManagementModal(false)}
         onUpdate={() => {
           loadUsers();
+          loadRegionTeams(); // 팀 관리 모달에서 업데이트 시 지역/팀 목록도 새로고침
         }}
       />
-    </div >
+    </div>
   );
 };
 

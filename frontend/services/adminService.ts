@@ -938,3 +938,50 @@ export async function deleteRegionTeam(
   }
 }
 
+/**
+ * 일괄 비밀번호 변경 (관리자 전용)
+ * '변경 대상 비밀번호' 열에 있는 평문 비밀번호로 모든 사용자의 비밀번호를 일괄 변경
+ * @param sessionToken - 세션 토큰
+ * @returns 결과 객체
+ */
+export async function bulkUpdatePasswordsFromTargetColumn(
+  sessionToken?: string
+): Promise<{ success: boolean; message: string; count?: number; updatedUsers?: string[] }> {
+  try {
+    const token = sessionToken || getSessionToken();
+    if (!token) {
+      throw new Error('로그인이 필요합니다.');
+    }
+
+    if (!ORDERING_GAS_URL) {
+      throw new Error('GAS URL이 설정되지 않았습니다.');
+    }
+
+    const payload = {
+      token: token
+    };
+
+    const response = await fetch(ORDERING_GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'bulkUpdatePasswordsFromTargetColumn',
+        ...payload
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error: any) {
+    console.error('bulkUpdatePasswordsFromTargetColumn error:', error);
+    throw new Error(error.message || '일괄 비밀번호 변경 실패');
+  }
+}
+

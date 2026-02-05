@@ -28,6 +28,7 @@ export interface DataTableProps<T = any> {
   emptyMessage?: string;
   className?: string;
   showPagination?: boolean;
+  getRowClassName?: (row: T, index: number) => string;
 }
 
 const DataTable = <T extends Record<string, any>>({
@@ -44,7 +45,8 @@ const DataTable = <T extends Record<string, any>>({
   keyExtractor,
   emptyMessage = '데이터가 없습니다.',
   className = '',
-  showPagination = true
+  showPagination = true,
+  getRowClassName
 }: DataTableProps<T>) => {
   // visible columns만 필터링
   const visibleColumns = useMemo(() => {
@@ -123,8 +125,9 @@ const DataTable = <T extends Record<string, any>>({
                   const key = keyExtractor
                     ? keyExtractor(row, index)
                     : (row.id || row.key || index);
+                  const rowClassName = getRowClassName ? getRowClassName(row, index) : '';
                   return (
-                    <tr key={key} className="hover:bg-gray-50">
+                    <tr key={key} className={`hover:bg-gray-50 ${rowClassName}`}>
                       {visibleColumns.map((column) => {
                         const value = row[column.key];
                         const cellContent = column.render

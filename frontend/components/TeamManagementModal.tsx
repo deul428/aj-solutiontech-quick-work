@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { X, Plus, Edit, Trash2, ChevronDown, ChevronRight, Loader2 } from "lucide-react";
+import { X, Plus, Edit, Trash2, ChevronDown, ChevronRight, Loader2, Search } from "lucide-react";
 import {
   getRegionTeams,
   createRegionTeam,
@@ -27,6 +27,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<{ region: string; team: string } | null>(null);
   const [processing, setProcessing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     region: "",
     team: "",
@@ -46,10 +47,28 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
     return grouped;
   }, [regionTeams]);
 
-  // 지역 목록 (정렬)
+  // 지역 목록 (정렬 및 검색 필터링)
   const regions = useMemo(() => {
-    return Object.keys(groupedData).sort();
-  }, [groupedData]);
+    let regionList = Object.keys(groupedData).sort();
+
+    // 검색어가 있으면 필터링
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase().trim();
+      regionList = regionList.filter((region) => {
+        // 지역명에 검색어가 포함되어 있는지 확인
+        if (region.toLowerCase().includes(searchLower)) {
+          return true;
+        }
+        // 해당 지역의 팀명에 검색어가 포함되어 있는지 확인
+        const teams = groupedData[region];
+        return teams.some((team) =>
+          team.team.toLowerCase().includes(searchLower)
+        );
+      });
+    }
+
+    return regionList;
+  }, [groupedData, searchTerm]);
 
   useEffect(() => {
     if (isOpen) {
@@ -63,16 +82,24 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
       setShowAddForm(false);
       setEditingItem(null);
       setFormData({ region: "", team: "" });
+      setSearchTerm("");
       setError("");
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && regions.length > 0) {
-      const allRegions = new Set(regions);
-      setExpandedRegions(allRegions);
+      // 검색어가 있으면 검색 결과 지역만 펼치기
+      if (searchTerm.trim()) {
+        const filteredRegions = new Set(regions);
+        setExpandedRegions(filteredRegions);
+      } else {
+        // 검색어가 없으면 모든 지역 펼치기
+        const allRegions = new Set(regions);
+        setExpandedRegions(allRegions);
+      }
     }
-  }, [regions, isOpen]);
+  }, [regions, isOpen, searchTerm]);
 
   const loadRegionTeams = async () => {
     try {
@@ -87,7 +114,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
       setRegionTeams(data);
     } catch (err: any) {
       console.error("Failed to load region teams:", err);
-      setError(err.message || "지역-팀 목록을 불러오는 중 오류가 발생했습니다.");
+      setError(err.message || "지역/팀 목록을 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -103,15 +130,16 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
     setExpandedRegions(newExpanded);
   };
 
-  const handleAdd = () => {
+  const handleAdd = (region?: string) => {
     setShowAddForm(true);
     setEditingItem(null);
-    setFormData({ region: "", team: "" });
+    const regionStr = region ? String(region) : "";
+    setFormData({ region: regionStr, team: "" });
   };
 
   const handleEdit = (region: string, team: string) => {
     setEditingItem({ region, team });
-    setFormData({ region, team });
+    setFormData({ region: String(region), team: String(team) });
     setShowAddForm(false);
   };
 
@@ -148,7 +176,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
         );
 
         if (result.success) {
-          alert(result.message || "지역-팀이 수정되었습니다.");
+          alert(result.message || "지역/팀이 수정되었습니다.");
           await loadRegionTeams();
           if (onUpdate) onUpdate();
           handleCancel();
@@ -166,7 +194,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
         );
 
         if (result.success) {
-          alert(result.message || "지역-팀이 추가되었습니다.");
+          alert(result.message || "지역/팀이 추가되었습니다.");
           await loadRegionTeams();
           if (onUpdate) onUpdate();
           handleCancel();
@@ -184,8 +212,8 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
 
   const handleDelete = async (region: string, team: string, deleteRegion: boolean = false) => {
     const confirmMessage = deleteRegion
-      ? `정말 "${region}" 지역과 모든 팀을 비활성화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`
-      : `정말 "${region} - ${team}"을 비활성화하시겠습니까?`;
+      ? `정말 ${region} 지역 내 모든 팀을 비활성화하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`
+      : `정말 ${team}팀 (${region})을 비활성화하시겠습니까?`;
 
     if (!window.confirm(confirmMessage)) {
       return;
@@ -227,7 +255,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-black text-gray-900">팀 관리</h2>
@@ -263,7 +291,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
               {(showAddForm || editingItem) && (
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
                   <h3 className="text-lg font-bold text-gray-900 mb-4">
-                    {editingItem ? "지역-팀 수정" : "지역-팀 추가"}
+                    {editingItem ? "지역/팀 수정" : "지역/팀 추가"}
                   </h3>
                   <div className="space-y-4">
                     <div>
@@ -272,7 +300,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                       </label>
                       <input
                         type="text"
-                        value={formData.region}
+                        value={String(formData.region || '')}
                         onChange={(e) =>
                           setFormData({ ...formData, region: e.target.value })
                         }
@@ -287,7 +315,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                       </label>
                       <input
                         type="text"
-                        value={formData.team}
+                        value={String(formData.team || '')}
                         onChange={(e) =>
                           setFormData({ ...formData, team: e.target.value })
                         }
@@ -316,11 +344,31 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                 </div>
               )}
 
+              {/* 검색 입력 */}
+              <div className="mb-4">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    data-type="search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="지역명 또는 팀명으로 검색..."
+                    disabled={processing}
+                  />
+                </div>
+              </div>
+
               {/* 트리 구조 */}
-              <div className="space-y-2">
+              <div className="space-y-2 h-[500px]">
                 {regions.length === 0 ? (
                   <div className="text-center py-12 text-gray-500">
-                    <p>등록된 지역-팀이 없습니다.</p>
+                    <p>
+                      {searchTerm.trim()
+                        ? `"${searchTerm}"에 대한 검색 결과가 없습니다.`
+                        : "등록된 지역/팀이 없습니다."}
+                    </p>
                   </div>
                 ) : (
                   regions.map((region) => {
@@ -331,7 +379,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                       <div key={region} className="border border-gray-200 rounded-lg overflow-hidden">
                         {/* 지역 헤더 */}
                         <div
-                          className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
+                          className="flex items-center justify-between px-2 py-1 bg-gray-50 hover:bg-gray-100 cursor-pointer transition-colors"
                           onClick={() => toggleRegion(region)}
                         >
                           <div className="flex items-center gap-2">
@@ -345,50 +393,73 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                               ({teams.length}개 팀)
                             </span>
                           </div>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDelete(region, "", true);
-                            }}
-                            disabled={processing}
-                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                            title="지역 전체 비활성화"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAdd(region);
+                              }}
+                              disabled={processing || showAddForm || editingItem !== null}
+                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="팀 추가"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDelete(region, "", true);
+                              }}
+                              disabled={processing}
+                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              title="지역 전체 비활성화"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
                         {/* 팀 목록 */}
                         {isExpanded && (
                           <div className="bg-white">
-                            {teams.map((item, idx) => (
-                              <div
-                                key={`${item.region}-${item.team}-${idx}`}
-                                className="flex items-center justify-between p-3 border-t border-gray-100 hover:bg-gray-50 transition-colors"
-                              >
-                                <div className="flex items-center gap-3 pl-8">
-                                  <span className="text-gray-700">{item.team}</span>
+                            {teams
+                              .filter((item) => {
+                                // 검색어가 있으면 팀명도 필터링
+                                if (searchTerm.trim()) {
+                                  const searchLower = searchTerm.toLowerCase().trim();
+                                  return item.team.toLowerCase().includes(searchLower) ||
+                                    item.region.toLowerCase().includes(searchLower);
+                                }
+                                return true;
+                              })
+                              .map((item, idx) => (
+                                <div
+                                  key={`${item.region}-${item.team}-${idx}`}
+                                  className="flex items-center justify-between px-2 py-1  border-t border-gray-100 hover:bg-gray-50 transition-colors text-sm"
+                                >
+                                  <div className="flex items-center gap-3 pl-8">
+                                    <span className="text-gray-700">{item.team}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => handleEdit(item.region, item.team)}
+                                      disabled={processing}
+                                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                                      title="수정"
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(item.region, item.team, false)}
+                                      disabled={processing}
+                                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                      title="비활성화"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-2">
-                                  <button
-                                    onClick={() => handleEdit(item.region, item.team)}
-                                    disabled={processing}
-                                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                                    title="수정"
-                                  >
-                                    <Edit className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => handleDelete(item.region, item.team, false)}
-                                    disabled={processing}
-                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                                    title="비활성화"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
                           </div>
                         )}
                       </div>
@@ -408,7 +479,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold"
           >
             <Plus className="w-4 h-4" />
-            지역-팀 추가
+            새 지역 추가
           </button>
           <button
             onClick={onClose}

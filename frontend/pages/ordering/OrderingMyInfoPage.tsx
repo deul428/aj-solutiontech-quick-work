@@ -135,7 +135,7 @@ const OrderingMyInfoPage: React.FC = () => {
               </div>
             )}
             <div>
-              <label className="block text-sm font-bold text-gray-500 mb-2">소속팀</label>
+              <label className="block text-sm font-bold text-gray-500 mb-2">소속 팀</label>
               <p className="text-lg font-bold text-gray-800">{user.team}</p>
             </div>
             <div>

@@ -1447,6 +1447,103 @@ function updateUser(userId, userData, sessionToken) {
 }
 
 /**
+ * 일괄 비밀번호 변경 (관리자 전용)
+ * '변경 대상 비밀번호' 열에 있는 평문 비밀번호로 모든 사용자의 비밀번호를 일괄 변경합니다.
+ * @param {string} sessionToken - 세션 토큰
+ * @return {Object} 결과 객체 {success: boolean, message: string, count: number}
+ */
+function bulkUpdatePasswordsFromTargetColumn(sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      throw new Error('관리자만 실행할 수 있습니다.');
+    }
+    
+    const userModel = new UserModel();
+    if (!userModel.sheet) {
+      throw new Error('사용자 시트를 찾을 수 없습니다.');
+    }
+    
+    const data = userModel.sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      throw new Error('사용자 데이터가 없습니다.');
+    }
+    
+    const headers = data[0];
+    const userIdCol = headers.indexOf('사용자ID');
+    const passwordHashCol = headers.indexOf('비밀번호해시');
+    const passwordPlainCol = headers.indexOf('비밀번호');
+    const targetPasswordCol = headers.indexOf('변경 대상 비밀번호');
+    
+    if (userIdCol < 0 || passwordHashCol < 0) {
+      throw new Error('필수 컬럼을 찾을 수 없습니다.');
+    }
+    
+    // '비밀번호' 컬럼이 없으면 추가
+    let finalPasswordPlainCol = passwordPlainCol;
+    if (passwordPlainCol < 0) {
+      if (passwordHashCol >= 0) {
+        userModel.sheet.insertColumnAfter(passwordHashCol + 1);
+        userModel.sheet.getRange(1, passwordHashCol + 2).setValue('비밀번호');
+        const newData = userModel.sheet.getDataRange().getValues();
+        finalPasswordPlainCol = newData[0].indexOf('비밀번호');
+      }
+    }
+    
+    // 헤더 다시 읽기
+    const finalData = userModel.sheet.getDataRange().getValues();
+    const finalHeaders = finalData[0];
+    const finalTargetPasswordCol = finalHeaders.indexOf('변경 대상 비밀번호');
+    
+    if (finalTargetPasswordCol < 0) {
+      throw new Error('변경 대상 비밀번호 컬럼을 찾을 수 없습니다.');
+    }
+    
+    let updatedCount = 0;
+    const updatedUsers = [];
+    
+    // 모든 사용자에 대해 '변경 대상 비밀번호' 열 확인
+    for (let i = 1; i < finalData.length; i++) {
+      const row = finalData[i];
+      const userId = String(row[userIdCol] || '').trim();
+      const targetPassword = String(row[finalTargetPasswordCol] || '').trim();
+      
+      // 사용자ID가 있고, 변경 대상 비밀번호가 있으면 업데이트
+      if (userId && targetPassword) {
+        // 비밀번호 해시 생성
+        const newHash = hashPassword(targetPassword);
+        
+        // 비밀번호해시 업데이트
+        userModel.sheet.getRange(i + 1, passwordHashCol + 1).setValue(newHash);
+        
+        // 비밀번호(평문) 업데이트
+        if (finalPasswordPlainCol >= 0) {
+          userModel.sheet.getRange(i + 1, finalPasswordPlainCol + 1).setValue(targetPassword);
+        }
+        
+        updatedCount++;
+        updatedUsers.push(userId);
+      }
+    }
+    
+    new LogService().log('일괄 비밀번호 변경', null, user.userId, `${updatedCount}명`);
+    
+    return {
+      success: true,
+      message: `${updatedCount}명의 비밀번호가 변경되었습니다.`,
+      count: updatedCount,
+      updatedUsers: updatedUsers
+    };
+  } catch (error) {
+    log('ERROR', 'bulkUpdatePasswordsFromTargetColumn error: ' + error);
+    return {
+      success: false,
+      message: error.message || '일괄 비밀번호 변경 중 오류가 발생했습니다.'
+    };
+  }
+}
+
+/**
  * 사용자 삭제 (관리자 전용)
  * @param {string} userId - 사용자 ID
  * @param {string} sessionToken - 세션 토큰
@@ -1485,19 +1582,24 @@ function deleteUser(userId, sessionToken) {
     
     const headers = data[0];
     const userIdCol = headers.indexOf('사용자ID');
+    const activeCol = headers.indexOf('활성화');
     const normalizedUserId = String(userId).trim();
+    
+    if (activeCol < 0) {
+      throw new Error('활성화 컬럼을 찾을 수 없습니다.');
+    }
     
     for (let i = 1; i < data.length; i++) {
       const sheetUserId = String(data[i][userIdCol] || '').trim();
       if (sheetUserId === normalizedUserId) {
-        // 행 삭제
-        userModel.sheet.deleteRow(i + 1);
+        // 행 삭제 대신 '활성화'를 'N'으로 변경
+        userModel.sheet.getRange(i + 1, activeCol + 1).setValue('N');
         
-        new LogService().log('사용자 삭제', null, user.userId, userId);
+        new LogService().log('사용자 비활성화', null, user.userId, userId);
         
         return {
           success: true,
-          message: '사용자가 삭제되었습니다.'
+          message: '사용자가 비활성화되었습니다.'
         };
       }
     }
@@ -1730,9 +1832,14 @@ function deleteDeliveryPlace(placeName, sessionToken) {
     
     const headers = data[0];
     const 배송지명Col = headers.indexOf('배송지명');
+    const activeCol = headers.indexOf('활성화');
     
     if (배송지명Col < 0) {
       throw new Error('배송지명 컬럼을 찾을 수 없습니다.');
+    }
+    
+    if (activeCol < 0) {
+      throw new Error('활성화 컬럼을 찾을 수 없습니다.');
     }
     
     const normalizedPlaceName = String(placeName).trim();
@@ -1740,14 +1847,14 @@ function deleteDeliveryPlace(placeName, sessionToken) {
     for (let i = 1; i < data.length; i++) {
       const sheetPlaceName = String(data[i][배송지명Col] || '').trim();
       if (sheetPlaceName === normalizedPlaceName) {
-        // 행 삭제
-        sheet.deleteRow(i + 1);
+        // 행 삭제 대신 '활성화'를 'N'으로 변경
+        sheet.getRange(i + 1, activeCol + 1).setValue('N');
         
-        new LogService().log('배송지 삭제', null, user.userId, placeName);
+        new LogService().log('배송지 비활성화', null, user.userId, placeName);
         
         return {
           success: true,
-          message: '배송지가 삭제되었습니다.'
+          message: '배송지가 비활성화되었습니다.'
         };
       }
     }
@@ -1763,9 +1870,9 @@ function deleteDeliveryPlace(placeName, sessionToken) {
 }
 
 /**
- * 지역관리 시트에서 지역-팀 목록을 조회합니다.
+ * 지역관리 시트에서 지역/팀 목록을 조회합니다.
  * @param {string} sessionToken - 세션 토큰
- * @return {Array} 지역-팀 목록 [{region, team, active}]
+ * @return {Array} 지역/팀 목록 [{region, team, active}]
  */
 function getRegionTeams(sessionToken) {
   try {
@@ -1820,8 +1927,8 @@ function getRegionTeams(sessionToken) {
 }
 
 /**
- * 지역관리 시트에 지역-팀을 추가합니다.
- * @param {Object} regionTeamData - 지역-팀 데이터 {region, team}
+ * 지역관리 시트에 지역/팀을 추가합니다.
+ * @param {Object} regionTeamData - 지역/팀 데이터 {region, team}
  * @param {string} sessionToken - 세션 토큰
  * @return {Object} 결과 객체 {success: boolean, message: string}
  */
@@ -1870,30 +1977,30 @@ function createRegionTeam(regionTeamData, sessionToken) {
       const existingTeam = String(row[teamCol] || '').trim();
       
       if (existingRegion === newRegion && existingTeam === newTeam) {
-        throw new Error('이미 존재하는 지역-팀 조합입니다.');
+        throw new Error('이미 존재하는 지역/팀 조합입니다.');
       }
     }
     
     // 새 행 추가
     sheet.appendRow([newRegion, newTeam, 'Y']);
     
-    new LogService().log('지역-팀 추가', null, user.userId, newRegion + ' - ' + newTeam);
+    new LogService().log('지역/팀 추가', null, user.userId, newRegion + ' - ' + newTeam);
     
     return {
       success: true,
-      message: '지역-팀이 추가되었습니다.'
+      message: '지역/팀이 추가되었습니다.'
     };
   } catch (error) {
     log('ERROR', 'createRegionTeam error: ' + error);
     return {
       success: false,
-      message: error.message || '지역-팀 추가 중 오류가 발생했습니다.'
+      message: error.message || '지역/팀 추가 중 오류가 발생했습니다.'
     };
   }
 }
 
 /**
- * 지역관리 시트의 지역-팀을 수정하고, 사용자 데이터도 함께 업데이트합니다.
+ * 지역관리 시트의 지역/팀을 수정하고, 사용자 데이터도 함께 업데이트합니다.
  * @param {Object} updateData - 수정 데이터 {oldRegion, oldTeam, newRegion, newTeam}
  * @param {string} sessionToken - 세션 토큰
  * @return {Object} 결과 객체 {success: boolean, message: string}
@@ -1956,7 +2063,7 @@ function updateRegionTeam(updateData, sessionToken) {
     }
     
     if (!found) {
-      throw new Error('수정할 지역-팀을 찾을 수 없습니다.');
+      throw new Error('수정할 지역/팀을 찾을 수 없습니다.');
     }
     
     // 사용자 데이터 업데이트
@@ -1989,23 +2096,23 @@ function updateRegionTeam(updateData, sessionToken) {
       }
     }
     
-    new LogService().log('지역-팀 수정', null, user.userId, oldRegion + '-' + oldTeam + ' -> ' + newRegion + '-' + newTeam);
+    new LogService().log('지역/팀 수정', null, user.userId, oldRegion + '-' + oldTeam + ' -> ' + newRegion + '-' + newTeam);
     
     return {
       success: true,
-      message: '지역-팀이 수정되었습니다.'
+      message: '지역/팀이 수정되었습니다.'
     };
   } catch (error) {
     log('ERROR', 'updateRegionTeam error: ' + error);
     return {
       success: false,
-      message: error.message || '지역-팀 수정 중 오류가 발생했습니다.'
+      message: error.message || '지역/팀 수정 중 오류가 발생했습니다.'
     };
   }
 }
 
 /**
- * 지역관리 시트의 지역-팀을 비활성화합니다.
+ * 지역관리 시트의 지역/팀을 비활성화합니다.
  * 지역을 삭제하면 해당 지역의 모든 팀도 비활성화됩니다.
  * @param {Object} deleteData - 삭제 데이터 {region, team, deleteRegion}
  * @param {string} sessionToken - 세션 토큰
@@ -2092,14 +2199,14 @@ function deleteRegionTeam(deleteData, sessionToken) {
       }
       
       if (updatedCount === 0) {
-        throw new Error('삭제할 지역-팀을 찾을 수 없습니다.');
+        throw new Error('삭제할 지역/팀을 찾을 수 없습니다.');
       }
       
-      new LogService().log('지역-팀 삭제', null, user.userId, targetRegion + ' - ' + targetTeam);
+      new LogService().log('지역/팀 삭제', null, user.userId, targetRegion + ' - ' + targetTeam);
       
       return {
         success: true,
-        message: '지역-팀이 비활성화되었습니다.'
+        message: '지역/팀이 비활성화되었습니다.'
       };
     } else {
       throw new Error('지역과 팀 정보가 필요합니다.');
@@ -2108,7 +2215,7 @@ function deleteRegionTeam(deleteData, sessionToken) {
     log('ERROR', 'deleteRegionTeam error: ' + error);
     return {
       success: false,
-      message: error.message || '지역-팀 삭제 중 오류가 발생했습니다.'
+      message: error.message || '지역/팀 삭제 중 오류가 발생했습니다.'
     };
   }
 }
@@ -3348,6 +3455,10 @@ function doPost(e) {
         } else {
           result = deleteUser(payload.userId, sessionToken);
         }
+        break;
+        
+      case 'bulkUpdatePasswordsFromTargetColumn':
+        result = bulkUpdatePasswordsFromTargetColumn(sessionToken);
         break;
         
       case 'getAllDeliveryPlaces':

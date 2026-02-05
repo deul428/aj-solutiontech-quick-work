@@ -99,7 +99,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return; 
+    if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
       alert('파일 크기는 5MB를 초과할 수 없습니다.');
@@ -261,7 +261,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
           // URL 인코딩 시뮬레이션 (대략적인 길이 계산)
           const testUrl = `${ORDERING_GAS_URL}?action=createRequest&formData=${encodeURIComponent(JSON.stringify(testRequestData))}&token=${sessionToken}&t=${Date.now()}`;
           const actualUrlLength = testUrl.length;
- 
+
           if (actualUrlLength <= maxUrlLength) {
             // URL 길이가 허용 범위 내이면 성공 
             break;
@@ -361,18 +361,18 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">소속팀</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">소속 지역</label>
               <input
                 type="text"
-                value={user.team}
+                value={user.region}
                 readOnly
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-gray-700 mb-2">지역</label>
+              <label className="block text-sm font-bold text-gray-700 mb-2">소속 팀</label>
               <input
                 type="text"
-                value={user.region}
+                value={user.team}
                 readOnly
               />
             </div>
