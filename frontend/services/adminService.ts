@@ -4,14 +4,14 @@
  */
 
 import { ORDERING_GAS_URL } from './orderingService';
-import { DEFAULT_GAS_URL } from './excelService';
+import { AUDIT_GAS_URL } from './excelService';
 import { getSessionToken } from '../utils/orderingAuth';
 import { User, DeliveryPlace } from '../types/ordering';
 import ExcelJS from 'exceljs';
 
 /**
  * 체크리스트 데이터 조회 (관리자 전용)
- * 체크리스트 시스템(DEFAULT_GAS_URL)의 체크리스트_데이터 시트를 조회합니다.
+ * 체크리스트 시스템(AUDIT_GAS_URL)의 체크리스트_데이터 시트를 조회합니다.
  * @param filter - 필터 옵션 {search?, sortBy?, sortOrder?, page?, pageSize?}
  * @param sessionToken - 세션 토큰 (현재는 사용하지 않지만 호환성을 위해 유지)
  * @returns 체크리스트 데이터 배열 또는 페이징 객체
@@ -27,7 +27,7 @@ export async function getChecklistData(
   sessionToken?: string
 ): Promise<any[] | { data: any[]; total: number; page: number; pageSize: number; totalPages: number }> {
   try {
-    if (!DEFAULT_GAS_URL) {
+    if (!AUDIT_GAS_URL) {
       throw new Error('GAS URL이 설정되지 않았습니다.');
     }
 
@@ -40,7 +40,7 @@ export async function getChecklistData(
     if (filter.pageSize) params.append('pageSize', String(filter.pageSize));
     params.append('t', String(Date.now()));
 
-    const response = await fetch(`${DEFAULT_GAS_URL}?${params.toString()}`);
+    const response = await fetch(`${AUDIT_GAS_URL}?${params.toString()}`);
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }

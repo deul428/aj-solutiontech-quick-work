@@ -156,7 +156,34 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     } catch (err: any) {
       console.error("Camera start error:", err);
       setCameraStatus('error');
-      setErrorMessage("카메라를 시작할 수 없습니다. 카메라 사용 권한을 확인하세요.");
+
+      // 모바일에서 구체적인 에러 메시지 표시
+      let errorMsg = "카메라를 시작할 수 없습니다.";
+      const errorName = err?.name || "";
+      const errorMessage = err?.message || "";
+
+      if (errorName === "NotAllowedError" ||
+        errorMessage.includes("permission") ||
+        errorMessage.includes("권한") ||
+        errorMessage.includes("denied")) {
+        errorMsg = "카메라 권한이 거부되었습니다.\n\n브라우저 설정에서 카메라 권한을 허용해주세요.\n(주소창 왼쪽 자물쇠 아이콘 클릭)";
+      } else if (errorName === "NotFoundError" ||
+        errorMessage.includes("not found") ||
+        errorMessage.includes("찾을 수 없")) {
+        errorMsg = "카메라를 찾을 수 없습니다.\n\n기기의 카메라가 정상적으로 작동하는지 확인해주세요.";
+      } else if (errorName === "NotReadableError" ||
+        errorMessage.includes("not readable") ||
+        errorMessage.includes("사용 중")) {
+        errorMsg = "카메라에 접근할 수 없습니다.\n\n다른 앱에서 카메라를 사용 중일 수 있습니다.\n모든 앱을 닫고 다시 시도해주세요.";
+      } else if (errorName === "OverconstrainedError" ||
+        errorMessage.includes("constraint")) {
+        errorMsg = "카메라 설정 오류입니다.\n\n리셋 버튼을 눌러 다시 시도해주세요.";
+      } else if (errorMessage) {
+        errorMsg = `카메라 오류: ${errorMessage}`;
+      } else {
+        errorMsg = "카메라를 시작할 수 없습니다.\n\n리셋 버튼을 눌러 다시 시도하거나,\n페이지를 새로고침해주세요.";
+      } 
+      setErrorMessage(errorMsg);
     }
   };
 

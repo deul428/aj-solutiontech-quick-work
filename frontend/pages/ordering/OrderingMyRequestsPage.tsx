@@ -151,7 +151,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 
       // result가 배열이면 그대로 사용, 객체면 result.data 사용
       const newRequests = Array.isArray(result) ? result : result.data || [];
- 
+
 
       setRequests(newRequests);
       setTotal(newRequests.length);
@@ -349,7 +349,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       },
       {
         key: "actions",
-        label: "작업",
+        label: "상태 변경",
         sortable: false,
         render: (_, row) => (
           <div className="flex items-center gap-2">
@@ -625,10 +625,10 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
               <button
                 onClick={() => handleQuickDateFilter("today")}
                 className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
-                    dateTo &&
-                    dateFrom === getDateRange("today").dateFrom
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  dateTo &&
+                  dateFrom === getDateRange("today").dateFrom
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 오늘
@@ -636,10 +636,10 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
               <button
                 onClick={() => handleQuickDateFilter("thisWeek")}
                 className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
-                    dateTo &&
-                    dateFrom === getDateRange("thisWeek").dateFrom
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  dateTo &&
+                  dateFrom === getDateRange("thisWeek").dateFrom
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 이번 주
@@ -647,10 +647,10 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
               <button
                 onClick={() => handleQuickDateFilter("thisMonth")}
                 className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
-                    dateTo &&
-                    dateFrom === getDateRange("thisMonth").dateFrom
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  dateTo &&
+                  dateFrom === getDateRange("thisMonth").dateFrom
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 이번 달
@@ -658,10 +658,10 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
               <button
                 onClick={() => handleQuickDateFilter("last3Months")}
                 className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
-                    dateTo &&
-                    dateFrom === getDateRange("last3Months").dateFrom
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  dateTo &&
+                  dateFrom === getDateRange("last3Months").dateFrom
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 최근 3개월

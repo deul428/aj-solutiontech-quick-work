@@ -20,7 +20,7 @@ import AdminUserManagementPage from "./pages/AdminUserManagementPage";
 import AdminDeliveryPlaceManagementPage from "./pages/AdminDeliveryPlaceManagementPage";
 import LoadingOverlay from "./components/LoadingOverlay";
 import Navbar from "./components/Navbar";
-import { fetchMasterFromCloud, fetchSheetList, DEFAULT_GAS_URL } from "./services/excelService";
+import { fetchMasterFromCloud, fetchSheetList, AUDIT_GAS_URL } from "./services/excelService";
 import { isLoggedIn, getCurrentUser, isAdmin, isUser, logout } from "./utils/orderingAuth";
 
 type ViewType = "home" | "checklist" | "audit";
@@ -122,7 +122,7 @@ const MainApp: React.FC = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [isInitialLoading, setIsInitialLoading] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
-  const [serviceUrl, setServiceUrl] = useState<string>(DEFAULT_GAS_URL);
+  const [serviceUrl, setServiceUrl] = useState<string>(AUDIT_GAS_URL);
 
   // Multiple Sheet Management
   const [availableSheets, setAvailableSheets] = useState<string[]>([]);

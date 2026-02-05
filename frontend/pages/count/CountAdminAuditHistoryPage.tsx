@@ -9,7 +9,7 @@ import {
 } from "../../services/adminService";
 import {
   fetchLocationOptions,
-  DEFAULT_GAS_URL,
+  AUDIT_GAS_URL,
 } from "../../services/excelService";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import ExcelDateRangeModal, {
@@ -193,7 +193,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   useEffect(() => {
     const loadLocationOptions = async () => {
       try {
-        const rawData = await fetchLocationOptions(DEFAULT_GAS_URL);
+        const rawData = await fetchLocationOptions(AUDIT_GAS_URL);
         let mapping: Record<string, string[]> = {};
 
         // 서버에서 데이터가 어떤 형식으로 오든 프론트에서 재가공

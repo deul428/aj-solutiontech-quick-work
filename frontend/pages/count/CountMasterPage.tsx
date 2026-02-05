@@ -98,7 +98,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
   const userIsUser = isUser(currentUser);
 
   // 구글 시트 URL (환경 변수에서 가져오거나 기본값 사용)
-  const GOOGLE_SHEET_URL = (import.meta.env?.VITE_GOOGLE_SHEET_URL as string) || "https://docs.google.com/spreadsheets/d/1NXT2EBow1zWxmPsb7frN90e95qRH1mkY9DQUgCrsn2I/edit?usp=sharing";
+  const AUDIT_GOOGLE_SHEET_URL = (import.meta.env?.VITE_AUDIT_GOOGLE_SHEET_URL as string) || "https://docs.google.com/spreadsheets/d/1NXT2EBow1zWxmPsb7frN90e95qRH1mkY9DQUgCrsn2I/edit?usp=sharing";
 
   const handleManualUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -181,7 +181,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
           {userIsAdmin && masterData.length > 0 && (
             <div className="mb-4">
               <a
-                href={GOOGLE_SHEET_URL}
+                href={AUDIT_GOOGLE_SHEET_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:bg-blue-50 p-2 rounded-xl transition-all flex items-center gap-2"
