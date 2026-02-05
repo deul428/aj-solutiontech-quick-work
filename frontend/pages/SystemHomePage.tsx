@@ -2,6 +2,7 @@ import React, { useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getCurrentUser, isAdmin, isUser, isLoggedIn } from '../utils/orderingAuth';
 import { systemHomeCards, colorClasses } from '../config/dashboardConfig';
+import Button from '@/components/Button';
 
 const SystemHomePage: React.FC = () => {
   const navigate = useNavigate();
@@ -61,19 +62,19 @@ const SystemHomePage: React.FC = () => {
           {visibleCards.map((card) => {
             const Icon = card.icon;
             const iconColors = colorClasses[card.iconBgColor];
-            const description = typeof card.description === 'function' 
-              ? card.description(userIsAdmin) 
+            const description = typeof card.description === 'function'
+              ? card.description(userIsAdmin)
               : card.description;
             const isEnabled = userIsAdmin || userIsUser;
 
             return (
-              <button
+              <Button
+                variant="outline"
                 key={card.id}
                 onClick={() => handleCardClick(card)}
                 disabled={!isEnabled}
-                className={`bg-white rounded-2xl shadow-md border border-gray-100 p-6 text-left transition-all ${
-                  isEnabled ? 'hover:shadow-lg hover:-translate-y-0.5' : 'opacity-50 cursor-not-allowed'
-                }`}
+                className={`${isEnabled ? 'hover:shadow-lg hover:-translate-y-0.5' : 'opacity-50 cursor-not-allowed'
+                  }`}
               >
                 <div className="flex items-start gap-4">
                   <div className={`${iconColors.titleBar} p-3 rounded-xl text-white`}>
@@ -84,7 +85,7 @@ const SystemHomePage: React.FC = () => {
                     <p className="mt-2 text-sm font-bold text-gray-600">{description}</p>
                   </div>
                 </div>
-              </button>
+              </Button>
             );
           })}
         </div>

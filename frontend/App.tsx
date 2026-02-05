@@ -164,7 +164,14 @@ const MainApp: React.FC = () => {
       setMasterData(data);
       setSelectedSheet(sheetName || "기본 시트");
       setFileName(`구글 클라우드 (${sheetName || "기본"})`);
-      setLastSyncTime(new Date().toLocaleTimeString());
+      setLastSyncTime(new Date().toLocaleString("ko-KR", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      }));
 
       if (customUrl) setServiceUrl(customUrl);
     } catch (err) {

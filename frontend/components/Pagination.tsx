@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import Button from './Button';
 
 interface PaginationProps {
   currentPage: number;
@@ -57,35 +58,34 @@ const Pagination: React.FC<PaginationProps> = ({
       <div className='w-[30%]'></div>
       <div className="flex justify-center items-center gap-2 w-[40%]">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => onPageChange(Math.max(1, currentPage - 1))}
+          <Button variant="icon" onClick={() => onPageChange(Math.max(1, currentPage - 1))}
             disabled={disabled || currentPage === 1}
+            size='md'
             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
-          </button>
+          </Button>
 
           <div className="flex items-center gap-1">
             {pageNumbers.map((p) => (
-              <button
+              <Button variant="" onClick={() => onPageChange(p)} disabled={disabled} size='md'
                 key={p}
-                onClick={() => onPageChange(p)}
-                disabled={disabled}
                 className={`px-3 py-1 rounded-lg text-sm font-bold transition-colors ${currentPage === p ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   } disabled:opacity-50 disabled:cursor-not-allowed`}
               >
                 {p}
-              </button>
+              </Button>
             ))}
           </div>
 
-          <button
+          <Button variant="icon"
             onClick={() => onPageChange(Math.min(totalPages, currentPage + 1))}
             disabled={disabled || currentPage === totalPages}
+            size='md'
             className="p-2 border border-gray-300 rounded-lg hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
       </div>
       {onPageSizeChange && (

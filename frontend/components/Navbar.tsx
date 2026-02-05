@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { navbarMenuItems, NavbarMenuItem } from '../config/dashboardConfig';
 import { isAdmin, isUser, isLoggedIn, getCurrentUser, logout } from '../utils/orderingAuth';
+import Button from './Button';
 
 interface NavbarProps {
   onLogout?: () => void;
@@ -93,15 +94,14 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
               const Icon = item.icon;
               const active = isActive(item);
               // 'info' 메뉴인 경우 동적으로 사용자 정보 표시
-              const displayLabel = item.id === 'info' && currentUser 
-                ? `${currentUser.name} (${currentUser.team})` 
+              const displayLabel = item.id === 'info' && currentUser
+                ? `${currentUser.name} (${currentUser.team})`
                 : item.label;
 
               return (
-                <button
+                <Button variant="" onClick={() => handleMenuClick(item)}
                   key={item.id}
-                  onClick={() => handleMenuClick(item)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors ${active
+                  className={` ${active
                     ? "bg-blue-50 text-blue-700"
                     : item.isLogout
                       ? "text-gray-500 hover:text-red-600 hover:bg-gray-50"
@@ -109,15 +109,15 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                     }`}
                 >
                   <Icon className="w-4 h-4" /> {displayLabel}
-                </button>
+                </Button>
               );
             })}
           </div>
           {/* Mobile Menu Button */}
           <div className="flex items-center sm:hidden gap-4">
-            <button onClick={toggleMenu} className="p-2 text-gray-500">
+            <Button variant="icon" onClick={toggleMenu} className="p-2">
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -129,15 +129,18 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
             const Icon = item.icon;
             const active = isActive(item);
             // 'info' 메뉴인 경우 동적으로 사용자 정보 표시
-            const displayLabel = item.id === 'info' && currentUser 
-              ? `${currentUser.name} (${currentUser.team})` 
+            const displayLabel = item.id === 'info' && currentUser
+              ? `${currentUser.name} (${currentUser.team})`
               : item.label;
 
             return (
-              <button
+              <Button
+                fullWidth
                 key={item.id}
+                size="lg"
+                variant=""
                 onClick={() => handleMenuClick(item)}
-                className={`flex items-center gap-3 w-full px-4 py-3 text-base font-medium rounded-lg transition-colors ${active
+                className={` justify-start transition-colors ${active
                   ? "bg-blue-50 text-blue-700"
                   : item.isLogout
                     ? "text-red-600 hover:bg-red-50"
@@ -145,7 +148,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                   }`}
               >
                 <Icon className="w-5 h-5" /> {displayLabel}
-              </button>
+              </Button>
             );
           })}
         </div>

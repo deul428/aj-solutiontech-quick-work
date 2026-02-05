@@ -29,6 +29,7 @@ import { parseMasterExcel } from "../../services/excelService";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import { getCurrentUser, isAdmin, isUser, isLoggedIn } from "../../utils/orderingAuth";
 import Header from "@/components/Header";
+import Button from "@/components/Button";
 
 interface CountMasterPageProps {
   masterData: MasterDataRow[];
@@ -169,13 +170,9 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
               <Database className="w-6 h-6 text-blue-600" /> 데이터베이스 상태
             </h3>
             {masterData.length > 0 && (
-              <button
-                onClick={handleRefresh}
-                className="text-blue-600 hover:bg-blue-50 p-2 rounded-xl transition-all"
-                title="동기화 새로고침"
-              >
+              <Button variant="icon" onClick={handleRefresh}>
                 <RefreshCcw className={`w-5 h-5 ${isProcessing ? 'animate-spin' : ''}`} />
-              </button>
+              </Button>
             )}
           </div>
           {userIsAdmin && masterData.length > 0 && (
@@ -206,16 +203,9 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {availableSheets.map((name) => (
-                        <button
-                          key={name}
-                          onClick={() => onSheetSwitch(name)}
-                          className={`px-3 py-1.5 rounded-full text-[11px] font-black transition-all ${selectedSheet === name
-                            ? "bg-blue-600 text-white shadow-md shadow-blue-200"
-                            : "bg-white text-gray-500 hover:bg-gray-100 border border-blue-100"
-                            }`}
-                        >
+                        <Button variant={`${selectedSheet === name ? `primary` : `gray`}`} onClick={() => onSheetSwitch(name)} >
                           {name}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </div>
@@ -266,21 +256,18 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
                         placeholder="https://script.google.com/macros/s/..."
                         className="flex-1 bg-white border border-red-200 px-3 py-3 rounded-xl text-[10px] font-bold focus:ring-2 focus:ring-blue-400 outline-none transition-all"
                       />
-                      <button
-                        onClick={handleTryNewConnect}
-                        className="bg-blue-600 text-white px-4 py-3 rounded-xl font-black text-xs hover:bg-blue-700 transition-all shadow-md active:scale-95"
-                      >
+
+                      <Button variant="success" onClick={handleTryNewConnect}>
                         연결
-                      </button>
+                      </Button>
+
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => setShowTroubleshoot(!showTroubleshoot)}
-                    className="w-full flex items-center justify-center gap-2 text-[11px] font-black text-blue-600 hover:underline"
-                  >
-                    <HelpCircle className="w-3 h-3" /> {showTroubleshoot ? "가이드 닫기" : "GAS 권한 설정 해결 방법"}
-                  </button>
+                  <Button
+                    variant={`warning`} onClick={() => setShowTroubleshoot(!showTroubleshoot)} size="md" fullWidth>
+                    <HelpCircle className="w-4 h-4" /> {showTroubleshoot ? "가이드 닫기" : "GAS 권한 설정 해결 방법"}</Button>
+
 
                   {showTroubleshoot && (
                     <div className="bg-white/50 p-4 rounded-2xl border border-red-100 text-[10px] space-y-2 animate-in slide-in-from-top-2">
@@ -307,12 +294,10 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
                     <label className="text-[10px] font-black text-red-400 uppercase ml-1 flex items-center gap-1">
                       <FileUp className="w-3 h-3" /> 방법 2: 수동 엑셀 업로드
                     </label>
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full bg-white text-gray-600 border border-gray-200 py-3.5 rounded-xl font-black text-xs hover:bg-gray-50 transition-all shadow-sm border-dashed border-2 flex items-center justify-center gap-2"
-                    >
-                      엑셀 마스터 파일 선택
-                    </button>
+                    <Button fullWidth variant="outline" onClick={() => fileInputRef.current?.click()} size="md"
+                      className=" border-dashed border-2">
+                      <FileUp className="w-4 h-4" /> 엑셀 마스터 파일 선택
+                    </Button>
                   </div>
                 </div>
                 <input type="file" ref={fileInputRef} onChange={handleManualUpload} accept=".xlsx, .xls" className="hidden" />
@@ -332,12 +317,9 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
                   <p className="text-gray-500 text-sm leading-relaxed font-bold mb-6">
                     시스템을 사용하려면 먼저 로그인해 주세요.
                   </p>
-                  <button
-                    onClick={() => navigate('/login', { state: { from: '/' } })}
-                    className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black transition-colors"
-                  >
+                  <Button variant="primary" onClick={() => navigate('/login', { state: { from: '/' } })} size="md" fullWidth>
                     로그인하기
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

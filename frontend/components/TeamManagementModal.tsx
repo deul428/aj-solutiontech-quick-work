@@ -8,6 +8,7 @@ import {
 } from "../services/adminService";
 import { RegionTeam } from "../types/ordering";
 import { getSessionToken } from "../utils/orderingAuth";
+import Button from "./Button";
 
 interface TeamManagementModalProps {
   isOpen: boolean;
@@ -259,13 +260,9 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-2xl font-black text-gray-900">팀 관리</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            disabled={processing}
-          >
+          <Button variant="icon" onClick={onClose} disabled={processing} size='md'>
             <X className="w-6 h-6 text-gray-500" />
-          </button>
+          </Button>
         </div>
 
         {/* 내용 */}
@@ -278,12 +275,10 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
           ) : error ? (
             <div className="text-center py-12">
               <p className="text-red-600 font-bold">{error}</p>
-              <button
-                onClick={loadRegionTeams}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              <Button variant="primary" onClick={loadRegionTeams} size='md' fullWidth
               >
                 다시 시도
-              </button>
+              </Button>
             </div>
           ) : (
             <>
@@ -324,21 +319,15 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                         disabled={processing}
                       />
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleSave}
-                        disabled={processing}
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                    <div className="flex gap-2 justify-end">
+                      <Button variant="primary" onClick={handleSave} disabled={processing}
                       >
                         {processing ? "처리 중..." : editingItem ? "수정" : "추가"}
-                      </button>
-                      <button
-                        onClick={handleCancel}
-                        disabled={processing}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+                      </Button>
+                      <Button variant="gray" onClick={handleCancel} disabled={processing}
                       >
                         취소
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -394,28 +383,30 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <button
+                            <Button
+                              variant=""
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleAdd(region);
                               }}
                               disabled={processing || showAddForm || editingItem !== null}
-                              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="px-2 text-blue-600 hover:bg-blue-50 disabled:opacity-50"
                               title="팀 추가"
                             >
                               <Plus className="w-4 h-4" />
-                            </button>
-                            <button
+                            </Button>
+                            <Button
+                              variant=""
                               onClick={(e) => {
                                 e.stopPropagation();
                                 handleDelete(region, "", true);
                               }}
                               disabled={processing}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              className="px-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
                               title="지역 전체 비활성화"
                             >
                               <Trash2 className="w-4 h-4" />
-                            </button>
+                            </Button>
                           </div>
                         </div>
 
@@ -441,22 +432,24 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
                                     <span className="text-gray-700">{item.team}</span>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button
+                                    <Button
+                                      variant=''
                                       onClick={() => handleEdit(item.region, item.team)}
                                       disabled={processing}
-                                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                                      className="px-2 text-blue-600 hover:bg-blue-50  disabled:opacity-50"
                                       title="수정"
                                     >
                                       <Edit className="w-4 h-4" />
-                                    </button>
-                                    <button
+                                    </Button>
+                                    <Button
+                                      variant=''
                                       onClick={() => handleDelete(item.region, item.team, false)}
                                       disabled={processing}
-                                      className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                                      className="px-2 text-red-600 hover:bg-red-50  disabled:opacity-50"
                                       title="비활성화"
                                     >
                                       <Trash2 className="w-4 h-4" />
-                                    </button>
+                                    </Button>
                                   </div>
                                 </div>
                               ))}
@@ -472,22 +465,16 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
         </div>
 
         {/* 푸터 */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={handleAdd}
-            disabled={processing || showAddForm || editingItem !== null}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+        <div className="flex items-center justify-end gap-2 p-6 border-t border-gray-200 bg-gray-50">
+          <Button variant="primary" onClick={() => handleAdd(null)} disabled={processing || showAddForm || editingItem !== null}
           >
             <Plus className="w-4 h-4" />
             새 지역 추가
-          </button>
-          <button
-            onClick={onClose}
-            disabled={processing}
-            className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-bold"
+          </Button>
+          <Button variant="gray" onClick={onClose} disabled={processing}
           >
             닫기
-          </button>
+          </Button>
         </div>
       </div>
     </div>

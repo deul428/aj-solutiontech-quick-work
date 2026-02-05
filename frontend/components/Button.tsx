@@ -29,10 +29,13 @@ const Button: React.FC<ButtonProps> = ({
     primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
     secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
     success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+    warning: 'bg-yellow-400 text-gray-800 hover:bg-yellow-500 focus:ring-yellow-500',
+
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500',
-    ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500',
-    icon: 'bg-transparent text-gray-600 hover:text-gray-900 focus:ring-gray-500 p-0', 
+    outline: 'border border-gray-300 border-2 bg-white text-gray-900 hover:bg-gray-50 focus:ring-gray-500 ',
+    gray: "bg-gray-500 text-white hover:bg-gray-600",
+    ghost: 'bg-transparent text-gray-700 hover:bg-gray-100 focus:ring-gray-500 ',
+    icon: 'bg-transparent text-gray-600 hover:text-gray-900 focus:ring-gray-500 p-0',
   };
 
   // Size별 스타일

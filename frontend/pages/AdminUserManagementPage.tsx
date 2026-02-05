@@ -590,7 +590,7 @@ const AdminUserManagementPage: React.FC = () => {
           level={1}
         />
 
-        <div className="mb-6 flex justify-end items-center gap-4">
+        <div className="mb-6 flex justify-end items-center gap-2">
           <Button
             onClick={async () => {
               if (!window.confirm('변경 대상 비밀번호 열의 값으로 모든 사용자의 비밀번호를 일괄 변경하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.')) {
@@ -640,7 +640,7 @@ const AdminUserManagementPage: React.FC = () => {
           </Button>
         </div>
         {/* 검색 및 필터 */}
-        <div className="mb-6 flex flex-row items-center justify-between gap-4">
+        <div className="mb-6 flex flex-row items-center justify-between gap-2">
           {/* 검색 입력 */}
           <div className="relative flex-1 flex">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -709,7 +709,8 @@ const AdminUserManagementPage: React.FC = () => {
               </select>
             </div>
           </div>
-          <button
+          <Button
+            variant="ghost"
             onClick={() => {
               setRegionFilter("all");
               setTeamFilter("all");
@@ -717,13 +718,12 @@ const AdminUserManagementPage: React.FC = () => {
               setRoleFilter("all");
             }}
             disabled={loading}
-            className="text-sm font-bold text-gray-800 flex items-center gap-2"
           >
-            <RefreshCw
-              className={`w-5 h-5 text-gray-900 ${loading ? "animate-spin" : ""}`}
+            <RefreshCw  
+              className={`w-4 h-4${loading ? "animate-spin" : ""}`}
             />
             초기화
-          </button>
+          </Button>
         </div>
 
         {/* 테이블 */}

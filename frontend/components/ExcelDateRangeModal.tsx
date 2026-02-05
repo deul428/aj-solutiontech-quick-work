@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { getDateRange } from '../utils/orderingHelpers';
+import Button from './Button';
 
 export type ExcelDateRangeResult =
   | { all: true }
@@ -59,49 +60,21 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
           <div>
             <label className="block text-sm font-bold text-gray-600 mb-2">빠른 선택</label>
             <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => handleQuickExcelDateFilter('today')}
-                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('today').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
+              <Button variant={`${excelDateFrom && excelDateFrom === getDateRange('today').dateFrom ? 'primary' : 'gray'}`} onClick={() => handleQuickExcelDateFilter('today')}>
                 오늘
-              </button>
-              <button
-                onClick={() => handleQuickExcelDateFilter('thisWeek')}
-                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('thisWeek').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
+              </Button>
+              <Button variant={`${excelDateFrom && excelDateFrom === getDateRange('thisWeek').dateFrom ? 'primary' : 'gray'}`} onClick={() => handleQuickExcelDateFilter('thisWeek')}>
                 이번 주
-              </button>
-              <button
-                onClick={() => handleQuickExcelDateFilter('thisMonth')}
-                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('thisMonth').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
+              </Button>
+              <Button variant={`${excelDateFrom && excelDateFrom === getDateRange('thisMonth').dateFrom ? 'primary' : 'gray'}`} onClick={() => handleQuickExcelDateFilter('thisMonth')}>
                 이번 달
-              </button>
-              <button
-                onClick={() => handleQuickExcelDateFilter('last3Months')}
-                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateFrom && excelDateFrom === getDateRange('last3Months').dateFrom
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
+              </Button>
+              <Button variant={`${excelDateFrom && excelDateFrom === getDateRange('last3Months').dateFrom ? 'primary' : 'gray'}`} onClick={() => handleQuickExcelDateFilter('last3Months')}>
                 최근 3개월
-              </button>
-              <button
-                onClick={() => handleQuickExcelDateFilter('all')}
-                className={`px-3 py-2 rounded-lg text-sm font-bold transition-colors ${excelDateRangeAll ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-              >
+              </Button>
+              <Button variant={`${excelDateRangeAll ? 'primary' : 'gray'}`} onClick={() => handleQuickExcelDateFilter('all')}>
                 전체
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -138,25 +111,20 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
         </div>
 
         <div className="flex justify-end gap-2 mt-6">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-bold transition-colors"
-          >
+          <Button variant="gray" onClick={onClose}>
             취소
-          </button>
-          <button
-            onClick={() => {
-              if (excelDateRangeAll) {
-                onConfirm({ all: true });
-              } else {
-                onConfirm({ all: false, dateFrom: excelDateFrom, dateTo: excelDateTo });
-              }
-            }}
+          </Button>
+          <Button variant="success" onClick={() => {
+            if (excelDateRangeAll) {
+              onConfirm({ all: true });
+            } else {
+              onConfirm({ all: false, dateFrom: excelDateFrom, dateTo: excelDateTo });
+            }
+          }}
             disabled={isConfirmDisabled || isDownloading}
-            className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isDownloading ? '다운로드 중...' : '다운로드'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Download, RefreshCw, X } from "lucide-react";
+import { Search, Download, RefreshCw, X, Info } from "lucide-react";
 import { isAdmin, getCurrentUser } from "../../utils/orderingAuth";
 import {
   getChecklistData,
@@ -17,6 +17,7 @@ import ExcelDateRangeModal, {
 } from "../../components/ExcelDateRangeModal";
 import DataTable, { TableColumn } from "../../components/DataTable";
 import Header from "@/components/Header";
+import Button from "@/components/Button";
 
 interface ChecklistDataItem {
   [key: string]: any;
@@ -575,12 +576,14 @@ const CountAdminAuditHistoryPage: React.FC = () => {
         <div className="max-w-[85dvw] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-800">{error}</p>
-            <button
+            <Button
+              variant="gray"
               onClick={loadData}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+              fullWidth
+              className="mt-4"
             >
               다시 시도
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -603,30 +606,30 @@ const CountAdminAuditHistoryPage: React.FC = () => {
               : ""}
           </p>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="gray"
               onClick={handleRefresh}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
               title="새로고침"
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
               />
               새로고침
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="success"
               onClick={() => setShowExcelDateFilter(true)}
               disabled={isDownloading || filteredData.length === 0}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
               <Download className="w-4 h-4" />
               {isDownloading ? "다운로드 중..." : "엑셀 다운로드"}
-            </button>
+            </Button>
           </div>
         </div>
 
         {/* 검색 및 필터 */}
-        <div className="mb-6">
+        <div className="mb-12">
           <div className="flex flex-col sm:flex-col gap-2">
             {/* 검색 입력 */}
             <div className="relative flex-1 w-full flex items-center gap-4">
@@ -634,7 +637,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
               <input
                 type="text"
                 data-type="search"
-                placeholder="아무 값으로 검색... (관리번호, 자산번호, 상품명 등)"
+                placeholder="검색어를 입력하세요 (관리번호, 자산번호, 상품명 등)"
                 value={inputSearchTerm}
                 onChange={(e) => setInputSearchTerm(e.target.value)}
                 onKeyPress={(e) => {
@@ -643,12 +646,13 @@ const CountAdminAuditHistoryPage: React.FC = () => {
                   }
                 }}
               />
-              <button
+              <Button
+                variant="primary"
                 onClick={handleSearch}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 w-fit hidden"
+                className="hidden"
               >
                 검색
-              </button>
+              </Button>
             </div>
             {/* 필터 그룹 */}
             <div className="flex flex-col sm:flex-row gap-8 justify-end items-end">
@@ -670,23 +674,35 @@ const CountAdminAuditHistoryPage: React.FC = () => {
                   <option value="X">X</option>
                 </select>
               </div>
-              <div className="flex gap-2 items-center gap-2">
-                <h2 className="text-sm font-bold text-gray-700">
-                  이상 자산 여부
-                </h2>
-                <select
-                  value={abnormalAssetFilter}
-                  onChange={(e) => {
-                    setAbnormalAssetFilter(e.target.value as "all" | "O" | "X");
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+              <div className="flex items-center relative group">
+                <div className="flex gap-2 items-center">
+                  <h2 className="text-sm font-bold text-gray-700">
+                    이상 자산 여부
+                  </h2>
+                  <Info className="w-4 h-4 text-gray-500" />
+                  <select
+                    value={abnormalAssetFilter}
+                    onChange={(e) => {
+                      setAbnormalAssetFilter(e.target.value as "all" | "O" | "X");
+                      setCurrentPage(1);
+                    }}
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+                  >
+                    <option value="all">전체</option>
+                    <option value="O">O</option>
+                    <option value="X">X</option>
+                  </select>
+                </div>
+
+                {/* Tooltip */}
+                <div
+                  className="absolute bottom-[-50px] left-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-blue-50 p-2 rounded-md font-semibold shadow-md text-xs text-gray-800 w-fit z-10 pointer-events-none"
                 >
-                  <option value="all">전체</option>
-                  <option value="O">O</option>
-                  <option value="X">X</option>
-                </select>
+                  이상자산: 체크리스트에 포함되지 않거나,<br />
+                  마스터 데이터에 없는 정보
+                </div>
               </div>
+
               {/* 센터 위치 및 자산위치 필터 */}
               <div className="flex gap-2 items-center gap-2">
                 <h2 className="text-sm font-bold text-gray-700">센터 위치</h2>
@@ -760,12 +776,13 @@ const CountAdminAuditHistoryPage: React.FC = () => {
           className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
           onClick={() => setExpandedImage(null)}
         >
-          <button
+          <Button
+            variant=''
             className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
             onClick={() => setExpandedImage(null)}
           >
             <X className="w-8 h-8" />
-          </button>
+          </Button>
           <img
             src={expandedImage}
             alt="확대된 QR Code"

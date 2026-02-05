@@ -5,6 +5,7 @@ import { setCurrentUser, isAdmin, isUser } from '../utils/orderingAuth';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/icons/android-icon-512x512.png';
+import Button from '@/components/Button';
 
 const LoginPage: React.FC = () => {
   const [userId, setUserId] = useState('');
@@ -64,7 +65,7 @@ const LoginPage: React.FC = () => {
       {loading && <LoadingOverlay message="로그인 중..." />}
 
       <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-8">
-        {/* 헤더 */} 
+        {/* 헤더 */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 ">
             <img src={logo} alt="logo" className="w-full w-full" />
@@ -114,14 +115,15 @@ const LoginPage: React.FC = () => {
             />
           </div>
 
-          <button
+          <Button
+            variant="primary"
             type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black disabled:bg-gray-400 transition-colors"
+            disabled={loading} 
+            fullWidth
           >
-            <LogIn className="w-5 h-5" />
+            <LogIn className="w-4 h-4" />
             {loading ? '로그인 중...' : '로그인'}
-          </button>
+          </Button>
         </form>
 
         {/* 푸터 */}
@@ -129,7 +131,7 @@ const LoginPage: React.FC = () => {
           <p>&copy; 2026. AJ Networks Corporation. All rights reserved.</p>
         </div>
       </div>
-    </div>
+    </div >
   );
 };
 

@@ -34,6 +34,7 @@ import LoadingOverlay from "../../components/LoadingOverlay";
 import DataTable, { TableColumn } from "../../components/DataTable";
 import Toast from "../../components/Toast";
 import Header from "@/components/Header";
+import Button from "@/components/Button";
 
 const OrderingAdminRequestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -214,24 +215,46 @@ const OrderingAdminRequestsPage: React.FC = () => {
       setSortOrder("asc");
     }
   };
+  // 전체 선택/해제
+  const handleSelectAll = () => {
+    if (selectedRequests.size === sortedAndFilteredRequests.length) {
+      setSelectedRequests(new Set());
+    } else {
+      setSelectedRequests(
+        new Set(sortedAndFilteredRequests.map((r) => r.requestNo)),
+      );
+    }
+  };
+
 
   // 테이블 컬럼 설정 - 여기서 쉽게 헤더 관리 가능
   const columns: TableColumn<Request>[] = useMemo(
     () => [
       {
         key: "checkbox",
-        label: "",
+        label: (
+          <input
+            type="checkbox"
+            checked={
+              selectedRequests.size === sortedAndFilteredRequests.length &&
+              sortedAndFilteredRequests.length > 0
+            }
+            onChange={handleSelectAll}
+            className=" rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+        ),
         sortable: false,
-        headerClassName: "w-12",
+        headerClassName: "w-12 text-center",
         render: (_, row) => (
           <input
             type="checkbox"
             checked={selectedRequests.has(row.requestNo)}
             onChange={() => handleSelectRequest(row.requestNo)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="translate-y-[2px] rounded border-gray-300 text-blue-600 focus:ring-blue-500"
           />
         ),
       },
+
       {
         key: "requestNo",
         label: "신청번호",
@@ -358,17 +381,6 @@ const OrderingAdminRequestsPage: React.FC = () => {
       newSelected.add(requestNo);
     }
     setSelectedRequests(newSelected);
-  };
-
-  // 전체 선택/해제
-  const handleSelectAll = () => {
-    if (selectedRequests.size === sortedAndFilteredRequests.length) {
-      setSelectedRequests(new Set());
-    } else {
-      setSelectedRequests(
-        new Set(sortedAndFilteredRequests.map((r) => r.requestNo)),
-      );
-    }
   };
 
   // 상세 모달 열기
@@ -752,47 +764,21 @@ const OrderingAdminRequestsPage: React.FC = () => {
         </div>
 
         {/* 일괄 변경 버튼 */}
-        {/* {selectedRequests.size > 0 && ( */}
-        <div className="mb-4 flex gap-2">
-          <button
-            onClick={handleBatchStatusChange}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
+        <div className="mb-4 flex justify-end gap-2">
+          <Button variant="primary" color="blue" onClick={handleBatchStatusChange}>
             일괄 상태 변경 ({selectedRequests.size}건)
-          </button>
-          <button
-            onClick={handleBatchHandlerAssign}
-            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
-          >
-            담당자 배정 ({selectedRequests.size}건)
-          </button>
-          <button
-            onClick={() => setSelectedRequests(new Set())}
-            className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600"
-          >
-            선택 해제
-          </button>
-        </div>
-        {/*  )}
+          </Button>
 
+          <Button variant="success" color="green" onClick={handleBatchHandlerAssign}>
+            담당자 배정 ({selectedRequests.size}건)
+          </Button>
+
+          <Button variant="gray" onClick={() => setSelectedRequests(new Set())}>
+            선택 해제
+          </Button>
+        </div>
         {/* 테이블 */}
         <div>
-          {/* 전체 선택 체크박스 */}
-          <div className="mb-2 flex items-center gap-2">
-            <input
-              id="selectAll"
-              type="checkbox"
-              checked={
-                selectedRequests.size === sortedAndFilteredRequests.length &&
-                sortedAndFilteredRequests.length > 0
-              }
-              onChange={handleSelectAll}
-              className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-            />
-            <label htmlFor="selectAll" className="text-sm text-gray-600 cursor-pointer">
-              전체 선택
-            </label>
-          </div>
           <p className="mt-2 mb-2 text-red-600">
             데이터의 동기화가 다소 느릴 수 있습니다. 동기화가 되지 않을 경우,
             잠시 기다렸다 새로고침해 주세요.
@@ -856,23 +842,17 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowStatusModal(false);
-                    setNewStatus("");
-                    setRemarks("");
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
-                >
+                <Button variant="gray" onClick={() => {
+                  setShowStatusModal(false);
+                  setNewStatus("");
+                  setRemarks("");
+                }}>
                   취소
-                </button>
-                <button
-                  onClick={saveBatchStatusChange}
-                  disabled={processing || !newStatus}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
-                >
+                </Button>
+                <Button variant="primary" onClick={saveBatchStatusChange}
+                  disabled={processing || !newStatus}>
                   {processing ? "저장 중..." : "저장"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -902,22 +882,16 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">
-                <button
-                  onClick={() => {
-                    setShowHandlerModal(false);
-                    setHandlerName("");
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-md"
-                >
+                <Button variant="gray" onClick={() => {
+                  setShowHandlerModal(false);
+                  setHandlerName("");
+                }}>
                   취소
-                </button>
-                <button
-                  onClick={saveBatchHandlerAssign}
-                  disabled={processing || !handlerName.trim()}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400"
-                >
+                </Button>
+                <Button variant="success" onClick={saveBatchHandlerAssign}
+                  disabled={processing || !handlerName.trim()}>
                   {processing ? "저장 중..." : "배정"}
-                </button>
+                </Button>
               </div>
             </div>
           </div>
@@ -932,12 +906,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 <h1 className="text-2xl font-bold text-gray-900">
                   신청 상세 정보
                 </h1>
-                <button
-                  onClick={handleCloseDetailModal}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
+                <Button variant=""
+                  onClick={handleCloseDetailModal}>
                   <X className="w-6 h-6" />
-                </button>
+                </Button>
               </div>
 
               <div className="p-6 space-y-6">
@@ -1123,13 +1095,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
                             rows={4}
                             placeholder="비고를 입력하세요"
                           />
-                          <button
-                            onClick={saveDetailChanges}
-                            disabled={processing}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 transition-colors w-full sm:w-auto"
-                          >
+                          <Button variant="primary" onClick={saveDetailChanges}
+                            disabled={processing}>
                             {processing ? "저장 중..." : "저장"}
-                          </button>
+                          </Button>
                         </td>
                       </tr>
                     </tbody>
@@ -1137,14 +1106,14 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 </div>
 
                 {/* Footer 버튼 */}
-                <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
-                  <button
+                {/* <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                  <Button variant="outlined" color="gray"
                     onClick={handleCloseDetailModal}
-                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                    className="bg-gray-500 text-white hover:bg-gray-600"
                   >
                     닫기
-                  </button>
-                </div>
+                  </Button>
+                </div> */}
               </div>
             </div>
           </div>
@@ -1156,13 +1125,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
             className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60]"
             onClick={() => setExpandedImage(null)}
           >
-            <div className="relative max-w-[90vw] max-h-[90vh]">
-              <button
+            <div className="relative max-w-[90vw] max-h-[90vh]"> 
+              <Button variant=""
                 onClick={() => setExpandedImage(null)}
-                className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
+                className="absolute top-0 right-0 text-white hover:text-gray-300 z-10"
               >
                 <X className="w-6 h-6" />
-              </button>
+              </Button>
               <img
                 src={expandedImage}
                 alt="확대된 이미지"
