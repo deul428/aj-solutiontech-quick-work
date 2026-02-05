@@ -230,10 +230,19 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
   }, [isDataLoading]);
 
   const handleScanSuccess = (decodedText: string) => {
-    if (showScanModal || showTransferModal || isCoolingDown || isSyncing) return;
+    // 스캔이 감지되었는지 확인 (디버깅용)
+    console.log("QR 스캔 감지됨:", decodedText);
+    
+    if (showScanModal || showTransferModal || isCoolingDown || isSyncing) {
+      console.log("스캔 무시됨 - 모달/쿨다운/동기화 중");
+      return;
+    }
 
     const trimmedText = decodedText.trim();
-    if (!trimmedText) return;
+    if (!trimmedText) {
+      console.log("스캔된 텍스트가 비어있음");
+      return;
+    }
 
     setScannedResult(trimmedText);
     const match = masterData.find(row => {
@@ -242,7 +251,20 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
       return mgmtNo === trimmedText || assetNo === trimmedText;
     });
 
-    setFoundRow(match || null);
+    // 데이터 매칭 실패 시 명확한 에러 메시지 표시
+    if (!match) {
+      alert(
+        `스캔 성공: "${trimmedText}"\n\n` +
+        `마스터 데이터에서 해당 관리번호를 찾을 수 없습니다.\n\n` +
+        `확인 사항:\n` +
+        `- 관리번호가 정확한지 확인해주세요\n` +
+        `- 마스터 데이터가 제대로 로드되었는지 확인해주세요\n` +
+        `- 관리번호 형식이 일치하는지 확인해주세요`
+      );
+      return; // 모달을 띄우지 않고 종료
+    }
+
+    setFoundRow(match);
     setShowScanModal(true);
     // pause()를 사용하지 않고, 모달이 열려있으면 자동으로 스캔 무시됨
   };
