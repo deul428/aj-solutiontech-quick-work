@@ -151,15 +151,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 
       // result가 배열이면 그대로 사용, 객체면 result.data 사용
       const newRequests = Array.isArray(result) ? result : result.data || [];
-
-      console.log("loadRequests: 데이터 로드 완료", newRequests.length, "건");
-      console.log(
-        "loadRequests: result 타입",
-        Array.isArray(result) ? "배열" : "객체",
-      );
-      if (!Array.isArray(result) && result.data) {
-        console.log("loadRequests: result.data 길이", result.data.length);
-      }
+ 
 
       setRequests(newRequests);
       setTotal(newRequests.length);

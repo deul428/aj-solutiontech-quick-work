@@ -120,11 +120,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         sessionToken,
       );
 
-      const newRequests = Array.isArray(result) ? result : result.data || [];
-
-      console.log("loadRequests: 데이터 로드 완료", newRequests.length, "건");
-      console.log("loadRequests: 첫 번째 항목 상태", newRequests[0]?.status);
-
+      const newRequests = Array.isArray(result) ? result : result.data || []; 
       // 상태 업데이트 - 강제로 새 배열로 설정하여 리렌더링 보장
       setRequests([...newRequests]);
       setTotal(newRequests.length);
@@ -137,8 +133,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
     }
   }, [navigate]); // sortBy, sortOrder 제거 - 클라이언트에서만 정렬
 
-  const filterRequests = useCallback(() => {
-    console.log("filterRequests: 실행됨", requests.length, "건");
+  const filterRequests = useCallback(() => { 
     let filtered = [...requests];
 
     // 검색 필터
@@ -166,10 +161,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       filtered = filtered.filter((req) => req.status === statusFilter);
     }
 
-    console.log("filterRequests: 필터링 완료", filtered.length, "건");
-    if (filtered.length > 0) {
-      console.log("filterRequests: 첫 번째 항목 상태", filtered[0]?.status);
-    }
+     
     setFilteredRequests(filtered);
   }, [requests, searchTerm, statusFilter]);
 
@@ -191,19 +183,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
   }, [filteredRequests, sortBy, sortOrder]);
 
   // requests가 변경되면 자동으로 필터링 실행
-  useEffect(() => {
-    console.log("useEffect: filterRequests 실행", requests.length, "건");
+  useEffect(() => { 
     filterRequests();
   }, [filterRequests]);
 
   // requests가 직접 변경되면 필터링 실행 (이중 보장)
   useEffect(() => {
-    if (requests.length > 0) {
-      console.log(
-        "useEffect: requests 변경 감지, 필터링 실행",
-        requests.length,
-        "건",
-      );
+    if (requests.length > 0) { 
       filterRequests();
     }
   }, [requests.length, filterRequests]); // requests.length 변경 시 필터링 실행
@@ -556,14 +542,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       });
 
       // 모든 업데이트 작업이 완료될 때까지 대기
-      await Promise.all(updatePromises);
-
-      console.log(
-        "saveBatchStatusChange: 업데이트 완료",
-        successCount,
-        "건 성공",
-      );
-
+      await Promise.all(updatePromises); 
       if (successCount > 0) {
         setShowStatusModal(false);
         setSelectedRequests(new Set());

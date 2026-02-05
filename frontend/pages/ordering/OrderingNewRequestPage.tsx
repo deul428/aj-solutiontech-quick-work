@@ -99,8 +99,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    console.log(file, file.size);
+    if (!file) return; 
 
     if (file.size > 5 * 1024 * 1024) {
       alert('파일 크기는 5MB를 초과할 수 없습니다.');
@@ -262,16 +261,12 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
           // URL 인코딩 시뮬레이션 (대략적인 길이 계산)
           const testUrl = `${ORDERING_GAS_URL}?action=createRequest&formData=${encodeURIComponent(JSON.stringify(testRequestData))}&token=${sessionToken}&t=${Date.now()}`;
           const actualUrlLength = testUrl.length;
-
-          console.log(`압축 시도: ${setting.width}x${setting.height}, quality: ${setting.quality}, URL 길이: ${actualUrlLength}`);
-
+ 
           if (actualUrlLength <= maxUrlLength) {
-            // URL 길이가 허용 범위 내이면 성공
-            console.log(`압축 성공! 최종 URL 길이: ${actualUrlLength}`);
+            // URL 길이가 허용 범위 내이면 성공 
             break;
           } else {
-            // 아직 길면 다음 설정으로 시도
-            console.log(`URL 길이 ${actualUrlLength}가 너무 깁니다 (제한: ${maxUrlLength}). 더 강한 압축 시도...`);
+            // 아직 길면 다음 설정으로 시도 
             photoUrl = ''; // 초기화하고 다음 시도
           }
         } catch (compressError: any) {
