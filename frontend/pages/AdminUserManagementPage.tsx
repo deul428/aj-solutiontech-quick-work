@@ -405,18 +405,18 @@ const AdminUserManagementPage: React.FC = () => {
             <div className="flex gap-2">
               <Button
                 onClick={() => handleEdit(row)}
+                className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
                 disabled={isInactive || processing}
                 variant="icon"
                 icon={Edit}
-                className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
                 title={isInactive ? "비활성화된 사용자는 수정할 수 없습니다." : "수정"}
               />
               <Button
                 onClick={() => handleDelete(row.userId)}
+                className="text-red-600 hover:text-red-900 disabled:text-gray-400"
                 disabled={isInactive || processing}
                 variant="icon"
                 icon={Trash2}
-                className="text-red-600 hover:text-red-900 disabled:text-gray-400"
                 title={isInactive ? "이미 비활성화된 사용자입니다." : "비활성화"}
               />
             </div>

@@ -302,6 +302,12 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       </div>
     );
   }
+  const [formattedRequestDate, setFormattedRequestDate] = useState('');
+  useEffect(() => {
+    if (request?.requestDate) {
+      setFormattedRequestDate(formatDate(request.requestDate));
+    }
+  }, [request?.requestDate]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -353,8 +359,8 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
                     <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
                       신청 일시
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
-                      {request.requestDate}
+                    <td className="px-4 py-4 text-sm text-gray-900"> 
+                      {formattedRequestDate || request?.requestDate}
                     </td>
                   </tr>
                   <tr>

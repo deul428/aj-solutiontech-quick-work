@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search,
@@ -120,7 +120,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         sessionToken,
       );
 
-      const newRequests = Array.isArray(result) ? result : result.data || []; 
+      const newRequests = Array.isArray(result) ? result : result.data || [];
       // 상태 업데이트 - 강제로 새 배열로 설정하여 리렌더링 보장
       setRequests([...newRequests]);
       setTotal(newRequests.length);
@@ -133,7 +133,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
     }
   }, [navigate]); // sortBy, sortOrder 제거 - 클라이언트에서만 정렬
 
-  const filterRequests = useCallback(() => { 
+  const filterRequests = useCallback(() => {
     let filtered = [...requests];
 
     // 검색 필터
@@ -161,7 +161,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       filtered = filtered.filter((req) => req.status === statusFilter);
     }
 
-     
+
     setFilteredRequests(filtered);
   }, [requests, searchTerm, statusFilter]);
 
@@ -183,16 +183,18 @@ const OrderingAdminRequestsPage: React.FC = () => {
   }, [filteredRequests, sortBy, sortOrder]);
 
   // requests가 변경되면 자동으로 필터링 실행
-  useEffect(() => { 
+  useEffect(() => {
     filterRequests();
   }, [filterRequests]);
 
   // requests가 직접 변경되면 필터링 실행 (이중 보장)
   useEffect(() => {
-    if (requests.length > 0) { 
+    if (requests.length > 0) {
       filterRequests();
     }
   }, [requests.length, filterRequests]); // requests.length 변경 시 필터링 실행
+
+
 
   useEffect(() => {
     // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
@@ -378,27 +380,27 @@ const OrderingAdminRequestsPage: React.FC = () => {
     setOriginalDetailRequesterRemarks(request.remarks || "");
     setHasChanges(false);
     setShowDetailModal(true);
-
-    // 최신 데이터 로드
-    try {
-      const sessionToken = getSessionToken();
-      if (!sessionToken) return;
-      const detail = await getRequestDetailOrdering(
-        ORDERING_GAS_URL,
-        request.requestNo,
-        sessionToken,
-      );
-      if (detail) {
-        setDetailRequest(detail);
-        setDetailRemarks(detail.handlerRemarks || "");
-        setDetailRequesterRemarks(detail.remarks || "");
-        setOriginalDetailRemarks(detail.handlerRemarks || "");
-        setOriginalDetailRequesterRemarks(detail.remarks || "");
-        setHasChanges(false);
-      }
-    } catch (err) {
-      console.error("Failed to load detail:", err);
-    }
+    /* 
+        // 최신 데이터 로드
+        try {
+          const sessionToken = getSessionToken();
+          if (!sessionToken) return;
+          const detail = await getRequestDetailOrdering(
+            ORDERING_GAS_URL,
+            request.requestNo,
+            sessionToken,
+          );
+          if (detail) {
+            setDetailRequest(detail);
+            setDetailRemarks(detail.handlerRemarks || "");
+            setDetailRequesterRemarks(detail.remarks || "");
+            setOriginalDetailRemarks(detail.handlerRemarks || "");
+            setOriginalDetailRequesterRemarks(detail.remarks || "");
+            setHasChanges(false);
+          }
+        } catch (err) {
+          console.error("Failed to load detail:", err);
+        } */
   };
 
   // 변경사항 감지
@@ -451,7 +453,20 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
       // 데이터 새로고침
       await loadRequests();
-      const updated = await getRequestDetailOrdering(
+      setDetailRequest((prev) => {
+        if (!prev) return prev;
+        const updatedFromList = requests.find(
+          (r) => r.requestNo === prev.requestNo,
+        );
+        return updatedFromList || prev;
+      });
+
+      setOriginalDetailRemarks(detailRemarks);
+      setHasChanges(false);
+      setToast({ message: "저장되었습니다.", type: "success" });
+
+
+      /* const updated = await getRequestDetailOrdering(
         ORDERING_GAS_URL,
         detailRequest.requestNo,
         sessionToken,
@@ -464,7 +479,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         setOriginalDetailRequesterRemarks(updated.remarks || "");
         setHasChanges(false);
         setToast({ message: "저장되었습니다.", type: "success" });
-      }
+      } */
     } catch (err: any) {
       setError(err.message || "저장 중 오류가 발생했습니다.");
     } finally {
@@ -542,7 +557,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       });
 
       // 모든 업데이트 작업이 완료될 때까지 대기
-      await Promise.all(updatePromises); 
+      await Promise.all(updatePromises);
       if (successCount > 0) {
         setShowStatusModal(false);
         setSelectedRequests(new Set());
@@ -697,6 +712,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
     return <LoadingOverlay message="데이터를 불러오는 중..." />;
   }
 
+  console.log(detailRequest);
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <Header
@@ -718,7 +734,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
               data-type="search"
               placeholder="신청번호, 신청자, 품명으로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} 
+              onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           <select
@@ -816,7 +832,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                   <select
                     value={newStatus}
                     onChange={(e) => setNewStatus(e.target.value)}
-                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-full"
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-full"
                   >
                     <option value="">상태를 선택하세요</option>
                     {statusOptions.map((status) => (
@@ -878,7 +894,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                     type="text"
                     value={handlerName}
                     onChange={(e) => setHandlerName(e.target.value)}
-                    placeholder="관리자 이름을 입력하세요" 
+                    placeholder="관리자 이름을 입력하세요"
                   />
                   <p className="mt-1 text-xs text-gray-500">
                     사용자 관리 시트에 등록된 관리자 이름을 정확히 입력하세요.
@@ -947,7 +963,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           신청 일시
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest.requestDate}
+                          {detailRequest?.requestDate}
                         </td>
                       </tr>
                       <tr>
