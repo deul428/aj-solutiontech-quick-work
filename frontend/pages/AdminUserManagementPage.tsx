@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Search, RefreshCw } from "lucide-react";
+import { Plus, Edit, Trash2, Search, RefreshCw, Users } from "lucide-react";
 import {
   isAdmin,
   getCurrentUser,
@@ -17,6 +17,7 @@ import LoadingOverlay from "../components/LoadingOverlay";
 import Toast from "../components/Toast";
 import DataTable, { TableColumn } from "../components/DataTable";
 import Header from "@/components/Header";
+import TeamManagementModal from "../components/TeamManagementModal";
 
 const AdminUserManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ const AdminUserManagementPage: React.FC = () => {
     active: "Y",
   });
   const [processing, setProcessing] = useState(false);
+  const [showTeamManagementModal, setShowTeamManagementModal] = useState(false);
 
   const showRequiredFieldAlert = (label: string) => {
     alert(`${label} 란을 입력하세요.`);
@@ -478,8 +480,15 @@ const AdminUserManagementPage: React.FC = () => {
 
         <div className="mb-6 flex justify-end items-center">
           <button
+            onClick={() => setShowTeamManagementModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 font-bold"
+          >
+            <Users className="w-4 h-4" />
+            팀 관리
+          </button>
+          <button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-bold"
           >
             <Plus className="w-4 h-4" />
             사용자 등록
@@ -495,7 +504,7 @@ const AdminUserManagementPage: React.FC = () => {
               data-type="search"
               placeholder="사용자 ID, 이름, 소속팀으로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)} requried
+              onChange={(e) => setSearchTerm(e.target.value)} required={true}
             />
           </div>
 
@@ -609,7 +618,7 @@ const AdminUserManagementPage: React.FC = () => {
                     label="사용자 아이디"
                     onChange={(e) =>
                       setFormData({ ...formData, userId: e.target.value })
-                    } requried
+                    } required={true}
                     disabled={!!editingUser}
                   />
                 </div>
@@ -630,7 +639,7 @@ const AdminUserManagementPage: React.FC = () => {
                     label="비밀번호"
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
-                    } requried
+                    } required={true}
                   />
                 </div>
                 <div>
@@ -644,7 +653,7 @@ const AdminUserManagementPage: React.FC = () => {
                     label="이름"
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
-                    } requried
+                    } required={true}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -662,7 +671,7 @@ const AdminUserManagementPage: React.FC = () => {
                           ...formData,
                           employeeCode: e.target.value,
                         })
-                      } requried
+                      } required={true}
                     />
                   </div>
                   <div>
@@ -676,7 +685,7 @@ const AdminUserManagementPage: React.FC = () => {
                       label="소속팀"
                       onChange={(e) =>
                         setFormData({ ...formData, team: e.target.value })
-                      } requried
+                      } required={true}
                     />
                   </div>
                 </div>
@@ -692,7 +701,7 @@ const AdminUserManagementPage: React.FC = () => {
                       label="지역"
                       onChange={(e) =>
                         setFormData({ ...formData, region: e.target.value })
-                      } requried
+                      } required={true}
                     />
                   </div>
                   <div>
@@ -767,6 +776,15 @@ const AdminUserManagementPage: React.FC = () => {
           />
         )
       }
+
+      {/* 팀 관리 모달 */}
+      <TeamManagementModal
+        isOpen={showTeamManagementModal}
+        onClose={() => setShowTeamManagementModal(false)}
+        onUpdate={() => {
+          loadUsers();
+        }}
+      />
     </div >
   );
 };

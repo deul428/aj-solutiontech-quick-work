@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { navbarMenuItems, NavbarMenuItem } from '../config/dashboardConfig';
@@ -12,10 +12,19 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const currentUser = getCurrentUser();
-  const userIsAdmin = isAdmin(currentUser);
-  const userIsUser = isUser(currentUser);
-  const isUserLoggedIn = isLoggedIn();
+  const [currentUser, setCurrentUser] = useState(getCurrentUser());
+  const [userIsAdmin, setUserIsAdmin] = useState(isAdmin(currentUser));
+  const [userIsUser, setUserIsUser] = useState(isUser(currentUser));
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(isLoggedIn());
+
+  // location이 변경될 때마다 사용자 정보를 다시 가져오기
+  useEffect(() => {
+    const user = getCurrentUser();
+    setCurrentUser(user);
+    setUserIsAdmin(isAdmin(user));
+    setUserIsUser(isUser(user));
+    setIsUserLoggedIn(isLoggedIn());
+  }, [location.pathname]);
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
@@ -83,6 +92,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
             {visibleMenuItems.map((item, idx) => {
               const Icon = item.icon;
               const active = isActive(item);
+              // 'info' 메뉴인 경우 동적으로 사용자 정보 표시
+              const displayLabel = item.id === 'info' && currentUser 
+                ? `${currentUser.name} (${currentUser.team})` 
+                : item.label;
 
               return (
                 <button
@@ -95,7 +108,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                       : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
                     }`}
                 >
-                  <Icon className="w-4 h-4" /> {item.label}
+                  <Icon className="w-4 h-4" /> {displayLabel}
                 </button>
               );
             })}
@@ -115,6 +128,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
           {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item);
+            // 'info' 메뉴인 경우 동적으로 사용자 정보 표시
+            const displayLabel = item.id === 'info' && currentUser 
+              ? `${currentUser.name} (${currentUser.team})` 
+              : item.label;
 
             return (
               <button
@@ -127,7 +144,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
                     : "text-gray-600 hover:bg-gray-50"
                   }`}
               >
-                <Icon className="w-5 h-5" /> {item.label}
+                <Icon className="w-5 h-5" /> {displayLabel}
               </button>
             );
           })}

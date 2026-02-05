@@ -6,7 +6,7 @@
 import { ORDERING_GAS_URL } from './orderingService';
 import { AUDIT_GAS_URL } from './excelService';
 import { getSessionToken } from '../utils/orderingAuth';
-import { User, DeliveryPlace } from '../types/ordering';
+import { User, DeliveryPlace, RegionTeam } from '../types/ordering';
 import ExcelJS from 'exceljs';
 
 /**
@@ -726,6 +726,215 @@ export async function deleteDeliveryPlace(
   } catch (error: any) {
     console.error('deleteDeliveryPlace error:', error);
     throw new Error(error.message || '배송지 삭제 실패');
+  }
+}
+
+/**
+ * 지역-팀 목록 조회 (관리자 전용)
+ * ordering_gas_url과 연결된 구글 시트 내 '지역관리' 시트 데이터 조회
+ * @param sessionToken - 세션 토큰
+ * @returns 지역-팀 목록
+ */
+export async function getRegionTeams(
+  sessionToken?: string
+): Promise<RegionTeam[]> {
+  try {
+    const token = sessionToken || getSessionToken();
+    if (!token) {
+      throw new Error('로그인이 필요합니다.');
+    }
+
+    if (!ORDERING_GAS_URL) {
+      throw new Error('GAS URL이 설정되지 않았습니다.');
+    }
+
+    const payload = {
+      token: token
+    };
+
+    const response = await fetch(ORDERING_GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'getRegionTeams',
+        ...payload
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    if (result.success && result.data) {
+      return result.data;
+    }
+    return [];
+  } catch (error: any) {
+    console.error('getRegionTeams error:', error);
+    throw new Error(error.message || '지역-팀 목록 조회 실패');
+  }
+}
+
+/**
+ * 지역-팀 추가 (관리자 전용)
+ * ordering_gas_url과 연결된 구글 시트 내 '지역관리' 시트에 데이터 추가
+ * @param regionTeamData - 지역-팀 데이터 {region, team}
+ * @param sessionToken - 세션 토큰
+ * @returns 결과 객체
+ */
+export async function createRegionTeam(
+  regionTeamData: { region: string; team: string },
+  sessionToken?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const token = sessionToken || getSessionToken();
+    if (!token) {
+      throw new Error('로그인이 필요합니다.');
+    }
+
+    if (!ORDERING_GAS_URL) {
+      throw new Error('GAS URL이 설정되지 않았습니다.');
+    }
+
+    const payload = {
+      token: token,
+      regionTeamData: regionTeamData
+    };
+
+    const response = await fetch(ORDERING_GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'createRegionTeam',
+        ...payload
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error: any) {
+    console.error('createRegionTeam error:', error);
+    throw new Error(error.message || '지역-팀 추가 실패');
+  }
+}
+
+/**
+ * 지역-팀 수정 (관리자 전용)
+ * ordering_gas_url과 연결된 구글 시트 내 '지역관리' 시트 데이터 수정 및 사용자 데이터 자동 업데이트
+ * @param updateData - 수정 데이터 {oldRegion, oldTeam, newRegion, newTeam}
+ * @param sessionToken - 세션 토큰
+ * @returns 결과 객체
+ */
+export async function updateRegionTeam(
+  updateData: {
+    oldRegion: string;
+    oldTeam: string;
+    newRegion: string;
+    newTeam: string;
+  },
+  sessionToken?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const token = sessionToken || getSessionToken();
+    if (!token) {
+      throw new Error('로그인이 필요합니다.');
+    }
+
+    if (!ORDERING_GAS_URL) {
+      throw new Error('GAS URL이 설정되지 않았습니다.');
+    }
+
+    const payload = {
+      token: token,
+      updateData: updateData
+    };
+
+    const response = await fetch(ORDERING_GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'updateRegionTeam',
+        ...payload
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error: any) {
+    console.error('updateRegionTeam error:', error);
+    throw new Error(error.message || '지역-팀 수정 실패');
+  }
+}
+
+/**
+ * 지역-팀 삭제(비활성화) (관리자 전용)
+ * ordering_gas_url과 연결된 구글 시트 내 '지역관리' 시트 데이터 비활성화
+ * @param deleteData - 삭제 데이터 {region, team, deleteRegion}
+ * @param sessionToken - 세션 토큰
+ * @returns 결과 객체
+ */
+export async function deleteRegionTeam(
+  deleteData: {
+    region: string;
+    team?: string;
+    deleteRegion?: boolean;
+  },
+  sessionToken?: string
+): Promise<{ success: boolean; message: string }> {
+  try {
+    const token = sessionToken || getSessionToken();
+    if (!token) {
+      throw new Error('로그인이 필요합니다.');
+    }
+
+    if (!ORDERING_GAS_URL) {
+      throw new Error('GAS URL이 설정되지 않았습니다.');
+    }
+
+    const payload = {
+      token: token,
+      deleteData: deleteData
+    };
+
+    const response = await fetch(ORDERING_GAS_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify({
+        action: 'deleteRegionTeam',
+        ...payload
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error: any) {
+    console.error('deleteRegionTeam error:', error);
+    throw new Error(error.message || '지역-팀 삭제 실패');
   }
 }
 

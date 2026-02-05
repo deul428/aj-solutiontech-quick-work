@@ -1763,6 +1763,357 @@ function deleteDeliveryPlace(placeName, sessionToken) {
 }
 
 /**
+ * 지역관리 시트에서 지역-팀 목록을 조회합니다.
+ * @param {string} sessionToken - 세션 토큰
+ * @return {Array} 지역-팀 목록 [{region, team, active}]
+ */
+function getRegionTeams(sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      throw new Error('관리자만 실행할 수 있습니다.');
+    }
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetName = '지역관리';
+    const sheet = getSheetByNameLoose_(ss, sheetName);
+    
+    if (!sheet) {
+      return [];
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      return [];
+    }
+    
+    const headers = data[0];
+    const regionCol = headers.indexOf('지역');
+    const teamCol = headers.indexOf('팀');
+    const activeCol = headers.indexOf('활성화');
+    
+    if (regionCol < 0 || teamCol < 0 || activeCol < 0) {
+      return [];
+    }
+    
+    const result = [];
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const region = String(row[regionCol] || '').trim();
+      const team = String(row[teamCol] || '').trim();
+      const active = String(row[activeCol] || 'Y').trim().toUpperCase();
+      
+      if (region) {
+        result.push({
+          region: region,
+          team: team,
+          active: active === 'Y' ? 'Y' : 'N'
+        });
+      }
+    }
+    
+    return result;
+  } catch (error) {
+    log('ERROR', 'getRegionTeams error: ' + error);
+    return [];
+  }
+}
+
+/**
+ * 지역관리 시트에 지역-팀을 추가합니다.
+ * @param {Object} regionTeamData - 지역-팀 데이터 {region, team}
+ * @param {string} sessionToken - 세션 토큰
+ * @return {Object} 결과 객체 {success: boolean, message: string}
+ */
+function createRegionTeam(regionTeamData, sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      throw new Error('관리자만 실행할 수 있습니다.');
+    }
+    
+    if (!regionTeamData.region || !regionTeamData.team) {
+      throw new Error('지역과 팀이 모두 필요합니다.');
+    }
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetName = '지역관리';
+    let sheet = getSheetByNameLoose_(ss, sheetName);
+    
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+      sheet.appendRow(['지역', '팀', '활성화']);
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    const headers = data.length > 0 ? data[0] : ['지역', '팀', '활성화'];
+    
+    // 헤더가 없으면 추가
+    if (data.length === 0) {
+      sheet.appendRow(['지역', '팀', '활성화']);
+    }
+    
+    // 중복 체크
+    const regionCol = headers.indexOf('지역');
+    const teamCol = headers.indexOf('팀');
+    
+    if (regionCol < 0 || teamCol < 0) {
+      throw new Error('지역관리 시트의 컬럼 구조가 올바르지 않습니다.');
+    }
+    
+    const newRegion = String(regionTeamData.region).trim();
+    const newTeam = String(regionTeamData.team).trim();
+    
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const existingRegion = String(row[regionCol] || '').trim();
+      const existingTeam = String(row[teamCol] || '').trim();
+      
+      if (existingRegion === newRegion && existingTeam === newTeam) {
+        throw new Error('이미 존재하는 지역-팀 조합입니다.');
+      }
+    }
+    
+    // 새 행 추가
+    sheet.appendRow([newRegion, newTeam, 'Y']);
+    
+    new LogService().log('지역-팀 추가', null, user.userId, newRegion + ' - ' + newTeam);
+    
+    return {
+      success: true,
+      message: '지역-팀이 추가되었습니다.'
+    };
+  } catch (error) {
+    log('ERROR', 'createRegionTeam error: ' + error);
+    return {
+      success: false,
+      message: error.message || '지역-팀 추가 중 오류가 발생했습니다.'
+    };
+  }
+}
+
+/**
+ * 지역관리 시트의 지역-팀을 수정하고, 사용자 데이터도 함께 업데이트합니다.
+ * @param {Object} updateData - 수정 데이터 {oldRegion, oldTeam, newRegion, newTeam}
+ * @param {string} sessionToken - 세션 토큰
+ * @return {Object} 결과 객체 {success: boolean, message: string}
+ */
+function updateRegionTeam(updateData, sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      throw new Error('관리자만 실행할 수 있습니다.');
+    }
+    
+    if (!updateData.oldRegion || !updateData.oldTeam) {
+      throw new Error('기존 지역과 팀이 필요합니다.');
+    }
+    
+    if (!updateData.newRegion || !updateData.newTeam) {
+      throw new Error('새 지역과 팀이 필요합니다.');
+    }
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetName = '지역관리';
+    const sheet = getSheetByNameLoose_(ss, sheetName);
+    
+    if (!sheet) {
+      throw new Error('지역관리 시트를 찾을 수 없습니다.');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      throw new Error('지역관리 데이터가 없습니다.');
+    }
+    
+    const headers = data[0];
+    const regionCol = headers.indexOf('지역');
+    const teamCol = headers.indexOf('팀');
+    
+    if (regionCol < 0 || teamCol < 0) {
+      throw new Error('지역관리 시트의 컬럼 구조가 올바르지 않습니다.');
+    }
+    
+    const oldRegion = String(updateData.oldRegion).trim();
+    const oldTeam = String(updateData.oldTeam).trim();
+    const newRegion = String(updateData.newRegion).trim();
+    const newTeam = String(updateData.newTeam).trim();
+    
+    // 지역관리 시트에서 해당 행 찾기 및 수정
+    let found = false;
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const existingRegion = String(row[regionCol] || '').trim();
+      const existingTeam = String(row[teamCol] || '').trim();
+      
+      if (existingRegion === oldRegion && existingTeam === oldTeam) {
+        // 지역관리 시트 업데이트
+        sheet.getRange(i + 1, regionCol + 1).setValue(newRegion);
+        sheet.getRange(i + 1, teamCol + 1).setValue(newTeam);
+        found = true;
+        break;
+      }
+    }
+    
+    if (!found) {
+      throw new Error('수정할 지역-팀을 찾을 수 없습니다.');
+    }
+    
+    // 사용자 데이터 업데이트
+    const userModel = new UserModel();
+    if (userModel.sheet) {
+      const userData = userModel.sheet.getDataRange().getValues();
+      if (userData.length > 1) {
+        const userHeaders = userData[0];
+        const userRegionCol = userHeaders.indexOf('지역');
+        const userTeamCol = userHeaders.indexOf('소속팀');
+        
+        if (userRegionCol >= 0 && userTeamCol >= 0) {
+          let updatedCount = 0;
+          for (let i = 1; i < userData.length; i++) {
+            const userRow = userData[i];
+            const userRegion = String(userRow[userRegionCol] || '').trim();
+            const userTeam = String(userRow[userTeamCol] || '').trim();
+            
+            if (userRegion === oldRegion && userTeam === oldTeam) {
+              userModel.sheet.getRange(i + 1, userRegionCol + 1).setValue(newRegion);
+              userModel.sheet.getRange(i + 1, userTeamCol + 1).setValue(newTeam);
+              updatedCount++;
+            }
+          }
+          
+          if (updatedCount > 0) {
+            Logger.log('updateRegionTeam: ' + updatedCount + '명의 사용자 데이터가 업데이트되었습니다.');
+          }
+        }
+      }
+    }
+    
+    new LogService().log('지역-팀 수정', null, user.userId, oldRegion + '-' + oldTeam + ' -> ' + newRegion + '-' + newTeam);
+    
+    return {
+      success: true,
+      message: '지역-팀이 수정되었습니다.'
+    };
+  } catch (error) {
+    log('ERROR', 'updateRegionTeam error: ' + error);
+    return {
+      success: false,
+      message: error.message || '지역-팀 수정 중 오류가 발생했습니다.'
+    };
+  }
+}
+
+/**
+ * 지역관리 시트의 지역-팀을 비활성화합니다.
+ * 지역을 삭제하면 해당 지역의 모든 팀도 비활성화됩니다.
+ * @param {Object} deleteData - 삭제 데이터 {region, team, deleteRegion}
+ * @param {string} sessionToken - 세션 토큰
+ * @return {Object} 결과 객체 {success: boolean, message: string}
+ */
+function deleteRegionTeam(deleteData, sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      throw new Error('관리자만 실행할 수 있습니다.');
+    }
+    
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const sheetName = '지역관리';
+    const sheet = getSheetByNameLoose_(ss, sheetName);
+    
+    if (!sheet) {
+      throw new Error('지역관리 시트를 찾을 수 없습니다.');
+    }
+    
+    const data = sheet.getDataRange().getValues();
+    if (data.length <= 1) {
+      throw new Error('지역관리 데이터가 없습니다.');
+    }
+    
+    const headers = data[0];
+    const regionCol = headers.indexOf('지역');
+    const teamCol = headers.indexOf('팀');
+    const activeCol = headers.indexOf('활성화');
+    
+    if (regionCol < 0 || teamCol < 0 || activeCol < 0) {
+      throw new Error('지역관리 시트의 컬럼 구조가 올바르지 않습니다.');
+    }
+    
+    // 헤더가 없으면 추가
+    if (activeCol < 0) {
+      sheet.getRange(1, headers.length + 1).setValue('활성화');
+      const newHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const newActiveCol = newHeaders.indexOf('활성화');
+      if (newActiveCol >= 0) {
+        // 기존 데이터의 활성화 컬럼을 Y로 설정
+        for (let i = 2; i <= data.length; i++) {
+          sheet.getRange(i, newActiveCol + 1).setValue('Y');
+        }
+      }
+    }
+    
+    const targetRegion = String(deleteData.region || '').trim();
+    const targetTeam = String(deleteData.team || '').trim();
+    const deleteRegion = deleteData.deleteRegion === true; // 지역 전체 삭제 여부
+    
+    let updatedCount = 0;
+    
+    if (deleteRegion && targetRegion) {
+      // 지역 전체 삭제: 해당 지역의 모든 팀 비활성화
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const existingRegion = String(row[regionCol] || '').trim();
+        
+        if (existingRegion === targetRegion) {
+          sheet.getRange(i + 1, activeCol + 1).setValue('N');
+          updatedCount++;
+        }
+      }
+      
+      new LogService().log('지역 삭제', null, user.userId, targetRegion);
+      
+      return {
+        success: true,
+        message: targetRegion + ' 지역과 모든 팀이 비활성화되었습니다. (' + updatedCount + '건)'
+      };
+    } else if (targetRegion && targetTeam) {
+      // 특정 팀만 삭제
+      for (let i = 1; i < data.length; i++) {
+        const row = data[i];
+        const existingRegion = String(row[regionCol] || '').trim();
+        const existingTeam = String(row[teamCol] || '').trim();
+        
+        if (existingRegion === targetRegion && existingTeam === targetTeam) {
+          sheet.getRange(i + 1, activeCol + 1).setValue('N');
+          updatedCount = 1;
+          break;
+        }
+      }
+      
+      if (updatedCount === 0) {
+        throw new Error('삭제할 지역-팀을 찾을 수 없습니다.');
+      }
+      
+      new LogService().log('지역-팀 삭제', null, user.userId, targetRegion + ' - ' + targetTeam);
+      
+      return {
+        success: true,
+        message: '지역-팀이 비활성화되었습니다.'
+      };
+    } else {
+      throw new Error('지역과 팀 정보가 필요합니다.');
+    }
+  } catch (error) {
+    log('ERROR', 'deleteRegionTeam error: ' + error);
+    return {
+      success: false,
+      message: error.message || '지역-팀 삭제 중 오류가 발생했습니다.'
+    };
+  }
+}
+
+/**
  * 배송지 목록을 조회합니다.
  * 사용자의 소속팀을 기반으로 파트별 배송지를 매핑하여 반환합니다.
  * @param {string} team - 소속팀 (선택사항, 파트별 필터링)
@@ -3024,6 +3375,34 @@ function doPost(e) {
           result = { success: false, message: 'placeName이 필요합니다.' };
         } else {
           result = deleteDeliveryPlace(payload.placeName, sessionToken);
+        }
+        break;
+        
+      case 'getRegionTeams':
+        result = { success: true, data: getRegionTeams(sessionToken) };
+        break;
+        
+      case 'createRegionTeam':
+        if (!payload.regionTeamData) {
+          result = { success: false, message: 'regionTeamData가 필요합니다.' };
+        } else {
+          result = createRegionTeam(payload.regionTeamData, sessionToken);
+        }
+        break;
+        
+      case 'updateRegionTeam':
+        if (!payload.updateData) {
+          result = { success: false, message: 'updateData가 필요합니다.' };
+        } else {
+          result = updateRegionTeam(payload.updateData, sessionToken);
+        }
+        break;
+        
+      case 'deleteRegionTeam':
+        if (!payload.deleteData) {
+          result = { success: false, message: 'deleteData가 필요합니다.' };
+        } else {
+          result = deleteRegionTeam(payload.deleteData, sessionToken);
         }
         break;
         

@@ -114,6 +114,7 @@ function handleChecklistSync(ss, rowsToProcess) {
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const mgmtColIdx = headers.indexOf("관리번호");
   const qrColIdx = headers.indexOf("QR");
+  const abnormalAssetColIdx = headers.indexOf("이상자산구분");
   rowsToProcess.forEach(function(item) {
     const targetMgmtNo = cleanValue(item["관리번호"]);
     if (!targetMgmtNo) return;
@@ -146,6 +147,10 @@ function handleChecklistSync(ss, rowsToProcess) {
         const qrCell = sheet.getRange(currentRowIdx, qrColIdx + 1);
         const qrFormula = '=IMAGE("https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(targetMgmtNo) + '")';
         qrCell.setFormula(qrFormula);
+      }
+      // 신규 추가 시 이상자산구분 열에 O 표시
+      if (abnormalAssetColIdx > -1) {
+        sheet.getRange(currentRowIdx, abnormalAssetColIdx + 1).setValue("O");
       }
     }
   });

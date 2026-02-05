@@ -74,3 +74,10 @@ export interface DeliveryPlace {
   contact: string;
 }
 
+// 지역-팀 타입
+export interface RegionTeam {
+  region: string;
+  team: string;
+  active: 'Y' | 'N';
+}
+

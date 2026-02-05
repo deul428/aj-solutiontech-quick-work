@@ -1,9 +1,7 @@
 
 import React from "react";
-import { getCurrentUser } from "@/utils/orderingAuth";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-const currentUser = getCurrentUser();
 
 interface HeaderProps {
     headerTitle: string;
