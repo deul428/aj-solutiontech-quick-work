@@ -30,13 +30,31 @@ body {
   object-fit: cover !important;
 }
 
-input[type="checkbox"] {
+body input[type="checkbox"] {
   height: 1rem !important;
   width: 1rem !important;
   cursor: pointer;
 }
 
-select {
+/* 공통 텍스트 입력 (OrderingAdminRequestsPage 검색 body input 기준) */
+body input[type="text"],
+body input[type="date"],
+body input[type="password"],
+body input[type="number"],
+body input[type="tel"],
+body select,
+body textarea {
+  cursor: pointer;
+  font-size: 0.9rem !important;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+body select {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
@@ -49,53 +67,35 @@ select {
   cursor: pointer;
 }
 
-/* 공통 텍스트 입력 (OrderingAdminRequestsPage 검색 input 기준) */
-input[type="text"],
-input[type="date"],
-input[type="password"],
-input[type="number"],
-input[type="tel"],
-select,
-textarea {
-  cursor: pointer;
-  font-size: 0.9rem !important;
-  width: 100%;
-  padding: 0.5rem;
-  border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
-  outline: none;
-  transition: all 0.3s ease;
-}
-
-input[type="text"][data-type="search"] {
+body input[type="text"][data-type="search"] {
   /* 돋보기 아이콘 공간 */
   padding-left: 2.5rem;
 }
 
-input[type="date"]:focus,
-input[type="date"]:hover,
-input[type="text"]:focus,
-input[type="text"]:hover,
-input[type="password"]:focus,
-input[type="password"]:hover,
-input[type="number"]:focus,
-input[type="number"]:hover,
-input[type="tel"]:focus,
-input[type="tel"]:hover,
-select:focus,
-select:hover,
-textarea:focus,
-textarea:hover {
+body input[type="date"]:focus,
+body input[type="date"]:hover,
+body input[type="text"]:focus,
+body input[type="text"]:hover,
+body input[type="password"]:focus,
+body input[type="password"]:hover,
+body input[type="number"]:focus,
+body input[type="number"]:hover,
+body input[type="tel"]:focus,
+body input[type="tel"]:hover,
+body select:focus,
+body select:hover,
+body textarea:focus,
+body textarea:hover {
   border-color: #3b82f6aa;
   box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
 }
 
-input[type="text"][disabled],
-input[type="password"][disabled],
-input[type="date"][disabled],
-select[disabled],
-input[type="number"][disabled],
-input[type="tel"][disabled],
-textarea[disabled] {
+body input[type="text"][disabled],
+body input[type="password"][disabled],
+body input[type="date"][disabled],
+body select[disabled],
+body input[type="number"][disabled],
+body input[type="tel"][disabled],
+body textarea[disabled] {
   background-color: #f9fafb;
 }
