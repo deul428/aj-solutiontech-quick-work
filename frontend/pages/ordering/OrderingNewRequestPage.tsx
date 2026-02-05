@@ -461,7 +461,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
                 value={formData.deliveryPlace}
                 onChange={handleInputChange}
               >
-                <option value="">선택하세요</option>
+                <option value="">수령 배송지 선택</option>
                 {deliveryPlaces.map((place, idx) => (
                   <option key={idx} value={place.name || place['배송지명']}>
                     {place.name || place['배송지명']}
