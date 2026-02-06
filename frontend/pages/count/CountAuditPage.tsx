@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { MasterDataRow, MASTER_COLUMNS, AUDIT_COLUMNS, CHECKLIST_COLUMNS } from "../../types";
 import { syncAuditDataToCloud, fetchLocationOptions } from "../../services/excelService";
+import { getCurrentUser } from "../../utils/orderingAuth";
 import Header from "@/components/Header";
 import Button from "@/components/Button";
 
@@ -290,6 +291,9 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     if (!foundRow) return;
     const today = new Date();
     const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
+    const currentUser = getCurrentUser();
+    const auditorName = currentUser?.name || "";
+    
     setMasterData(prev => prev.map(row => {
       if (row[MASTER_COLUMNS.MGMT_NO] === foundRow[MASTER_COLUMNS.MGMT_NO]) {
         const assetNumber = String(row[MASTER_COLUMNS.ASSET_NO] || "").trim();
@@ -297,7 +301,8 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
         const updatedRow = {
           ...row,
           [AUDIT_COLUMNS.DATE]: dateStr,
-          [AUDIT_COLUMNS.STATUS]: 'O'
+          [AUDIT_COLUMNS.STATUS]: 'O',
+          [CHECKLIST_COLUMNS.AUDIT_USER]: auditorName
         };
         // 자산번호가 없으면 이상자산구분 'O' 설정
         if (isAbnormalAsset) {

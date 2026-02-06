@@ -149,6 +149,7 @@ export const syncAuditDataToCloud = async (
         [CHECKLIST_COLUMNS.AUDIT_STATUS]: "O",
         [CHECKLIST_COLUMNS.CENTER_LOC]: centerLocation || "",
         [CHECKLIST_COLUMNS.ASSET_LOC]: assetLocation || "",
+        [CHECKLIST_COLUMNS.AUDIT_USER]: row[CHECKLIST_COLUMNS.AUDIT_USER] || row['자산실사자'] || "",
         ...(isAbnormalAsset && { [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: 'O' }),
       };
     })

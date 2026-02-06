@@ -5,6 +5,7 @@ export interface MasterDataRow {
   '자산실사 여부'?: string;
   '센터위치'?: string;
   '자산위치'?: string;
+  '자산실사자'?: string;
 }
 
 export interface ChecklistData {
@@ -56,7 +57,8 @@ export const CHECKLIST_COLUMNS = {
   ABNORMAL_ASSET: '이상자산구분',
   QR: 'QR',
   CENTER_LOC: '센터위치',
-  ASSET_LOC: '자산위치'
+  ASSET_LOC: '자산위치',
+  AUDIT_USER: '자산실사자'
 };
 
 /**
