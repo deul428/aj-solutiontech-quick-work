@@ -15,6 +15,7 @@ import requestCache from '../../utils/orderingCache';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Toast from '../../components/Toast';
 import Header from '@/components/Header';
+import Button from '@/components/Button';
 
 interface OrderingRequestDetailPageProps {
   requestNo?: string;
@@ -35,6 +36,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
   const [imageError, setImageError] = useState(false);
   const [requesterRemarks, setRequesterRemarks] = useState('');
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
+  const [formattedRequestDate, setFormattedRequestDate] = useState('');
 
   useEffect(() => {
     if (requestNo) {
@@ -282,6 +284,13 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
     }
   }, [request?.photoUrl]);
 
+  // requestDate 포맷팅
+  useEffect(() => {
+    if (request?.requestDate) {
+      setFormattedRequestDate(formatDate(request.requestDate));
+    }
+  }, [request?.requestDate]);
+
   if (loading) {
     return <LoadingOverlay message="신청 상세 정보 로딩 중..." />;
   }
@@ -291,40 +300,25 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       <div className="max-w-4xl mx-auto py-12 px-6">
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-700 font-bold">{error || '신청 내역을 찾을 수 없습니다.'}</p>
-          <button
+          <p className="text-red-700 font-bold mb-4">{error || '신청 내역을 찾을 수 없습니다.'}</p>
+          <Button
+            variant='secondary'
             onClick={goBack}
-            className="mt-4 px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-bold transition-colors"
           >
             목록으로 돌아가기
-          </button>
+          </Button>
         </div>
       </div>
     );
   }
-  const [formattedRequestDate, setFormattedRequestDate] = useState('');
-  useEffect(() => {
-    if (request?.requestDate) {
-      setFormattedRequestDate(formatDate(request.requestDate));
-    }
-  }, [request?.requestDate]);
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen sm:bg-gray-50 py-8">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {processing && <LoadingOverlay message="처리 중..." />}
 
         {/* 헤더 */}
         <Header headerTitle="신청 상세 정보" headerSubTitle="부품 발주 시스템" level={2} />
-        {/* <div className="mb-4 sm:mb-6 flex items-center gap-4">
-          <button
-            onClick={goBack}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-600" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">신청 상세 정보</h1>
-        </div> */}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -341,54 +335,54 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
         <div className="bg-white rounded-lg shadow-xl max-w-5xl w-full overflow-y-auto">
           <div className="p-6 space-y-6">
             {/* 기본 정보 테이블 */}
-            <div className="bg-gray-50 rounded-lg overflow-hidden">
+            <div className="sm:bg-gray-50 rounded-lg overflow-hidden">
               <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800">기본 정보</h2>
               </div>
               <table className="min-w-full divide-y divide-gray-200">
                 <tbody className="bg-white divide-y divide-gray-200">
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50 w-1/4">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50 sm:w-1/4 ">
                       신청 번호
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.requestNo}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       신청 일시
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900"> 
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {formattedRequestDate || request?.requestDate}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       신청자
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       <div>
                         <p className="font-medium">{request.requesterName}</p>
                         <p className="text-xs text-gray-500 mt-1">{request.region} - {request.team}</p>
                       </div>
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       현재 상태
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4">
                       <span className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
                         {request.status}
                       </span>
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 align-top text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 align-top text-sm font-medium text-gray-500 sm:bg-gray-50">
                       신청자 비고
                     </td>
-                    <td className="px-4 py-4">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4">
                       <textarea
                         value={requesterRemarks || request?.remarks}
                         onChange={(e) => setRequesterRemarks(e.target.value)}
@@ -396,13 +390,14 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
                         rows={4}
                         placeholder="비고를 입력하세요"
                       />
-                      <button
+                      <Button
                         onClick={saveRequesterRemarks}
                         disabled={processing}
-                        className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 disabled:bg-gray-400 transition-colors w-full sm:w-auto"
+                        variant='primary'
+                        className="w-full sm:w-auto"
                       >
                         {processing ? '저장 중...' : '비고 저장'}
-                      </button>
+                      </Button>
                     </td>
                   </tr>
                 </tbody>
@@ -410,57 +405,57 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
             </div>
 
             {/* 부품 정보 테이블 */}
-            <div className="bg-gray-50 rounded-lg overflow-hidden">
+            <div className="sm:bg-gray-50 rounded-lg overflow-hidden">
               <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800">부품 정보</h2>
               </div>
               <table className="min-w-full divide-y divide-gray-200">
                 <tbody className="bg-white divide-y divide-gray-200">
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50 w-1/4">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50 sm:w-1/4">
                       부품 품명
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.itemName}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50 sm:w-1/4">
                       모델명
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.modelName || '-'}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50 sm:w-1/4">
                       수량
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.quantity}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50 sm:w-1/4">
                       수령지
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.deliveryPlace}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       수령 연락처
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.phone || '-'}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       업체명
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.company || '-'}
                     </td>
                   </tr>
@@ -470,11 +465,11 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
 
             {/* 첨부사진 */}
             {request.photoUrl && (
-              <div className="bg-gray-50 rounded-lg overflow-hidden">
+              <div className="sm:bg-gray-50 rounded-lg overflow-hidden">
                 <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
                   <h2 className="text-lg font-semibold text-gray-800">첨부사진</h2>
                 </div>
-                <div className="p-6 bg-white">
+                <div className="mt-2 sm:mt-0 p-0 sm:p-6 bg-white">
                   <div className="flex justify-center relative">
                     {imageError ? (
                       <div className="flex flex-col items-center justify-center p-8 bg-gray-100 rounded-lg min-h-[200px]">
@@ -515,25 +510,25 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
             )}
 
             {/* 접수 담당자 및 비고 */}
-            <div className="bg-gray-50 rounded-lg overflow-hidden">
+            <div className="sm:bg-gray-50 rounded-lg overflow-hidden">
               <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-800">접수 담당자 및 비고</h2>
               </div>
               <table className="min-w-full divide-y divide-gray-200">
                 <tbody className="bg-white divide-y divide-gray-200">
-                  <tr>
-                    <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50 w-1/4">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       접수 담당자
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.handler || '-'}
                     </td>
                   </tr>
-                  <tr>
-                    <td className="px-4 py-4 align-top text-sm font-medium text-gray-500 bg-gray-50">
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       접수 담당자 비고
                     </td>
-                    <td className="px-4 py-4 text-sm text-gray-900">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
                       {request.handlerRemarks || '-'}
                     </td>
                   </tr>
@@ -542,32 +537,24 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
             </div>
 
             {/* 액션 버튼 */}
-            <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
-              <button
+            <div className="flex flex-col sm:flex-row justify-end gap-4 !mt-0 py-4 border-t border-gray-200">
+              <Button
                 onClick={goBack}
-                className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                variant='secondary'
+                className="w-full sm:w-auto"
               >
                 목록으로
-              </button>
-              {/* {request.canCancel && (
-                <button
-                  onClick={handleCancel}
-                  disabled={processing}
-                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
-                >
-                  <X className="w-4 h-4" />
-                  취소하기
-                </button>
-              )} */}
+              </Button>
               {request.canConfirmReceipt && (
-                <button
+                <Button
                   onClick={handleConfirmReceipt}
                   disabled={processing}
-                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 transition-colors flex items-center gap-2"
+                  variant='success'
+                  className="w-full sm:w-auto"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   수령 확인
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -580,12 +567,13 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
             onClick={() => setExpandedImage(null)}
           >
             <div className="relative max-w-[90vw] max-h-[90vh]">
-              <button
+              <Button
                 onClick={() => setExpandedImage(null)}
+                variant='icon'
                 className="absolute top-4 right-4 text-white hover:text-gray-300 z-10"
               >
                 <X className="w-6 h-6" />
-              </button>
+              </Button>
               <img
                 src={expandedImage}
                 alt="확대된 이미지"

@@ -26,6 +26,7 @@ const Button: React.FC<ButtonProps> = ({
 
   // Variant별 스타일
   const variantClasses = {
+    link: 'text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors !font-bold px-0 py-0',
     primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
     secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
     success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
@@ -41,8 +42,8 @@ const Button: React.FC<ButtonProps> = ({
   // Size별 스타일
   const sizeClasses = {
     sm: 'px-2 py-1 text-xs gap-1',
-    md: 'px-4 py-2 text-sm gap-2',
-    lg: 'px-6 py-3 text-base gap-3'
+    md: 'px-4 py-3 text-sm gap-2',
+    lg: 'px-6 py-4 text-base gap-3'
   };
 
   // Icon 버튼의 경우 특별 처리

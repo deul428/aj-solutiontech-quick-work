@@ -34,6 +34,7 @@ import ExcelDateRangeModal, {
   ExcelDateRangeResult,
 } from "../../components/ExcelDateRangeModal";
 import Header from "@/components/Header";
+import Button from "@/components/Button";
 
 interface OrderingMyRequestsPageProps {
   onNavigate?: (view: string, requestNo?: string) => void;
@@ -280,12 +281,11 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
         sortable: true,
         sortKey: "requestNo",
         render: (value, row) => (
-          <button
+          <Button variant="link"
             onClick={() => handleViewDetail(row.requestNo)}
-            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
           >
             {value}
-          </button>
+          </Button>
         ),
       },
       {
@@ -293,12 +293,11 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
         label: "품명",
         sortable: false,
         render: (value, row) => (
-          <button
+          <Button variant="link"
             onClick={() => handleViewDetail(row.requestNo)}
-            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
           >
             {value}
-          </button>
+          </Button>
         ),
       },
       {
@@ -316,12 +315,11 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
             return <span className="">-</span>;
           }
           return (
-            <button
+            <Button variant="link"
               onClick={() => handleViewDetail(row.requestNo)}
-              className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
             >
               {value}
-            </button>
+            </Button>
           );
         },
       },
@@ -354,24 +352,26 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
         render: (_, row) => (
           <div className="flex items-center gap-2">
             {canCancel(row.status) && (
-              <button
+              <Button
+                size='sm'
                 onClick={() => handleCancel(row.requestNo)}
                 disabled={processing === row.requestNo}
-                className="flex items-center gap-1 px-3 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold transition-colors disabled:opacity-50"
+                className="!bg-red-100 !hover:bg-red-200 text-red-700"
               >
                 <X className="w-4 h-4" />
                 접수 취소
-              </button>
+              </Button>
             )}
             {canConfirmReceipt(row.status) && (
-              <button
+              <Button
+                size='sm'
                 onClick={() => handleConfirmReceipt(row.requestNo)}
                 disabled={processing === row.requestNo}
-                className="flex items-center gap-1 px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg font-bold transition-colors disabled:opacity-50"
+                className="!bg-green-100 !hover:bg-green-200 text-green-700 "
               >
                 <CheckCircle2 className="w-4 h-4" />
                 수령 확인
-              </button>
+              </Button>
             )}
           </div>
         ),
@@ -597,10 +597,10 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
             </div>
 
             {/* 상태 필터 */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-400" />
+            <div className="flex items-center gap-2 flex-1 sm:max-w-[200px]">
+              <Filter className="w-5 h-5 text-gray-400 hidden sm:block" />
               <select
-                className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+                className="flex-1"
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
@@ -613,83 +613,95 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
                 <option value="접수취소">접수취소</option>
               </select>
             </div>
+            <div className="flex flex-col sm:flex-row items-center gap-2 mr-4 w-full sm:w-auto flex-1">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                placeholder="시작일"
+                className="w-full sm:w-auto"
+              />
+              <span className="text-gray-500">~</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                placeholder="종료일"
+              />
+            </div>
           </div>
 
           {/* 기간 필터 */}
-          <div className="flex flex-col md:flex-row gap-2 items-start md:items-center hidden">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-gray-400" />
-              <span className="text-sm font-bold text-gray-600">기간:</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <button
+          <div className="hidden  w-full flex-row items-center justify-between ">
+            <div className="flex flex-row gap-2">
+              <Button
                 onClick={() => handleQuickDateFilter("today")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                className={`${dateFrom &&
                   dateTo &&
                   dateFrom === getDateRange("today").dateFrom
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 !text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 오늘
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleQuickDateFilter("thisWeek")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                className={`${dateFrom &&
                   dateTo &&
                   dateFrom === getDateRange("thisWeek").dateFrom
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 !text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 이번 주
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleQuickDateFilter("thisMonth")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                className={`${dateFrom &&
                   dateTo &&
                   dateFrom === getDateRange("thisMonth").dateFrom
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 !text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 이번 달
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => handleQuickDateFilter("last3Months")}
-                className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-colors ${dateFrom &&
+                className={`${dateFrom &&
                   dateTo &&
                   dateFrom === getDateRange("last3Months").dateFrom
                   ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  : "bg-gray-100 !text-gray-700 hover:bg-gray-200"
                   }`}
               >
                 최근 3개월
-              </button>
-              <div className="flex items-center gap-2">
-                <input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  placeholder="시작일"
-                />
-                <span className="text-gray-500">~</span>
-                <input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  placeholder="종료일"
-                />
-                {(dateFrom || dateTo) && (
-                  <button
-                    onClick={clearDateFilter}
-                    className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg text-sm font-bold transition-colors"
-                  >
-                    초기화
-                  </button>
-                )}
-              </div>
+              </Button>
             </div>
+            <div className="flex items-center gap-2 mr-4">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                placeholder="시작일"
+              />
+              <span className="text-gray-500">~</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                placeholder="종료일"
+              />
+            </div>
+            {(dateFrom || dateTo) && (
+              <Button
+                variant='ghost'
+                onClick={clearDateFilter}
+              >
+                <X className="w-4 h-4" /> 초기화
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -703,16 +715,15 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
               신청 내역 ({sortedAndFilteredRequests.length}건)
             </h2>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 ">
             {/* 페이지 크기 선택 (PC만) */}
-            <button
+            <Button
               onClick={handleDownloadExcel}
-              className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold transition-colors text-sm md:text-base"
+              variant='success'
             >
               <Download className="w-4 h-4 md:w-5 md:h-5" />
-              <span className="hidden sm:inline">엑셀 다운로드</span>
-              <span className="sm:hidden">다운로드</span>
-            </button>
+              <span >엑셀 다운로드</span>
+            </Button>
           </div>
         </div>
 
@@ -810,32 +821,38 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <button
+                    <Button
                       onClick={() => handleViewDetail(req.requestNo)}
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-bold transition-colors text-sm"
+                      fullWidth
+                      variant='primary'
+                      className="!bg-blue-100 !hover:bg-blue-200 !text-blue-700 "
                     >
                       <Eye className="w-4 h-4" />
                       상세
-                    </button>
+                    </Button>
                     {canCancel(req.status) && (
-                      <button
+                      <Button
                         onClick={() => handleCancel(req.requestNo)}
                         disabled={processing === req.requestNo}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-lg font-bold transition-colors disabled:opacity-50 text-sm"
+                        variant='danger'
+                        fullWidth
+                        className="!bg-red-100 !hover:bg-red-200 !text-red-700"
                       >
                         <X className="w-4 h-4" />
                         취소
-                      </button>
+                      </Button>
                     )}
                     {canConfirmReceipt(req.status) && (
-                      <button
+                      <Button
                         onClick={() => handleConfirmReceipt(req.requestNo)}
                         disabled={processing === req.requestNo}
-                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-100 hover:bg-green-200 text-green-700 rounded-lg font-bold transition-colors disabled:opacity-50 text-sm"
+                        variant='success'
+                        fullWidth
+                        className="!bg-green-100 !hover:bg-green-200 !text-green-700"
                       >
                         <CheckCircle2 className="w-4 h-4" />
                         수령 확인
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

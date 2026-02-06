@@ -9,6 +9,7 @@ import {
 import { getCurrentUser, getSessionToken } from '../../utils/orderingAuth';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Header from '@/components/Header';
+import Button from '@/components/Button';
 
 interface OrderingNewRequestPageProps {
   onNavigate?: (view: string) => void;
@@ -525,26 +526,27 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
             />
             <label
               htmlFor="photoInput"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl cursor-pointer font-bold transition-colors"
+              className="inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 px-4 py-3 text-sm gap-2 w-full sm:w-auto"
             >
               <Upload className="w-5 h-5" />
               파일 선택
             </label>
           </div>
           {photoPreview && (
-            <div className="relative inline-block">
+            <div className="relative flex flex-col justify-center sm:inline-block">
               <img
                 src={photoPreview}
                 alt="미리보기"
                 className="max-h-xs rounded-xl border-2 border-gray-200 max-w-full sm:max-w-xs"
               />
-              <button
+              <Button
+                variant='icon'
                 type="button"
                 onClick={removePhoto}
-                className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-red-600 transition-colors"
+                className="absolute top-2 right-2 bg-red-500 text-white !rounded-full"
               >
                 <X className="w-5 h-5" />
-              </button>
+              </Button>
               {photoFile && (
                 <p className="mt-2 text-sm text-gray-600 font-bold">
                   {photoFile.name} ({(photoFile.size / 1024).toFixed(2)} KB)
@@ -572,20 +574,22 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
 
         {/* 제출 버튼 */}
         <div className="flex justify-center sm:justify-end gap-4">
-          <button
+          <Button
             type="button"
             onClick={goBack}
-            className="px-8 py-4 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-black transition-colors"
+            variant='secondary'
+            className="w-full sm:w-auto"
           >
             취소
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={submitting}
-            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black disabled:bg-gray-400 transition-colors"
+            variant='primary'
+            className="w-full sm:w-auto"
           >
             {submitting ? '신청 중...' : '신청하기'}
-          </button>
+          </Button>
         </div>
       </form>
 

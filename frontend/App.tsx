@@ -10,7 +10,7 @@ import OrderingPage from "./pages/ordering/OrderingPage";
 import OrderingNewRequestPage from "./pages/ordering/OrderingNewRequestPage";
 import OrderingMyRequestsPage from "./pages/ordering/OrderingMyRequestsPage";
 import OrderingRequestDetailPage from "./pages/ordering/OrderingRequestDetailPage";
-import OrderingMyInfoPage from "./pages/ordering/OrderingMyInfoPage";
+import MyInfoPage from "./pages/MyInfoPage";
 import LoginPage from "./pages/LoginPage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import UserDashboardPage from "./pages/UserDashboardPage";
@@ -265,7 +265,7 @@ const MainApp: React.FC = () => {
 
         {/* 내 정보 변경 - 상위 레벨로 이동 (로그인한 모든 사용자) */}
         {isUserLoggedIn && (
-          <Route path="/info" element={<OrderingMyInfoPage />} />
+          <Route path="/info" element={<MyInfoPage />} />
         )}
 
         {/* 관리자 라우트 - 보호된 라우트 */}

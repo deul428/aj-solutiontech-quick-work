@@ -261,13 +261,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
         sortable: true,
         sortKey: "requestNo",
         render: (value, row) => (
-          <button
+          <Button
+            variant="link"
             onClick={() => handleShowDetail(row)}
-            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
             title="상세 보기"
           >
             {value}
-          </button>
+          </Button>
         ),
       },
       {
@@ -308,13 +308,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
         label: "품명",
         sortable: false,
         render: (value, row) => (
-          <button
+          <Button
+            variant="link"
             onClick={() => handleShowDetail(row)}
-            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
             title="상세 보기"
           >
             {value || "-"}
-          </button>
+          </Button>
         ),
       },
       {
@@ -328,13 +328,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
         label: "관리번호",
         sortable: false,
         render: (value, row) => (
-          <button
+          <Button
+            variant="link"
             onClick={() => handleShowDetail(row)}
-            className="font-bold text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors"
             title="상세 보기"
           >
             {value || "-"}
-          </button>
+          </Button>
         ),
       },
       {
@@ -1125,7 +1125,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
             className="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-[60]"
             onClick={() => setExpandedImage(null)}
           >
-            <div className="relative max-w-[90vw] max-h-[90vh]"> 
+            <div className="relative max-w-[90vw] max-h-[90vh]">
               <Button variant=""
                 onClick={() => setExpandedImage(null)}
                 className="absolute top-0 right-0 text-white hover:text-gray-300 z-10"

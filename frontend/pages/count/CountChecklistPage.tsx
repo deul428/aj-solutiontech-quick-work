@@ -17,6 +17,7 @@ import { downloadChecklistPDF } from "../../services/pdfService";
 import ChecklistPreview from "../../components/ChecklistPreview";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import Header from "@/components/Header";
+import Button from "@/components/Button";
 
 interface CountChecklistPageProps {
   masterData: MasterDataRow[];
@@ -167,9 +168,9 @@ const CountChecklistPage: React.FC<CountChecklistPageProps> = ({ masterData, ser
             <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
               <Search className="w-5 h-5 text-blue-600" /> 1. 관리번호 입력 (공백/줄바꿈 구분)
             </h3>
-            <button onClick={handleClear} className="text-sm font-bold text-gray-800 flex items-center gap-2">
-              <RotateCcw className="w-5 h-5 text-gray-900" /> 초기화
-            </button>
+            <Button onClick={handleClear} variant="ghost" >
+              <RotateCcw className="w-4 h-4 text-gray-900" /> 초기화
+            </Button>
           </div>
           <textarea
             value={mgmtNumbersInput}
@@ -192,17 +193,19 @@ const CountChecklistPage: React.FC<CountChecklistPageProps> = ({ masterData, ser
             type="text"
             value={engineerInput}
             onChange={(e) => setEngineerInput(e.target.value)}
-            placeholder="이름을 입력하세요" 
+            placeholder="이름을 입력하세요"
           />
         </section>
 
-        <button
+        <Button
           onClick={handleSearch}
           disabled={isProcessing}
-          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-xl shadow-xl transition-all flex items-center justify-center gap-3 text-lg disabled:bg-gray-400 active:scale-95"
+          variant="primary"
+          size='lg'
+          fullWidth
         >
-          <Search className="w-6 h-6" /> 데이터 일괄 조회
-        </button>
+          <Search className="w-4 h-4" /> 데이터 일괄 조회
+        </Button>
 
         {currentChecklists.length > 0 && (
           <div className="mt-12 space-y-8 no-print">
@@ -212,27 +215,30 @@ const CountChecklistPage: React.FC<CountChecklistPageProps> = ({ masterData, ser
               </div>
 
               <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-                <button
+                <Button
                   onClick={handleSaveOnly}
                   disabled={isProcessing}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 shadow-lg shadow-indigo-100 disabled:bg-gray-400 transition-all active:scale-95 sm:min-w-[120px]"
+                  variant="primary"
+                  className="flex-1 bg-purple-600 hover:bg-purple-700 sm:min-w-[120px]"
                 >
                   <CloudUpload className="w-4 h-4" /> 저장
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handleExcelExport}
                   disabled={isProcessing}
-                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                  variant='success'
+                  className="sm:min-w-[120px]"
                 >
                   <Download className="w-4 h-4" /> 엑셀 다운로드
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={handlePdfExport}
+                  variant='danger'
                   disabled={isProcessing}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl text-sm font-black flex items-center justify-center gap-2 shadow-lg shadow-red-100 disabled:bg-gray-400 transition-all active:scale-95 sm:min-w-[150px]"
+                  className="sm:min-w-[120px]"
                 >
                   <FileText className="w-4 h-4" /> PDF 다운로드
-                </button>
+                </Button>
               </div>
             </div>
 

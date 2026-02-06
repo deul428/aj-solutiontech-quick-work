@@ -391,17 +391,18 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                   <span className="font-bold text-gray-700 flex items-center gap-2 text-sm uppercase tracking-wider">
                     <div className={`w-2 h-2 rounded-full ${cameraStatus === 'ready' ? (isCoolingDown ? 'bg-amber-500 animate-pulse' : 'bg-green-500') : 'bg-red-500'}`}></div>{cameraStatus === 'ready' ? '스캔 중...' : '스캔 준비 중...'}
                   </span>
-                  <button
+                  <Button
+                    variant="primary"
                     onClick={handleMockScan}
                     disabled={showScanModal || showTransferModal || isCoolingDown || isSyncing}
-                    className={`px-4 py-2 rounded-xl font-black text-white transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2 ${showScanModal || showTransferModal || isCoolingDown || isSyncing
+                    className={`${showScanModal || showTransferModal || isCoolingDown || isSyncing
                       ? "bg-gray-600 cursor-not-allowed"
                       : "bg-blue-600 hover:bg-blue-700 hover:shadow-blue-200"
                       }`}
                   >
                     <ScanQrCode className="w-5 h-5" />
                     테스트 스캔 실행
-                  </button>
+                  </Button>
                 </div>
                 <Button onClick={handleResetScanner} variant="icon" fullWidth>
                   <RefreshCcw className="w-4 h-4" /> 리셋
@@ -456,63 +457,74 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
         </div>
       </div>
 
-      {
-        showScanModal && foundRow && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-12 duration-400">
-              <div className="bg-purple-600 p-6 sm:p-10 text-white relative flex flex-row items-center justify-between w-full">
-                <h3 className="text-3xl font-black tracking-tighter leading-none">
+      {showScanModal && foundRow && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-12 duration-400">
+            <div className="bg-purple-600 p-4 sm:p-8 text-white relative flex flex-row items-center justify-between w-full">
+              <h3 data-class='modal-header' className='text-white'>스캔 정보</h3>
+              <Button onClick={closeScanModal} variant="icon">
+                <X className="w-6 h-6 text-white" />
+              </Button>
+            </div>
+            <div className="p-4 sm:p-8 space-y-8">
+              <div className="p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                <p className="text-3xl mb-4 font-bold text-purple-600 tracking-tighter leading-none">
                   {foundRow[MASTER_COLUMNS.MGMT_NO]}
-                </h3>
-                <Button onClick={closeScanModal} variant="icon">
-                  <X className="w-6 h-6 text-white" />
-                </Button>
+                </p>
+                <p className="font-semibold text-gray-900 text-lg leading-tight">{foundRow[MASTER_COLUMNS.PROD_NAME] || '정보 없음'}</p>
               </div>
-              <div className="p-6 sm:p-10 space-y-8">
-                <div className="p-6 bg-gray-50 rounded-3xl border border-gray-100"><span className="text-[10px] font-black text-gray-400 uppercase block mb-1 tracking-widest">상품 정보</span><p className="font-black text-gray-900 text-xl leading-tight">{foundRow[MASTER_COLUMNS.PROD_NAME] || '정보 없음'}</p></div>
-                <div className="flex gap-4 pt-4"><button type="button" onClick={closeScanModal} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-5 rounded-3xl transition-all">취소</button><button type="button" onClick={confirmAudit} className="flex-[2] bg-purple-600 hover:bg-purple-700 text-white font-black py-5 rounded-3xl shadow-2xl shadow-purple-200 flex items-center justify-center gap-3 transition-all active:scale-95"><CheckCircle className="w-6 h-6" /> 실사 확인</button></div>
+              <div className="flex gap-2">
+                <Button type="button" onClick={closeScanModal} variant="gray" fullWidth>
+                  <X className="w-4 h-4" /> 취소
+                </Button>
+                <Button type="button" onClick={confirmAudit} variant="primary" fullWidth>
+                  <CheckCircle className="w-4 h-4" /> 실사 확인
+                </Button>
               </div>
             </div>
           </div>
-        )
+        </div>
+      )
       }
 
       {
         showTransferModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 slide-in-from-bottom-8 duration-400">
-              <div className="bg-blue-600 p-6 sm:p-8 text-white relative">
-                <button onClick={() => setShowTransferModal(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X className="w-6 h-6" /></button>
-                <div className="flex items-center gap-3 mb-4"><div className="bg-white/20 p-2 rounded-xl"><MapPin className="w-6 h-6" /></div><h3 className="text-2xl font-black">실사 위치 선택</h3></div>
+              <div className="bg-blue-600 p-6 sm:p-8 text-white relative flex flex-row items-center justify-between w-full">
+                <h3 data-class='modal-header' className='text-white'>실사 위치 선택</h3>
+                <Button onClick={() => setShowTransferModal(false)} variant="icon"  >
+                  <X className="w-6 h-6 text-white" />
+                </Button>
               </div>
-              <div className="p-6 sm:p-8 space-y-6">
-                <div className="space-y-5">
+              <div className="p-6 sm:p-8 space-y-8">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1"><Building className="w-3 h-3 text-blue-500" /> 센터 정보</label>
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1">
+                      <Building className="w-3 h-3 text-blue-500" /> 센터 정보
+                    </label>
                     {!isCustomCenter ? (
                       <div className="relative group">
-                        <select value={selectedCenter} onChange={handleCenterSelect} className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none focus:ring-4 focus:ring-blue-100 transition-all appearance-none cursor-pointer">
+                        <select value={selectedCenter} onChange={handleCenterSelect} classNam >
                           <option value="">센터를 선택하세요</option>
                           {centerOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                           <option value="custom">+ 직접 입력하기</option>
                         </select>
-                        {/*  <div className="absolute inset-y-0 right-5 flex items-center pointer-events-none text-gray-400"><Plus className="w-4 h-4" /></div> */}
                       </div>
                     ) : (
                       <div className="flex gap-2 animate-in slide-in-from-right-2">
-                        <input type="text" autoFocus value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-blue-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-blue-50" />
-                        <button onClick={() => { setIsCustomCenter(false); setSelectedCenter(""); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200">
-
+                        <input type="text" autoFocus value={selectedCenter} onChange={(e) => setSelectedCenter(e.target.value)} placeholder="직접 입력" />
+                        <Button onClick={() => { setIsCustomCenter(false); setSelectedCenter(""); setSelectedZone(""); }} variant="icon" className="p-2 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200">
                           <RefreshCcw className="w-5 h-5" />
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
                   <div className="space-y-2">
-                    <label className="text-[11px] font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1"><Navigation className="w-3 h-3 text-purple-500" /> 세부 구역 정보</label>
+                    <label className="text-xs font-black text-gray-400 uppercase tracking-widest ml-1 flex items-center gap-1"><Navigation className="w-3 h-3 text-purple-500" /> 세부 구역 정보</label>
                     {!isCustomZone ? (
                       <div className="relative group">
-                        <select value={selectedZone} disabled={!selectedCenter && !isCustomCenter} onChange={handleZoneSelect} className={`w-full bg-gray-50 border border-gray-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none focus:ring-4 focus:ring-purple-100 transition-all appearance-none cursor-pointer ${(!selectedCenter && !isCustomCenter) ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                        <select value={selectedZone} disabled={!selectedCenter && !isCustomCenter} onChange={handleZoneSelect} className={`  ${(!selectedCenter && !isCustomCenter) ? 'opacity-50 cursor-not-allowed' : ''}`}>
                           <option value="">{!selectedCenter ? "먼저 센터를 선택하세요" : "구역을 선택하세요"}</option>
                           {availableZones.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                           {(selectedCenter || isCustomCenter) && <option value="custom">+ 직접 입력하기</option>}
@@ -522,14 +534,21 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                     ) : (
                       <div className="flex gap-2 animate-in slide-in-from-right-2">
                         <input type="text" autoFocus value={selectedZone} onChange={(e) => setSelectedZone(e.target.value)} placeholder="직접 입력" className="flex-1 bg-white border-2 border-purple-200 rounded-2xl px-5 py-4 font-black text-gray-900 outline-none shadow-lg shadow-purple-50" />
-                        <button onClick={() => { setIsCustomZone(false); setSelectedZone(""); }} className="p-4 bg-gray-100 text-gray-500 rounded-2xl hover:bg-gray-200">
+                        <Button onClick={() => {
+                          setIsCustomZone(false);
+                          setSelectedZone("");
+                        }}
+                          variant="icon">
                           <RefreshCcw className="w-5 h-5" />
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-4 pt-4"><button type="button" onClick={() => setShowTransferModal(false)} className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-600 font-black py-4 rounded-2xl transition-all">취소</button><button type="button" onClick={handleConfirmTransfer} disabled={isSyncing || !selectedCenter || !selectedZone} className="flex-[2] bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-xl shadow-blue-100 flex items-center justify-center gap-3 transition-all active:scale-95 disabled:bg-gray-300">저장하기</button></div>
+                <div className="flex gap-4">
+                  <Button type="button" onClick={() => setShowTransferModal(false)} variant="gray" fullWidth>취소</Button>
+                  <Button type="button" onClick={handleConfirmTransfer} disabled={isSyncing || !selectedCenter || !selectedZone} variant="primary" fullWidth>저장하기</Button>
+                </div>
               </div>
             </div>
           </div>

@@ -53,7 +53,7 @@ const ExcelDateRangeModal: React.FC<ExcelDateRangeModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black  bounding-box bg-opacity-50 flex items-center justify-center z-50 p-4 ">
       <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-xl w-full">
-        <h3 className="text-xl font-black text-gray-800 mb-4">{title}</h3>
+        <h3 data-class='modal-header' className='text-gray-900'>{title}</h3>
 
         <div className="space-y-4">
           {/* 퀵 버튼 */}

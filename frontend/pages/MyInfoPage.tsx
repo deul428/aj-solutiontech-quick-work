@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Key, User as UserIcon } from 'lucide-react';
-import { changePasswordOrdering, ORDERING_GAS_URL } from '../../services/orderingService';
-import { getCurrentUser, getSessionToken } from '../../utils/orderingAuth';
-import LoadingOverlay from '../../components/LoadingOverlay';
-import Toast from '../../components/Toast';
+import { changePasswordOrdering, ORDERING_GAS_URL } from '../services/orderingService';
+import { getCurrentUser, getSessionToken } from '../utils/orderingAuth';
+import LoadingOverlay from '../components/LoadingOverlay';
+import Toast from '../components/Toast';
 import Header from '@/components/Header';
+import Button from '@/components/Button';
 
-const OrderingMyInfoPage: React.FC = () => {
+const MyInfoPage: React.FC = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
 
@@ -159,7 +160,7 @@ const OrderingMyInfoPage: React.FC = () => {
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-2">현재 비밀번호</label>
               <input
-                type="password" 
+                type="password"
                 value={passwordData.currentPassword}
                 onChange={(e) =>
                   setPasswordData({ ...passwordData, currentPassword: e.target.value })
@@ -171,7 +172,7 @@ const OrderingMyInfoPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">새 비밀번호</label>
                 <input
-                  type="password" 
+                  type="password"
                   value={passwordData.newPassword}
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
@@ -184,7 +185,7 @@ const OrderingMyInfoPage: React.FC = () => {
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">새 비밀번호 확인</label>
                 <input
-                  type="password" 
+                  type="password"
                   value={passwordData.confirmPassword}
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, confirmPassword: e.target.value })
@@ -195,13 +196,14 @@ const OrderingMyInfoPage: React.FC = () => {
               </div>
             </div>
             <div className="flex justify-end">
-              <button
+              <Button
                 type="submit"
                 disabled={submitting}
-                className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black disabled:bg-gray-400 transition-colors w-full sm:w-auto"
+                fullWidth
+                variant="primary"
               >
                 {submitting ? '변경 중...' : '비밀번호 변경'}
-              </button>
+              </Button>
             </div>
           </form>
         </div>
@@ -219,5 +221,5 @@ const OrderingMyInfoPage: React.FC = () => {
   );
 };
 
-export default OrderingMyInfoPage;
+export default MyInfoPage;
 

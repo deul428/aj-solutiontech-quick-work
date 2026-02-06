@@ -259,7 +259,7 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* 헤더 */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-black text-gray-900">팀 관리</h2>
+          <h3 data-class='modal-header' className='text-gray-900'>팀 관리</h3>
           <Button variant="icon" onClick={onClose} disabled={processing} size='md'>
             <X className="w-6 h-6 text-gray-500" />
           </Button>
