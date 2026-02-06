@@ -132,7 +132,8 @@ export const syncAuditDataToCloud = async (
   data: MasterDataRow[],
   _unused?: string,
   centerLocation?: string,
-  assetLocation?: string
+  assetLocation?: string,
+  auditorName?: string
 ): Promise<{ success: boolean; count: number }> => {
   const auditedItems = data.filter(row => row[CHECKLIST_COLUMNS.AUDIT_STATUS] === 'O' || row['자산실사 여부'] === 'O');
   if (auditedItems.length === 0) return { success: false, count: 0 };
@@ -143,17 +144,27 @@ export const syncAuditDataToCloud = async (
       const assetNumber = String(row[MASTER_COLUMNS.ASSET_NO] || row[CHECKLIST_COLUMNS.ASSET_NO] || "").trim();
       const isAbnormalAsset = !assetNumber || assetNumber === "" || assetNumber === "null";
       
+      // 자산실사자 값 확인 및 로깅
+      const auditUserValue = auditorName || "";
+      if (!auditUserValue) {
+        console.warn("자산실사자 정보가 없습니다. 현재 로그인 사용자 정보를 확인해주세요.");
+      }
+      
       return {
         [CHECKLIST_COLUMNS.MGMT_NO]: String(row[MASTER_COLUMNS.MGMT_NO] || row[CHECKLIST_COLUMNS.MGMT_NO] || "").trim(),
         [CHECKLIST_COLUMNS.AUDIT_DATE]: row[CHECKLIST_COLUMNS.AUDIT_DATE] || row['자산실사일'] || new Date().toLocaleDateString(),
         [CHECKLIST_COLUMNS.AUDIT_STATUS]: "O",
         [CHECKLIST_COLUMNS.CENTER_LOC]: centerLocation || "",
         [CHECKLIST_COLUMNS.ASSET_LOC]: assetLocation || "",
-        [CHECKLIST_COLUMNS.AUDIT_USER]: row[CHECKLIST_COLUMNS.AUDIT_USER] || row['자산실사자'] || "",
+        [CHECKLIST_COLUMNS.AUDIT_USER]: auditUserValue, // '자산실사자' 키로 전송
         ...(isAbnormalAsset && { [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: 'O' }),
       };
     })
   };
+  
+  // 디버깅: 자산실사자 값 확인
+  console.log("전송할 자산실사자 정보:", auditorName);
+  console.log("전송할 데이터 샘플:", payload.rows[0]);
 
   try {
     await fetch(url, {

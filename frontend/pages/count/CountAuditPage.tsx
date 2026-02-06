@@ -68,6 +68,11 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
   const html5QrCodeRef = useRef<Html5Qrcode | null>(null);
   const scannerId = "qr-reader-container";
   const SHARED_SHEET_URL = "https://docs.google.com/spreadsheets/d/1NXT2EBow1zWxmPsb7frN90e95qRH1mkY9DQUgCrsn2I/edit?usp=sharing";
+  
+  // 스캔 중복 방지를 위한 ref
+  const lastScanTimeRef = useRef<number>(0);
+  const lastScannedMgmtNoRef = useRef<string>("");
+  const SCAN_COOLDOWN_MS = 2000; // 2초 쿨다운
 
   useEffect(() => {
     const audited = masterData.filter(row => row[AUDIT_COLUMNS.STATUS] === 'O');
@@ -246,12 +251,35 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
       return;
     }
 
+    // 스캔 중복 방지: 같은 관리번호가 2초 이내에 다시 스캔되면 무시
+    const now = Date.now();
+    const timeSinceLastScan = now - lastScanTimeRef.current;
+    const isSameMgmtNo = trimmedText === lastScannedMgmtNoRef.current;
+    
+    if (timeSinceLastScan < SCAN_COOLDOWN_MS && isSameMgmtNo) {
+      console.log(`스캔 무시됨 - 중복 스캔 (${timeSinceLastScan}ms 전에 같은 관리번호 스캔됨)`);
+      return;
+    }
+
+    // 마지막 스캔 정보 업데이트
+    lastScanTimeRef.current = now;
+    lastScannedMgmtNoRef.current = trimmedText;
+
     setScannedResult(trimmedText);
     let match = masterData.find(row => {
       const mgmtNo = String(row[MASTER_COLUMNS.MGMT_NO] || "").trim();
       const assetNo = String(row[MASTER_COLUMNS.ASSET_NO] || "").trim();
       return mgmtNo === trimmedText || assetNo === trimmedText;
     });
+
+    // 이미 실사 완료된 항목인지 확인 (중복 방지)
+    if (match) {
+      const isAlreadyAudited = match[AUDIT_COLUMNS.STATUS] === 'O' || match[CHECKLIST_COLUMNS.AUDIT_STATUS] === 'O';
+      if (isAlreadyAudited) {
+        console.log("이미 실사 완료된 항목입니다:", trimmedText);
+        return; // 모달을 열지 않고 종료
+      }
+    }
 
     // 마스터파일에 없는 관리번호인 경우 임시 row 생성 (이상자산구분 'O'으로 설정)
     if (!match) {
@@ -289,20 +317,33 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
 
   const confirmAudit = () => {
     if (!foundRow) return;
+    
+    // 이미 실사 완료된 항목인지 확인 (중복 방지)
+    const mgmtNo = foundRow[MASTER_COLUMNS.MGMT_NO];
+    const alreadyAudited = masterData.some(row => 
+      row[MASTER_COLUMNS.MGMT_NO] === mgmtNo && 
+      (row[AUDIT_COLUMNS.STATUS] === 'O' || row[CHECKLIST_COLUMNS.AUDIT_STATUS] === 'O')
+    );
+    
+    if (alreadyAudited) {
+      alert("이미 실사 완료된 항목입니다.");
+      closeScanModal();
+      return;
+    }
+    
     const today = new Date();
     const dateStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, '0')}.${String(today.getDate()).padStart(2, '0')}`;
-    const currentUser = getCurrentUser();
-    const auditorName = currentUser?.name || "";
     
     setMasterData(prev => prev.map(row => {
-      if (row[MASTER_COLUMNS.MGMT_NO] === foundRow[MASTER_COLUMNS.MGMT_NO]) {
+      if (row[MASTER_COLUMNS.MGMT_NO] === mgmtNo) {
         const assetNumber = String(row[MASTER_COLUMNS.ASSET_NO] || "").trim();
         const isAbnormalAsset = !assetNumber || assetNumber === "" || assetNumber === "null";
         const updatedRow = {
           ...row,
           [AUDIT_COLUMNS.DATE]: dateStr,
+          [CHECKLIST_COLUMNS.AUDIT_DATE]: dateStr,
           [AUDIT_COLUMNS.STATUS]: 'O',
-          [CHECKLIST_COLUMNS.AUDIT_USER]: auditorName
+          [CHECKLIST_COLUMNS.AUDIT_STATUS]: 'O'
         };
         // 자산번호가 없으면 이상자산구분 'O' 설정
         if (isAbnormalAsset) {
@@ -319,6 +360,8 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     setShowScanModal(false);
     setScannedResult(null);
     setFoundRow(null);
+    // 모달이 닫힐 때 스캔 기록 초기화 (같은 관리번호를 다시 스캔할 수 있도록)
+    lastScannedMgmtNoRef.current = "";
     setIsCoolingDown(true);
     setTimeout(() => {
       setIsCoolingDown(false);
@@ -336,7 +379,9 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     if (!selectedCenter.trim() || !selectedZone.trim()) { alert("센터 및 구역 위치를 모두 입력해 주세요."); return; }
     setIsSyncing(true);
     try {
-      const result = await syncAuditDataToCloud(serviceUrl, masterData, selectedSheet, selectedCenter, selectedZone);
+      const currentUser = getCurrentUser();
+      const auditorName = currentUser?.name || "";
+      const result = await syncAuditDataToCloud(serviceUrl, masterData, selectedSheet, selectedCenter, selectedZone, auditorName);
       setLastSyncTime(
         new Date().toLocaleString("ko-KR", {
           year: "numeric",
@@ -552,7 +597,9 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
                 </div>
                 <div className="flex gap-4">
                   <Button type="button" onClick={() => setShowTransferModal(false)} variant="gray" fullWidth>취소</Button>
-                  <Button type="button" onClick={handleConfirmTransfer} disabled={isSyncing || !selectedCenter || !selectedZone} variant="primary" fullWidth>저장하기</Button>
+                  <Button type="button" onClick={handleConfirmTransfer} disabled={isSyncing || !selectedCenter || !selectedZone} variant="primary" fullWidth>
+                    {isSyncing ? "저장 중..." : "저장하기"}
+                  </Button>
                 </div>
               </div>
             </div>

@@ -132,7 +132,12 @@ function handleChecklistSync(ss, rowsToProcess) {
     if (foundRowIndex > -1) {
       headers.forEach(function(h, idx) {
         if (h === "QR") return;
-        if (item[h] !== undefined && item[h] !== null) {
+        // 자산실사자 컬럼은 빈 문자열도 업데이트 (실사자 정보 갱신을 위해)
+        if (h === "자산실사자") {
+          if (item[h] !== undefined && item[h] !== null) {
+            sheet.getRange(foundRowIndex, idx + 1).setValue(item[h]);
+          }
+        } else if (item[h] !== undefined && item[h] !== null && item[h] !== "") {
           sheet.getRange(foundRowIndex, idx + 1).setValue(item[h]);
         }
       });
@@ -151,6 +156,11 @@ function handleChecklistSync(ss, rowsToProcess) {
       // 신규 추가 시 이상자산구분 열에 O 표시
       if (abnormalAssetColIdx > -1) {
         sheet.getRange(currentRowIdx, abnormalAssetColIdx + 1).setValue("O");
+      }
+      // 신규 추가 시에도 자산실사자 정보 업데이트 (있는 경우)
+      const auditUserColIdx = headers.indexOf("자산실사자");
+      if (auditUserColIdx > -1 && item["자산실사자"]) {
+        sheet.getRange(currentRowIdx, auditUserColIdx + 1).setValue(item["자산실사자"]);
       }
     }
   });
