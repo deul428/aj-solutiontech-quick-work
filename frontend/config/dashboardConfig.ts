@@ -27,6 +27,13 @@ export interface DashboardMenuItem {
     roles?: ('console' | 'user' | 'all')[];
     // 숨김 여부
     hidden?: boolean;
+    // 비활성화 여부 (true면 메뉴는 보이지만 클릭 불가)
+    disabled?: boolean;
+    // 대시보드 표시 여부: 'all' | 'user-only' | 'console-only'
+    // 'all': 모든 대시보드에 표시 (기본값)
+    // 'user-only': user 대시보드에만 표시 (console 대시보드에는 숨김, 하지만 접근은 가능)
+    // 'console-only': console 대시보드에만 표시
+    dashboardVisibility?: 'all' | 'user-only' | 'console-only';
     // Navbar에 표시할지 여부 (true면 navbar에 표시, false면 표시 안 함)
     navbar?: boolean;
     // Navbar에서 사용할 라벨 (없으면 title 사용)
@@ -131,26 +138,43 @@ export const adminDashboardSections: DashboardSection[] = [
         gridCols: '3',
         menus: [
             {
+                id: 'equiment-main',
+                title: '장비 점검, 실사, QR생성 시스템',
+                description: '장비 점검, 실사, QR생성 시스템',
+                icon: ClipboardCheck,
+                path: '/equipment',
+                color: 'blue',
+                roles: ['console'],
+                navbar: true,
+                navbarLabel: '장비 점검, 실사, QR생성 시스템',
+                navbarOrder: 1
+            },
+            /* 
+            // 예시: disabled 속성 사용
+            {
                 id: 'checklist',
                 title: '체크리스트 생성',
                 description: '자산 점검용 체크리스트 생성',
                 icon: ClipboardCheck,
-                path: '/checklist',
+                path: '/equipment/checklist',
                 color: 'blue',
                 roles: ['console'],
-                navbar: true,
+                disabled: true, // 비활성화 (메뉴는 보이지만 클릭 불가)
+                navbar: false,
                 navbarLabel: '체크리스트 생성',
                 navbarOrder: 2
             },
+            // 예시: dashboardVisibility 사용
             {
                 id: 'audit-history',
                 title: '자산 실사 내역 확인',
                 description: '체크리스트 데이터 조회 및 관리',
                 icon: FileText,
-                path: '/console/audit-history',
+                path: '/equipment/audit-history',
                 color: 'pink',
                 roles: ['console'],
-                navbar: true,
+                dashboardVisibility: 'console-only', // console 대시보드에만 표시
+                navbar: false,
                 navbarOrder: 3
             },
             {
@@ -158,11 +182,12 @@ export const adminDashboardSections: DashboardSection[] = [
                 title: '마스터 파일 관리',
                 description: 'SAP 자산정보 파일 갱신 및 관리',
                 icon: RefreshCcw,
-                path: '/equipment',
+                path: '/equipment/master',
                 color: 'purple',
                 roles: ['console'],
-                navbar: false // 대시보드에만 표시
+                navbar: false
             }
+            */
         ]
     },
     {
@@ -173,28 +198,17 @@ export const adminDashboardSections: DashboardSection[] = [
         menus: [
             {
                 id: 'ordering-main',
-                title: '부품 신청',
-                description: '새 부품 신청, 내 부품 신청 내역 확인',
+                title: '부품 발주 시스템',
+                description: '새 부품 신청, 내 부품 신청 내역 확인, 관리자 부품 신청 현황 조회',
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['console'],
+                roles: ['console', 'user'], // console과 user 모두 접근 가능
+                dashboardVisibility: 'all', // 모든 대시보드에 표시
                 navbar: true,
-                navbarLabel: '부품 신청',
+                navbarLabel: '부품 발주 시스템',
                 navbarActivePath: '/ordering',
                 navbarOrder: 20
-            },
-            {
-                id: 'requests',
-                title: '부품 신청 현황',
-                description: '전체 신청 목록 조회 및 관리',
-                icon: Package,
-                path: '/console/requests',
-                color: 'orange',
-                roles: ['console'],
-                navbar: true,
-                navbarLabel: '부품 신청 현황',
-                navbarOrder: 21
             }
         ]
     },
@@ -266,9 +280,10 @@ export const userDashboardSections: DashboardSection[] = [
                 title: '자산 실사',
                 description: 'QR코드로 빠르게 자산 실사를 수행',
                 icon: ScanQrCode,
-                path: '/audit',
+                path: '/equipment/audit',
                 color: 'blue',
-                roles: ['user'],
+                roles: ['user'], // console도 접근 가능 (navbar나 직접 URL로)
+                dashboardVisibility: 'user-only', // user 대시보드에만 표시
                 navbar: true,
                 navbarLabel: '자산 실사',
                 navbarOrder: 10
@@ -283,14 +298,15 @@ export const userDashboardSections: DashboardSection[] = [
         menus: [
             {
                 id: 'ordering-main',
-                title: '부품 신청',
+                title: '부품 발주 시스템',
                 description: '새 부품 신청, 내 부품 신청 내역 확인',
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['user'],
+                roles: ['user'], // console도 접근 가능 (navbar나 직접 URL로)
+                dashboardVisibility: 'user-only', // user 대시보드에만 표시
                 navbar: true,
-                navbarLabel: '부품 신청',
+                navbarLabel: '부품 발주 시스템',
                 navbarActivePath: '/ordering',
                 navbarOrder: 20
             }
@@ -464,8 +480,8 @@ export const systemHomeCards: SystemHomeCard[] = [
         icon: ClipboardCheck,
         iconBgColor: 'blue',
         navigateTo: (isAdmin: boolean, isUser: boolean) => {
-            if (isAdmin) return '/checklist';
-            if (isUser) return '/audit';
+            if (isAdmin) return '/equipment';
+            if (isUser) return '/equipment';
             return '/login';
         },
         roles: ['console', 'user']

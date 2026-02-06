@@ -724,7 +724,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
     return <LoadingOverlay message="데이터를 불러오는 중..." />;
   }
 
-  console.log(detailRequest);
+  if (import.meta.env.DEV) console.log(detailRequest);
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <Header

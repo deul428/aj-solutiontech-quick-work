@@ -25,7 +25,8 @@ async function fetchOrderingData<T = any>(
     params: Record<string, any> = {}
 ): Promise<T> {
     try {
-        const separator = url.includes('?') ? '&' : '?';
+        const getUrlSeparator = (url: string): string => url.includes('?') ? '&' : '?';
+        const separator = getUrlSeparator(url);
         const paramString = Object.keys(params)
             .filter(key => params[key] !== null && params[key] !== undefined)
             .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
@@ -59,14 +60,16 @@ async function fetchOrderingData<T = any>(
             const data = JSON.parse(responseText);
             // 에러 응답 체크 (서버가 에러를 객체로 반환하는 경우)
             if (data && typeof data === 'object' && !Array.isArray(data) && 'error' in data) {
+                const errorMsg = data.error || '서버에서 오류가 발생했습니다.';
                 console.error(`[fetchOrderingData] Server returned error:`, data);
-                throw new Error(data.error || '서버에서 오류가 발생했습니다.');
+                throw new Error(errorMsg);
             }
 
             // success: false 체크
             if (data && typeof data === 'object' && 'success' in data && data.success === false) {
+                const errorMsg = data.error || data.message || '요청이 실패했습니다.';
                 console.error(`[fetchOrderingData] Server returned success: false:`, data);
-                throw new Error(data.message || '요청이 실패했습니다.');
+                throw new Error(errorMsg);
             }
 
             return data as T;
@@ -323,22 +326,19 @@ export async function getRequestDetailOrdering(
 export async function getDashboardDataOrdering(
     url: string,
     sessionToken: string
-): Promise<DashboardData | null> {
-    try {
-        const result = await fetchOrderingData<DashboardData>(
-            url,
-            'getDashboardData',
-            { token: sessionToken }
-        );
+): Promise<DashboardData> {
+    const result = await fetchOrderingData<DashboardData>(
+        url,
+        'getDashboardData',
+        { token: sessionToken }
+    );
 
-        if (result && (result as any).success !== false) {
-            return result as DashboardData;
-        }
-        return null;
-    } catch (error) {
-        console.error('Failed to get dashboard data:', error);
-        return null;
+    if (result && (result as any).success !== false) {
+        return result as DashboardData;
     }
+    
+    // success: false인 경우 에러 throw
+    throw new Error('대시보드 데이터를 불러올 수 없습니다.');
 }
 
 /**

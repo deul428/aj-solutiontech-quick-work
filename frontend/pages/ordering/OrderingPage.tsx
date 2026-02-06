@@ -1,25 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Package,
   Plus,
+  Cog,
   FileText,
-  Settings,
   CheckCircle2,
   Clock,
-  AlertCircle,
   Bell,
   ArrowRight,
-  LogOut
+  LucideIcon
 } from 'lucide-react';
-import { User, Request, DashboardData } from '../../types/ordering';
+import { User, Request } from '../../types/ordering';
 import {
   getDashboardDataOrdering,
   logoutOrdering,
   ORDERING_GAS_URL
 } from '../../services/orderingService';
-import { getCurrentUser, getSessionToken, logout } from '../../utils/orderingAuth';
-import { formatDate, getStatusColor } from '../../utils/orderingHelpers';
+import { getCurrentUser, getSessionToken, logout, isAdmin } from '../../utils/orderingAuth';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Header from '@/components/Header';
 
@@ -27,198 +25,224 @@ interface OrderingPageProps {
   onNavigate?: (view: string) => void;
 }
 
+interface StatCardProps {
+  label: string;
+  value: number;
+  icon: LucideIcon;
+  color: 'yellow' | 'pink' | 'green' | 'blue';
+}
+
+interface ActionCardProps {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  color: 'blue' | 'purple' | 'red';
+  onClick: () => void;
+}
+
+const EMPTY_STATS = { requested: 0, inProgress: 0, completed: 0, total: 0 };
+
 const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
   const navigate = useNavigate();
   const [user] = useState<User | null>(getCurrentUser());
-  const [stats, setStats] = useState({ requested: 0, inProgress: 0, completed: 0, total: 0 });
+  const [stats, setStats] = useState(EMPTY_STATS);
   const [recentRequests, setRecentRequests] = useState<Request[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Array<{ message: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const isUserAdmin = useMemo(() => isAdmin(getCurrentUser()), []);
+
   useEffect(() => {
     if (!user) {
-      // 사용자가 없으면 로그인 페이지로 이동
-      if (onNavigate) {
-        onNavigate('ordering-login');
-      }
+      onNavigate?.('login');
       return;
     }
     loadDashboard();
   }, [user, onNavigate]);
 
-  const loadDashboard = async () => {
+  const resetDashboard = useCallback(() => {
+    setStats(EMPTY_STATS);
+    setRecentRequests([]);
+    setNotifications([]);
+  }, []);
+
+  const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
       if (!ORDERING_GAS_URL) {
         console.warn('ORDERING_GAS_URL이 설정되지 않았습니다.');
-        setStats({ requested: 0, inProgress: 0, completed: 0, total: 0 });
-        setRecentRequests([]);
-        setNotifications([]);
+        resetDashboard();
         return;
       }
 
       const sessionToken = getSessionToken();
       if (!sessionToken) {
-        if (onNavigate) {
-          onNavigate('ordering-login');
-        }
+        onNavigate?.('login');
         return;
       }
+
       const dashboardData = await getDashboardDataOrdering(ORDERING_GAS_URL, sessionToken);
 
-      if (dashboardData && dashboardData.success !== false) {
-        setStats(dashboardData.stats || { requested: 0, inProgress: 0, completed: 0, total: 0 });
+      if (dashboardData.success !== false) {
+        setStats(dashboardData.stats || EMPTY_STATS);
         setRecentRequests(dashboardData.recentRequests || []);
         setNotifications(dashboardData.notifications || []);
       } else {
-        setStats({ requested: 0, inProgress: 0, completed: 0, total: 0 });
-        setRecentRequests([]);
-        setNotifications([]);
+        resetDashboard();
       }
-    } catch (err: any) {
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : '대시보드 로딩 실패';
       console.error('Dashboard load error:', err);
-      setError(err.message || '대시보드 로딩 실패');
-      setStats({ requested: 0, inProgress: 0, completed: 0, total: 0 });
-      setRecentRequests([]);
-      setNotifications([]);
+      
+      // Unauthorized 에러인 경우 로그인 페이지로 리다이렉트
+      if (err instanceof Error && errorMessage.includes('Unauthorized')) {
+        setError('인증이 만료되었습니다. 다시 로그인해주세요.');
+        resetDashboard();
+        setTimeout(() => onNavigate?.('login'), 1500);
+        return;
+      }
+      
+      setError(errorMessage);
+      resetDashboard();
     } finally {
       setLoading(false);
     }
-  };
+  }, [onNavigate, resetDashboard]);
 
-  const handleNewRequest = () => {
-    if (onNavigate) {
-      onNavigate('ordering-new');
-    }
-  };
+  const handleNavigation = useCallback((view: string) => {
+    onNavigate?.(view);
+  }, [onNavigate]);
 
-  const handleMyRequests = () => {
-    if (onNavigate) {
-      onNavigate('ordering-requests');
-    }
-  };
-
-  const handleMyInfo = () => {
-    navigate('/info');
-  };
-
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       const sessionToken = getSessionToken();
       if (sessionToken && ORDERING_GAS_URL) {
-        // 서버에 로그아웃 요청
         await logoutOrdering(ORDERING_GAS_URL, sessionToken);
       }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
-      // 클라이언트에서 세션 제거
       logout();
-      // 로그인 페이지로 이동
-      if (onNavigate) {
-        onNavigate('ordering-login');
-      }
+      onNavigate?.('login');
     }
+  }, [onNavigate]);
+
+  const StatCard: React.FC<StatCardProps> = ({ label, value, icon: Icon, color }) => {
+    const colorClasses = {
+      yellow: { bg: 'bg-yellow-100', text: 'text-yellow-600' },
+      pink: { bg: 'bg-pink-100', text: 'text-pink-600' },
+      green: { bg: 'bg-green-100', text: 'text-green-600' },
+      blue: { bg: 'bg-blue-100', text: 'text-blue-600' }
+    };
+
+    return (
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-100 ring-1 ring-gray-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className={`${colorClasses[color].bg} p-3 rounded-2xl hidden sm:block`}>
+            <Icon className={`w-6 h-6 ${colorClasses[color].text}`} />
+          </div>
+          <h6 className="text-sm font-black text-gray-600">{label}</h6>
+        </div>
+        <h2 className={`text-4xl font-black ${colorClasses[color].text}`}>{value}</h2>
+      </div>
+    );
+  };
+
+  const ActionCard: React.FC<ActionCardProps> = ({ title, description, icon: Icon, color, onClick }) => {
+    const colorConfig = {
+      blue: {
+        bg: 'bg-blue-50',
+        iconBg: 'bg-blue-100',
+        iconHover: 'group-hover:bg-blue-600',
+        iconText: 'text-blue-600',
+        hover: 'hover:shadow-blue-100',
+        arrow: 'group-hover:text-blue-600'
+      },
+      purple: {
+        bg: 'bg-purple-50',
+        iconBg: 'bg-purple-100',
+        iconHover: 'group-hover:bg-purple-600',
+        iconText: 'text-purple-600',
+        hover: 'hover:shadow-purple-100',
+        arrow: 'group-hover:text-purple-600'
+      },
+      red: {
+        bg: 'bg-red-50',
+        iconBg: 'bg-red-100',
+        iconHover: 'group-hover:bg-red-600',
+        iconText: 'text-red-600',
+        hover: 'hover:shadow-red-100',
+        arrow: 'group-hover:text-red-600'
+      }
+    };
+
+    const config = colorConfig[color];
+
+    return (
+      <div
+        onClick={onClick}
+        className={`p-6 sm:p-8 rounded-2xl bg-white shadow-2xl border border-gray-100 cursor-pointer group ${config.hover} transition-all relative overflow-hidden`}
+      >
+        <div className={`absolute top-0 right-0 w-32 h-32 ${config.bg} rounded-bl-[5rem] -mr-10 -mt-10 group-hover:scale-110 transition-transform`}></div>
+        <div className="flex justify-between items-start mb-6 relative z-10">
+          <div className={`${config.iconBg} p-4 rounded-3xl ${config.iconHover} transition-colors shadow-inner ${config.iconText} group-hover:text-white`}>
+            <Icon className="w-10 h-10" />
+          </div>
+          <ArrowRight className={`w-8 h-8 text-gray-200 ${config.arrow} transition-transform group-hover:translate-x-2`} />
+        </div>
+        <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">{title}</h3>
+        <p className="text-gray-500 text-sm leading-relaxed font-bold text-pretty relative z-10">{description}</p>
+      </div>
+    );
   };
 
   if (!user) {
-    return null; // 로그인 페이지로 리다이렉트 중
+    return null;
   }
+
+  const headerTitle = isUserAdmin ? "신청 등록, 조회, 관리" : "신청 등록, 조회";
 
   return (
     <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
       {loading && <LoadingOverlay message="대시보드 로딩 중..." />}
-      <Header headerTitle="신청 등록, 조회" headerSubTitle="부품 발주 시스템" level={2} />
+      <Header headerTitle={headerTitle} headerSubTitle="부품 발주 시스템" level={2} />
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 sm:p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-100 ring-1 ring-gray-100 ">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-yellow-100 p-3 rounded-2xl hidden sm:block">
-              <Clock className="w-6 h-6 text-yellow-600" />
-            </div>
-            <h6 className="text-sm font-black text-gray-600">접수중</h6>
-          </div>
-          <h2 className="text-4xl font-black text-yellow-600">{stats.requested}</h2>
-        </div>
-        <div className="bg-white p-6 sm:p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-100 ring-1 ring-gray-100">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-pink-100 p-3 rounded-2xl hidden sm:block">
-              <Package className="w-6 h-6 text-pink-600" />
-            </div>
-            <h6 className="text-sm font-black text-gray-600">진행중</h6>
-          </div>
-          <h2 className="text-4xl font-black text-pink-600">{stats.inProgress}</h2>
-        </div>
-        <div className="bg-white p-6 sm:p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-100 ring-1 ring-gray-100">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-green-100 p-3 rounded-2xl hidden sm:block">
-              <CheckCircle2 className="w-6 h-6 text-green-600" />
-            </div>
-            <h6 className="text-sm font-black text-gray-600">완료</h6>
-          </div>
-          <h2 className="text-4xl font-black text-green-600">{stats.completed}</h2>
-        </div>
-        <div className="bg-white p-6 sm:p-6 sm:p-8 rounded-2xl shadow-2xl border border-gray-100 ring-1 ring-gray-100">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="bg-blue-100 p-3 rounded-2xl hidden sm:block">
-              <FileText className="w-6 h-6 text-blue-600" />
-            </div>
-            <h6 className="text-sm font-black text-gray-600">전체</h6>
-          </div>
-          <h2 className="text-4xl font-black text-blue-600">{stats.total}</h2>
-        </div>
+        <StatCard label="접수중" value={stats.requested} icon={Clock} color="yellow" />
+        <StatCard label="진행중" value={stats.inProgress} icon={Package} color="pink" />
+        <StatCard label="완료" value={stats.completed} icon={CheckCircle2} color="green" />
+        <StatCard label="전체" value={stats.total} icon={FileText} color="blue" />
       </div>
 
       {/* 빠른 액션 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-        <div
-          onClick={handleNewRequest}
-          className="p-6 sm:p-8 rounded-2xl bg-white shadow-2xl border border-gray-100 cursor-pointer group hover:shadow-blue-100 transition-all relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-blue-50 rounded-bl-[5rem] -mr-10 -mt-10 group-hover:scale-110 transition-transform"></div>
-          <div className="flex justify-between items-start mb-6 relative z-10">
-            <div className="bg-blue-100 p-4 rounded-3xl group-hover:bg-blue-600 transition-colors shadow-inner text-blue-600 group-hover:text-white">
-              <Plus className="w-10 h-10" />
-            </div>
-            <ArrowRight className="w-8 h-8 text-gray-200 group-hover:text-blue-600 transition-transform group-hover:translate-x-2" />
-          </div>
-          <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">새 신청 등록</h3>
-          <p className="text-gray-500 text-sm leading-relaxed font-bold text-pretty relative z-10">부품 발주 신청을 등록합니다.</p>
-        </div>
-
-        <div
-          onClick={handleMyRequests}
-          className="p-6 sm:p-8 rounded-2xl bg-white shadow-2xl border border-gray-100 cursor-pointer group hover:shadow-purple-100 transition-all relative overflow-hidden"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-purple-50 rounded-bl-[5rem] -mr-10 -mt-10 group-hover:scale-110 transition-transform"></div>
-          <div className="flex justify-between items-start mb-6 relative z-10">
-            <div className="bg-purple-100 p-4 rounded-3xl group-hover:bg-purple-600 transition-colors shadow-inner text-purple-600 group-hover:text-white">
-              <FileText className="w-10 h-10" />
-            </div>
-            <ArrowRight className="w-8 h-8 text-gray-200 group-hover:text-purple-600 transition-transform group-hover:translate-x-2" />
-          </div>
-          <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">내 신청 목록</h3>
-          <p className="text-gray-500 text-sm leading-relaxed font-bold text-pretty relative z-10">내가 신청한 부품 발주 내역을 확인합니다.</p>
-        </div>
-
-        <div
-          onClick={handleMyInfo}
-          className="p-6 sm:p-8 rounded-2xl bg-white shadow-2xl border border-gray-100 cursor-pointer group hover:shadow-gray-100 transition-all relative overflow-hidden hidden"
-        >
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gray-50 rounded-bl-[5rem] -mr-10 -mt-10 group-hover:scale-110 transition-transform"></div>
-          <div className="flex justify-between items-start mb-6 relative z-10">
-            <div className="bg-gray-100 p-4 rounded-3xl group-hover:bg-gray-600 transition-colors shadow-inner text-gray-600 group-hover:text-white">
-              <Settings className="w-10 h-10" />
-            </div>
-            <ArrowRight className="w-8 h-8 text-gray-200 group-hover:text-gray-600 transition-transform group-hover:translate-x-2" />
-          </div>
-          <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">내 정보</h3>
-          <p className="text-gray-500 text-sm leading-relaxed font-bold text-pretty relative z-10">내 정보를 확인하고 비밀번호를 변경합니다.</p>
-        </div>
+      <div className={`grid grid-cols-1 md:grid-cols-${isUserAdmin ? '3' : '2'} gap-6 mb-8`}>
+        <ActionCard
+          title="새 신청 등록"
+          description="부품 발주 신청을 등록합니다."
+          icon={Plus}
+          color="blue"
+          onClick={() => handleNavigation('ordering-new')}
+        />
+        <ActionCard
+          title="내 신청 목록"
+          description="내가 신청한 부품 발주 내역을 확인합니다."
+          icon={Cog}
+          color="purple"
+          onClick={() => handleNavigation('ordering-myrequest')}
+        />
+        {isUserAdmin && (
+          <ActionCard
+            title="부품 신청 현황 조회 (관리자)"
+            description="정비사들이 신청한 전체 부품 발주 내역을 확인합니다."
+            icon={FileText}
+            color="red"
+            onClick={() => handleNavigation('ordering-requests')}
+          />
+        )}
       </div>
 
       {/* 중요 알림 */}

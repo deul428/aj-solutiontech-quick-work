@@ -18,6 +18,7 @@ import CountAdminAuditHistoryPage from "./pages/count/CountAdminAuditHistoryPage
 import OrderingAdminRequestsPage from "./pages/ordering/OrderingAdminRequestsPage";
 import AdminUserManagementPage from "./pages/AdminUserManagementPage";
 import AdminDeliveryPlaceManagementPage from "./pages/AdminDeliveryPlaceManagementPage";
+import EquipmentMainPage from "./pages/EquipmentMainPage";
 import LoadingOverlay from "./components/LoadingOverlay";
 import Navbar from "./components/Navbar";
 import { fetchMasterFromCloud, fetchSheetList, AUDIT_GAS_URL } from "./services/excelService";
@@ -66,36 +67,30 @@ const OrderingRoutes: React.FC = () => {
   const navigate = useNavigate();
 
   const handleOrderingNavigate = (view: string, reqNo?: string) => {
-    if (view.startsWith('ordering') && view !== 'ordering-login') {
-      if (!isLoggedIn()) {
-        navigate('/ordering/login');
-        return;
-      }
+    const requiresAuth = view.startsWith('ordering') && view !== 'login';
+    if (requiresAuth && !isLoggedIn()) {
+      navigate('/login');
+      return;
     }
 
-    switch (view) {
-      case 'ordering':
-        navigate('/ordering');
-        break;
-      case 'ordering-new':
-        navigate('/ordering/new');
-        break;
-      case 'ordering-requests':
-        navigate('/ordering/requests');
-        break;
-      case 'ordering-detail':
-        if (reqNo) {
-          navigate(`/ordering/detail/${reqNo}`);
-        }
-        break;
-      case 'ordering-info':
-        navigate('/info');
-        break;
-      case 'ordering-login':
-        navigate('/login', { state: { from: '/ordering' } });
-        break;
-      default:
-        navigate('/');
+    const routeMap: Record<string, string> = {
+      'ordering': '/ordering',
+      'ordering-new': '/ordering/new',
+      'ordering-myrequest': '/ordering/myrequest',
+      'ordering-requests': '/ordering/requests',
+      'login': '/login'
+    };
+
+    if (view === 'ordering-myrequest-detail' && reqNo) {
+      navigate(`/ordering/myrequest/${reqNo}`);
+      return;
+    }
+
+    const route = routeMap[view];
+    if (route) {
+      navigate(route, view === 'login' ? { state: { from: '/ordering' } } : undefined);
+    } else {
+      navigate('/');
     }
   };
 
@@ -103,8 +98,16 @@ const OrderingRoutes: React.FC = () => {
     <Routes>
       <Route index element={<OrderingPage onNavigate={handleOrderingNavigate} />} />
       <Route path="new" element={<OrderingNewRequestPage onNavigate={handleOrderingNavigate} />} />
-      <Route path="requests" element={<OrderingMyRequestsPage onNavigate={handleOrderingNavigate} />} />
-      <Route path="detail/:requestNo" element={<OrderingRequestDetailPage onNavigate={handleOrderingNavigate} />} />
+      <Route path="myrequest" element={<OrderingMyRequestsPage onNavigate={handleOrderingNavigate} />} />
+      <Route path="myrequest/:requestNo" element={<OrderingRequestDetailPage onNavigate={handleOrderingNavigate} />} />
+      <Route
+        path="requests"
+        element={
+          <ProtectedAdminRoute>
+            <OrderingAdminRequestsPage />
+          </ProtectedAdminRoute>
+        }
+      />
       {/* /info 라우트는 MainApp 레벨로 이동 */}
       {/* /ordering/login은 /login으로 리다이렉트 (handleOrderingNavigate에서 처리) */}
       <Route path="*" element={<div>404 - Page not found</div>} />
@@ -192,7 +195,10 @@ const MainApp: React.FC = () => {
     const needsMaster =
       location.pathname === "/checklist" ||
       location.pathname === "/audit" ||
-      location.pathname === "/equipment";
+      location.pathname === "/master" ||
+      location.pathname.startsWith("/equipment/checklist") ||
+      location.pathname.startsWith("/equipment/audit") ||
+      location.pathname.startsWith("/equipment/master");
 
     // 로그인되어 있을 때만 동기화 수행
     if (needsMaster && masterData.length === 0 && !isInitialLoading && isUserLoggedIn) {
@@ -217,9 +223,10 @@ const MainApp: React.FC = () => {
         {/* 홈: 시스템 선택 (마스터 자동 동기화 X) */}
         <Route path="/" element={<SystemHomePage />} />
 
-        {/* 장비 점검/실사/QR 시스템 홈(기존 CountMasterPage) */}
+        {/* 장비 점검/실사/QR 시스템 - 통합 라우트 */}
+        <Route path="/equipment" element={<EquipmentMainPage />} />
         <Route
-          path="/equipment"
+          path="/equipment/master"
           element={
             <CountMasterPage
               masterData={masterData}
@@ -238,8 +245,49 @@ const MainApp: React.FC = () => {
             />
           }
         />
+        <Route
+          path="/equipment/checklist"
+          element={
+            userIsAdmin ? (
+              <CountChecklistPage masterData={masterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} />
+            ) : (
+              <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
+            )
+          }
+        />
+        <Route
+          path="/equipment/audit"
+          element={
+            (userIsUser || userIsAdmin) ? (
+              <CountAuditPage masterData={masterData} setMasterData={setMasterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} isDataLoading={isInitialLoading} />
+            ) : (
+              <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
+            )
+          }
+        />
+        <Route path="/equipment/audit-history" element={<ProtectedAdminRoute><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
 
-        {/* 장비 점검/실사/QR 시스템: 역할별 enable */}
+        {/* 기존 라우트 (하위 호환성 유지) */}
+        <Route
+          path="/master"
+          element={
+            <CountMasterPage
+              masterData={masterData}
+              setMasterData={setMasterData}
+              fileName={fileName}
+              setFileName={setFileName}
+              onNavigate={(view) => {
+                setCurrentView(view as ViewType);
+              }}
+              onRefresh={loadData}
+              lastSyncTime={lastSyncTime}
+              serviceUrl={serviceUrl}
+              availableSheets={availableSheets}
+              selectedSheet={selectedSheet}
+              onSheetSwitch={handleSheetSwitch}
+            />
+          }
+        />
         <Route
           path="/checklist"
           element={
@@ -260,6 +308,7 @@ const MainApp: React.FC = () => {
             )
           }
         />
+
         {/* Ordering Routes를 MainApp 내부로 통합하여 네비게이션 바 유지 */}
         <Route path="/ordering/*" element={<OrderingRoutes />} />
 
@@ -271,7 +320,6 @@ const MainApp: React.FC = () => {
         {/* 관리자 라우트 - 보호된 라우트 */}
         <Route path="/console" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
         <Route path="/console/audit-history" element={<ProtectedAdminRoute><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
-        <Route path="/console/requests" element={<ProtectedAdminRoute><OrderingAdminRequestsPage /></ProtectedAdminRoute>} />
         <Route path="/console/users" element={<ProtectedAdminRoute><AdminUserManagementPage /></ProtectedAdminRoute>} />
         <Route path="/console/delivery-places" element={<ProtectedAdminRoute><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
 

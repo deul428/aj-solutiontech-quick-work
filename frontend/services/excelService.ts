@@ -31,8 +31,7 @@ export const fetchSheetList = async (url: string): Promise<string[]> => {
  */
 export const fetchLocationOptions = async (url: string): Promise<Record<string, string[]>> => {
   try {
-    const separator = url.includes('?') ? '&' : '?';
-    const fetchUrl = `${url}${separator}action=getLocationOptions&t=${Date.now()}`;
+    const fetchUrl = `${url}${getUrlSeparator(url)}action=getLocationOptions&t=${Date.now()}`;
     const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.json();
@@ -47,9 +46,8 @@ export const fetchLocationOptions = async (url: string): Promise<Record<string, 
  */
 export const fetchMasterFromCloud = async (url: string, sheetName?: string): Promise<MasterDataRow[]> => {
   try {
-    const separator = url.includes('?') ? '&' : '?';
     const sheetParam = sheetName ? `&sheetName=${encodeURIComponent(sheetName)}` : "";
-    const fetchUrl = `${url}${separator}action=read${sheetParam}&t=${Date.now()}`;
+    const fetchUrl = `${url}${getUrlSeparator(url)}action=read${sheetParam}&t=${Date.now()}`;
     const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.json() as MasterDataRow[];
@@ -130,6 +128,7 @@ export const syncChecklistToCloud = async (url: string, data: ChecklistData[], _
 export const syncAuditDataToCloud = async (
   url: string,
   data: MasterDataRow[],
+  // selectedSheet(레거시): 호출부 호환성을 위해 남겨두되 사용하지 않음
   _unused?: string,
   centerLocation?: string,
   assetLocation?: string,
@@ -162,9 +161,11 @@ export const syncAuditDataToCloud = async (
     })
   };
   
-  // 디버깅: 자산실사자 값 확인
-  console.log("전송할 자산실사자 정보:", auditorName);
-  console.log("전송할 데이터 샘플:", payload.rows[0]);
+  // 디버깅 로그는 개발 모드에서만
+  if (import.meta.env.DEV) {
+    console.log("전송할 자산실사자 정보:", auditorName);
+    console.log("전송할 데이터 샘플:", payload.rows[0]);
+  }
 
   try {
     await fetch(url, {

@@ -237,17 +237,17 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
   }, [isDataLoading]);
 
   const handleScanSuccess = (decodedText: string) => {
-    // 스캔이 감지되었는지 확인 (디버깅용)
-    console.log("QR 스캔 감지됨:", decodedText);
+    // 디버깅 로그는 개발 모드에서만
+    if (import.meta.env.DEV) console.log("QR 스캔 감지됨:", decodedText);
 
     if (showScanModal || showTransferModal || isCoolingDown || isSyncing) {
-      console.log("스캔 무시됨 - 모달/쿨다운/동기화 중");
+      if (import.meta.env.DEV) console.log("스캔 무시됨 - 모달/쿨다운/동기화 중");
       return;
     }
 
     const trimmedText = decodedText.trim();
     if (!trimmedText) {
-      console.log("스캔된 텍스트가 비어있음");
+      if (import.meta.env.DEV) console.log("스캔된 텍스트가 비어있음");
       return;
     }
 
@@ -257,7 +257,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     const isSameMgmtNo = trimmedText === lastScannedMgmtNoRef.current;
     
     if (timeSinceLastScan < SCAN_COOLDOWN_MS && isSameMgmtNo) {
-      console.log(`스캔 무시됨 - 중복 스캔 (${timeSinceLastScan}ms 전에 같은 관리번호 스캔됨)`);
+      if (import.meta.env.DEV) console.log(`스캔 무시됨 - 중복 스캔 (${timeSinceLastScan}ms 전에 같은 관리번호 스캔됨)`);
       return;
     }
 
@@ -276,7 +276,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({ masterData, setMasterDa
     if (match) {
       const isAlreadyAudited = match[AUDIT_COLUMNS.STATUS] === 'O' || match[CHECKLIST_COLUMNS.AUDIT_STATUS] === 'O';
       if (isAlreadyAudited) {
-        console.log("이미 실사 완료된 항목입니다:", trimmedText);
+        if (import.meta.env.DEV) console.log("이미 실사 완료된 항목입니다:", trimmedText);
         return; // 모달을 열지 않고 종료
       }
     }

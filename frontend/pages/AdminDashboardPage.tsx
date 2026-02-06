@@ -1,35 +1,36 @@
-import React, { useMemo, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from 'react';
 import { isAdmin, getCurrentUser } from '../utils/orderingAuth';
-import LoadingOverlay from '../components/LoadingOverlay';
-import { adminDashboardSections } from '../config/dashboardConfig';
+import { adminDashboardSections, userDashboardSections } from '../config/dashboardConfig';
 import DashboardPage from '../components/DashboardPage';
 
 const AdminDashboardPage: React.FC = () => {
-  const navigate = useNavigate();
   const user = getCurrentUser();
-  const [isLoading, setIsLoading] = React.useState(true);
-
-  // user의 role을 메모이제이션하여 안정적인 참조 생성
-  const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
-
-  useEffect(() => {
-    // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
-    if (!isUserAdmin) {
-      alert('접근 권한이 없습니다.');
-      navigate('/user', { replace: true });
-      return;
-    }
-    setIsLoading(false);
-  }, [isUserAdmin, navigate]);
-
-  if (isLoading) {
-    return <LoadingOverlay message="로딩 중..." />;
+  // 보호된 라우트(ProtectedAdminRoute)에서 이미 로그인/권한 체크를 수행함.
+  // 여기서는 UI 렌더링만 담당.
+  // (방어적으로 user가 없으면 빈 화면 대신 접근 불가를 표시)
+  if (!user || !isAdmin(user)) {
+    return <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>;
   }
+
+  // console은 adminDashboardSections + userDashboardSections 둘 다 볼 수 있음
+  // 같은 id의 섹션은 병합 (메뉴 통합)
+  const sectionMap = new Map<string, typeof adminDashboardSections[0]>();
+  
+  [...adminDashboardSections, ...userDashboardSections].forEach(section => {
+    const existing = sectionMap.get(section.id);
+    if (existing) {
+      // 같은 id의 섹션이 있으면 메뉴 통합
+      existing.menus = [...existing.menus, ...section.menus];
+    } else {
+      sectionMap.set(section.id, { ...section });
+    }
+  });
+  
+  const allSections = Array.from(sectionMap.values());
 
   return (
     <DashboardPage
-      sections={adminDashboardSections}
+      sections={allSections}
       headerTitle="관리자 대시보드"
       userRole="console"
       userName={user?.name}

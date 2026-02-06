@@ -1,6 +1,6 @@
 
 import React, { useRef, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   FileUp,
   Trash2,
@@ -59,6 +59,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
   onSheetSwitch
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [currentUser, setCurrentUserState] = useState(getCurrentUser());
 
   // 사용자 정보 업데이트 감지
@@ -73,10 +74,12 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
   }, []);
 
   const handleNavigate = (view: "checklist" | "audit") => {
+    // 현재 경로가 /equipment/*로 시작하면 /equipment/* 경로 사용, 아니면 기존 경로 사용
+    const isEquipmentRoute = location.pathname.startsWith('/equipment');
     if (view === "checklist") {
-      navigate('/checklist');
+      navigate(isEquipmentRoute ? '/equipment/checklist' : '/checklist');
     } else if (view === "audit") {
-      navigate('/audit');
+      navigate(isEquipmentRoute ? '/equipment/audit' : '/audit');
     } else {
       onNavigate(view);
     }

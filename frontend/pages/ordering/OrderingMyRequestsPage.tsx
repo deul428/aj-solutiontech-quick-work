@@ -122,7 +122,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate("ordering-login");
+          onNavigate("login");
         }
         return;
       }
@@ -266,7 +266,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       }
 
       if (onNavigate) {
-        onNavigate("ordering-detail", requestNo);
+        onNavigate("ordering-myrequest-detail", requestNo);
       }
     },
     [requests, onNavigate],
@@ -393,7 +393,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate("ordering-login");
+          onNavigate("login");
         }
         return;
       }
@@ -442,7 +442,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate("ordering-login");
+          onNavigate("login");
         }
         return;
       }
@@ -488,7 +488,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
     const sessionToken = getSessionToken();
     if (!sessionToken) {
       if (onNavigate) {
-        onNavigate("ordering-login");
+        onNavigate("login");
       }
       return;
     }
@@ -508,7 +508,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate("ordering-login");
+          onNavigate("login");
         }
         return;
       }

@@ -70,7 +70,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate('login');
         }
         return;
       }
@@ -112,7 +112,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate('login');
         }
         return;
       }
@@ -127,7 +127,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
         setToast({ message: result.message || '신청이 취소되었습니다.', type: 'success' });
         setTimeout(() => {
           if (onNavigate) {
-            onNavigate('ordering-requests');
+            onNavigate('ordering-myrequest');
           }
         }, 1500);
       } else {
@@ -155,7 +155,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate('login');
         }
         return;
       }
@@ -182,9 +182,9 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
 
   const goBack = () => {
     if (onNavigate) {
-      onNavigate('ordering-requests');
+      onNavigate('ordering-myrequest');
     } else {
-      navigate('/ordering/requests');
+      navigate(-1);
     }
   };
 
@@ -197,7 +197,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate('login');
         } else {
           navigate('/login');
         }

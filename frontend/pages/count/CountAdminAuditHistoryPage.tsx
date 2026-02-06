@@ -108,6 +108,13 @@ const getColumns = (
       render: (value) => formatCellValue(value),
     },
     {
+      key: "자산실사자",
+      label: "자산실사자",
+      sortable: true,
+      sortKey: "자산실사자",
+      render: (value) => formatCellValue(value),
+    },
+    {
       key: "이상자산구분",
       label: "이상자산구분",
       sortable: false,

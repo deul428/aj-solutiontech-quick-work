@@ -60,7 +60,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
       setLoading(true);
       if (!user) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate('login');
         }
         return;
       }
@@ -72,7 +72,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate('login');
         }
         return;
       }
@@ -228,7 +228,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         if (onNavigate) {
-          onNavigate('ordering-login');
+          onNavigate('login');
         }
         return;
       }
