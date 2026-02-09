@@ -48,8 +48,8 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
   const [stats, setStats] = useState(EMPTY_STATS);
   const [recentRequests, setRecentRequests] = useState<Request[]>([]);
   const [notifications, setNotifications] = useState<Array<{ message: string }>>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true); 
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const isUserAdmin = useMemo(() => isAdmin(getCurrentUser()), []);
 
@@ -70,7 +70,7 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
   const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
-      setError('');
+      setToast(null);
 
       if (!ORDERING_GAS_URL) {
         console.warn('ORDERING_GAS_URL이 설정되지 않았습니다.');
@@ -99,13 +99,13 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
       
       // Unauthorized 에러인 경우 로그인 페이지로 리다이렉트
       if (err instanceof Error && errorMessage.includes('Unauthorized')) {
-        setError('인증이 만료되었습니다. 다시 로그인해주세요.');
+        alert('인증이 만료되었습니다. 다시 로그인해주세요.');
         resetDashboard();
         setTimeout(() => onNavigate?.('login'), 1500);
         return;
       }
       
-      setError(errorMessage);
+      setToast({ message: errorMessage, type: 'error' });
       resetDashboard();
     } finally {
       setLoading(false);
@@ -124,6 +124,7 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
       }
     } catch (error) {
       console.error('Logout error:', error);
+      setToast({ message: error instanceof Error ? error.message : '로그아웃 중 오류가 발생했습니다.', type: 'error' });
     } finally {
       logout();
       onNavigate?.('login');
@@ -260,12 +261,7 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
           </div>
         </div>
       )}
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mt-6">
-          <p className="text-red-700 font-bold text-sm">{error}</p>
-        </div>
-      )}
+ 
     </div>
   );
 };

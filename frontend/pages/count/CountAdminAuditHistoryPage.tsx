@@ -164,7 +164,8 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   const [checklistData, setChecklistData] = useState<ChecklistDataItem[]>([]);
   const [filteredData, setFilteredData] = useState<ChecklistDataItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<boolean>(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [inputSearchTerm, setInputSearchTerm] = useState(""); // 입력 중인 검색어
   const [activeSearchTerm, setActiveSearchTerm] = useState(""); // 실제 검색에 사용되는 검색어
   const [auditStatusFilter, setAuditStatusFilter] = useState<"all" | "O" | "X">(
@@ -197,20 +198,24 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   // user의 role을 메모이제이션하여 안정적인 참조 생성
   const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
 
-  // 위치 옵션 로드
+  // 위치 옵션 로드: VITE_AUDIT_GAS_URL 연결 스프레드시트의 '자산위치_데이터' 시트에서
+  // '센터 구분' 열(중복 제거) → 센터 위치, '구역 구분' 열(센터별 종속) → 자산 위치
   useEffect(() => {
     const loadLocationOptions = async () => {
       try {
-        const rawData = await fetchLocationOptions(AUDIT_GAS_URL);
+        const rawData: any = await fetchLocationOptions(AUDIT_GAS_URL);
+
         let mapping: Record<string, string[]> = {};
 
-        // 서버에서 데이터가 어떤 형식으로 오든 프론트에서 재가공
         if (Array.isArray(rawData)) {
+          // 로우 배열인 경우: '센터 구분' / '구역 구분' 열 기준으로 매핑 (구역은 센터에 종속)
           rawData.forEach((row: any) => {
-            const centerKey = Object.keys(row).find((k) => k.includes("센터"));
-            const zoneKey = Object.keys(row).find(
-              (k) => k.includes("구역") || k.includes("위치"),
-            );
+            const centerKey =
+              Object.keys(row).find((k) => k === "센터 구분") ??
+              Object.keys(row).find((k) => k.includes("센터"));
+            const zoneKey =
+              Object.keys(row).find((k) => k === "구역 구분") ??
+              Object.keys(row).find((k) => k.includes("구역") || k.includes("위치"));
 
             if (centerKey && row[centerKey]) {
               const c = String(row[centerKey]).trim();
@@ -229,15 +234,17 @@ const CountAdminAuditHistoryPage: React.FC = () => {
               }
             }
           });
-        } else if (typeof rawData === "object" && rawData !== null) {
+        } else if (typeof rawData === "object" && rawData !== null && !Array.isArray(rawData)) {
+          // 백엔드가 이미 { [센터]: [구역들] } 형태로 반환한 경우
           mapping = rawData;
         }
 
-        // 각 구역 리스트 정렬
         Object.keys(mapping).forEach((k) => mapping[k].sort());
         setLocationMapping(mapping);
       } catch (err) {
         console.error("Failed to load location options:", err);
+        setToast({ message: err.message || "위치 옵션을 불러오는 중 오류가 발생했습니다.", type: 'error' });
+        setError(true);
         setLocationMapping({});
       }
     };
@@ -258,7 +265,8 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(false);
+      setToast(null);
       // 클라이언트 측 페이지네이션을 위해 전체 데이터를 가져옴
       const data = await getChecklistData({
         search: activeSearchTerm || undefined,
@@ -279,7 +287,8 @@ const CountAdminAuditHistoryPage: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Failed to load checklist data:", err);
-      setError(err.message || "데이터를 불러오는 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "데이터를 불러오는 중 오류가 발생했습니다.", type: 'error' });
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -445,7 +454,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     // loadData는 useEffect에서 activeSearchTerm, sortBy, sortOrder 변경 시 자동 호출됨
   };
 
-  // 센터 옵션 정렬 (숫자순)
+  // 센터 옵션: 자산위치_데이터 시트 '센터 구분' 열 기준 (숫자·가나다순)
   const centerOptions = useMemo(() => {
     return Object.keys(locationMapping)
       .filter((k) => k && k !== "undefined" && k !== "null")
@@ -454,7 +463,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
       );
   }, [locationMapping]);
 
-  // 선택된 센터의 자산위치 옵션
+  // 선택된 센터에 종속된 자산위치 옵션: '구역 구분' 열 (센터별로 동일 구역명도 별도 구분)
   const availableZones = useMemo(() => {
     if (!selectedCenter) return [];
     return locationMapping[selectedCenter] || [];
@@ -582,7 +591,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-[85dvw] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-            <p className="text-red-800">{error}</p>
+            <p className="text-red-800">{toast?.message || "데이터를 불러오는 중 오류가 발생했습니다."}</p>
             <Button
               variant="gray"
               onClick={loadData}

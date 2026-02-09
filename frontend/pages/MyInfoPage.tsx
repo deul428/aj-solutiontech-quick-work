@@ -22,28 +22,27 @@ const MyInfoPage: React.FC = () => {
     newPassword: '',
     confirmPassword: '',
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false); 
   const [success, setSuccess] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault(); 
+    setToast(null);
     setSuccess('');
 
     if (!passwordData.currentPassword) {
-      setError('현재 비밀번호를 입력해 주세요.');
+      alert('현재 비밀번호를 입력해 주세요.');
       return;
     }
 
     if (passwordData.newPassword.length < 6) {
-      setError('새 비밀번호는 최소 6자 이상이어야 합니다.');
+      alert('새 비밀번호는 최소 6자 이상이어야 합니다.');
       return;
     }
 
     if (passwordData.newPassword !== passwordData.confirmPassword) {
-      setError('새 비밀번호와 확인 비밀번호가 일치하지 않습니다.');
+      alert('새 비밀번호와 확인용 비밀번호가 일치하지 않습니다.');
       return;
     }
 
@@ -75,11 +74,12 @@ const MyInfoPage: React.FC = () => {
         });
         setToast({ message: result.message || '비밀번호가 변경되었습니다.', type: 'success' });
       } else {
-        setError(result.message || '비밀번호 변경에 실패했습니다.');
+        // alert(result.message || '비밀번호 변경에 실패했습니다.');
         setToast({ message: result.message || '비밀번호 변경에 실패했습니다.', type: 'error' });
       }
     } catch (err: any) {
-      setError(err.message || '비밀번호 변경 중 오류가 발생했습니다.');
+      // alert(err.message || '비밀번호 변경 중 오류가 발생했습니다.');
+      setToast({ message: err.message || '비밀번호 변경 중 오류가 발생했습니다.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -101,11 +101,11 @@ const MyInfoPage: React.FC = () => {
       {/* 헤더 */}
       <Header headerTitle="기본 정보 조회" headerSubTitle="내 정보 관리" level={2} />
 
-      {error && (
+      {/* {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
           <p className="text-red-700 font-bold text-sm">{error}</p>
         </div>
-      )}
+      )} */}
 
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">

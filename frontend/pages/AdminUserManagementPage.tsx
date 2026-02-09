@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, Search, RefreshCw, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Search, RefreshCw, Users, ReceiptTurkishLiraIcon } from "lucide-react";
 import {
   isAdmin,
   getCurrentUser,
@@ -27,8 +27,7 @@ const AdminUserManagementPage: React.FC = () => {
   const user = getCurrentUser();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true); 
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "관리자" | "신청자">(
     "all",
@@ -63,6 +62,7 @@ const AdminUserManagementPage: React.FC = () => {
 
   const showRequiredFieldAlert = (label: string) => {
     alert(`${label} 란을 입력하세요.`);
+    return;
   };
 
   const focusFieldByName = (name: string) => {
@@ -81,7 +81,8 @@ const AdminUserManagementPage: React.FC = () => {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      setError("");
+      
+      setToast(null);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         navigate("/login");
@@ -91,7 +92,10 @@ const AdminUserManagementPage: React.FC = () => {
       setUsers(data);
     } catch (err: any) {
       console.error("Failed to load users:", err);
-      setError(err.message || "사용자 목록을 불러오는 중 오류가 발생했습니다.");
+      setToast({
+        message: err.message || "사용자 목록을 불러오는 중 오류가 발생했습니다.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -107,6 +111,10 @@ const AdminUserManagementPage: React.FC = () => {
       setRegionTeams(data);
     } catch (err: any) {
       console.error("Failed to load region teams:", err);
+      setToast({
+        message: err.message || "지역/팀 목록을 불러오는 중 오류가 발생했습니다.",
+        type: "error",
+      });
     }
   }, []);
 
@@ -332,16 +340,28 @@ const AdminUserManagementPage: React.FC = () => {
       const result = await deleteUser(userId, sessionToken);
       if (result.success) {
         await loadUsers();
-        alert(result.message || "사용자가 비활성화되었습니다.");
+        // alert(result.message || "사용자가 비활성화되었습니다.");
+        setToast({
+          message: result.message || "사용자가 비활성화되었습니다.",
+          type: "success",
+        });
       } else {
         const errorMsg = result.message || "사용자 비활성화에 실패했습니다.";
-        setError(errorMsg);
-        alert(errorMsg);
+        
+        setToast({
+          message: errorMsg,
+          type: "error",
+        });
+        // alert(errorMsg);
       }
     } catch (err: any) {
       const errorMsg = err.message || "사용자 비활성화 중 오류가 발생했습니다.";
-      setError(errorMsg);
-      alert(errorMsg);
+      
+      setToast({
+        message: errorMsg,
+        type: "error",
+      });
+      // alert(errorMsg);
     } finally {
       setProcessing(false);
     }
@@ -430,7 +450,8 @@ const AdminUserManagementPage: React.FC = () => {
   const handleSave = async () => {
     try {
       setProcessing(true);
-      setError("");
+      
+      setToast(null);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         navigate("/login");
@@ -488,8 +509,7 @@ const AdminUserManagementPage: React.FC = () => {
       const firstMissing = requiredFields.find((f) => f.isMissing());
       if (firstMissing) {
         showRequiredFieldAlert(firstMissing.label);
-        focusFieldByName(String(firstMissing.name));
-        setError(`${firstMissing.label}은(는) 필수입니다.`);
+        focusFieldByName(String(firstMissing.name)); 
         return;
       }
 
@@ -503,7 +523,6 @@ const AdminUserManagementPage: React.FC = () => {
           passwordInput.focus();
           passwordInput.scrollIntoView({ behavior: "smooth", block: "center" });
         }
-        setError("비밀번호는 6자리 이상만 가능합니다.");
         return;
       }
 
@@ -554,13 +573,21 @@ const AdminUserManagementPage: React.FC = () => {
         await loadUsers();
       } else {
         const errorMsg = result.message || "저장에 실패했습니다.";
-        setError(errorMsg);
-        alert(errorMsg);
+        
+        setToast({
+          message: errorMsg,
+          type: "error",
+        });
+        // alert(errorMsg);
       }
     } catch (err: any) {
       const errorMsg = err.message || "저장 중 오류가 발생했습니다.";
-      setError(errorMsg);
-      alert(errorMsg);
+      
+      setToast({
+        message: errorMsg,
+        type: "error",
+      });
+      // alert(errorMsg);
     } finally {
       setProcessing(false);
     }
@@ -605,14 +632,23 @@ const AdminUserManagementPage: React.FC = () => {
                 }
                 const result = await bulkUpdatePasswordsFromTargetColumn(sessionToken);
                 if (result.success) {
-                  alert(result.message || `${result.count || 0}명의 비밀번호가 변경되었습니다.`);
+                  setToast({
+                    message: result.message || `${result.count || 0}명의 비밀번호가 변경되었습니다.`,
+                    type: "success",
+                  });
                   await loadUsers();
                 } else {
-                  alert(result.message || '일괄 비밀번호 변경에 실패했습니다.');
+                  setToast({
+                    message: result.message || '일괄 비밀번호 변경에 실패했습니다.',
+                    type: "error",
+                  });
                 }
               } catch (err: any) {
                 console.error('Failed to bulk update passwords:', err);
-                alert(err.message || '일괄 비밀번호 변경 중 오류가 발생했습니다.');
+                setToast({
+                  message: err.message || '일괄 비밀번호 변경 중 오류가 발생했습니다.',
+                  type: "error",
+                });
               } finally {
                 setProcessing(false);
               }
@@ -719,7 +755,7 @@ const AdminUserManagementPage: React.FC = () => {
             }}
             disabled={loading}
           >
-            <RefreshCw  
+            <RefreshCw
               className={`w-4 h-4${loading ? "animate-spin" : ""}`}
             />
             초기화
@@ -753,11 +789,11 @@ const AdminUserManagementPage: React.FC = () => {
               <h3 className="text-lg font-semibold mb-4">
                 {editingUser ? "사용자 수정" : "사용자 등록"}
               </h3>
-              {error && (
+              {/* {error && (
                 <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-red-800 text-sm font-bold">{error}</p>
                 </div>
-              )}
+              )} */}
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">

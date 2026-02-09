@@ -42,7 +42,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+ 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("requestNo");
@@ -100,8 +100,8 @@ const OrderingAdminRequestsPage: React.FC = () => {
   // 클라이언트 측 필터링/페이징을 위해 전체 데이터를 가져옴
   const loadRequests = useCallback(async () => {
     try {
-      setLoading(true);
-      setError("");
+      setLoading(true); 
+      setToast(null);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         navigate("/login");
@@ -128,7 +128,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       setTotalPages(1);
     } catch (err: any) {
       console.error("Failed to load requests:", err);
-      setError(err.message || "데이터를 불러오는 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "데이터를 불러오는 중 오류가 발생했습니다.", type: 'error' });   
     } finally {
       setLoading(false);
     }
@@ -349,6 +349,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   const statusOptions = [
     "접수중",
+    "접수완료",
     "발주완료(납기미정)",
     "발주완료(납기확인)",
     "처리완료",
@@ -453,7 +454,6 @@ const OrderingAdminRequestsPage: React.FC = () => {
         );
 
         if (!result.success) {
-          setError(result.message || "접수 담당자 비고 저장에 실패했습니다.");
           setToast({
             message: result.message || "접수 담당자 비고 저장에 실패했습니다.",
             type: "error",
@@ -493,7 +493,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         setToast({ message: "저장되었습니다.", type: "success" });
       } */
     } catch (err: any) {
-      setError(err.message || "저장 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "저장 중 오류가 발생했습니다.", type: 'error' });
     } finally {
       setProcessing(false);
     }
@@ -518,8 +518,12 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   // 일괄 상태 변경
   const handleBatchStatusChange = () => {
-    if (selectedRequests.size === 0) {
-      setError("선택된 항목이 없습니다.");
+    if (selectedRequests.size === 0) { 
+      setToast({
+        message: "선택된 항목이 없습니다.",
+        type: "error",
+      });
+      // alert("선택된 항목이 없습니다.");
       return;
     }
     setNewStatus("");
@@ -589,8 +593,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         loadRequests().catch((err) => {
           console.error("saveBatchStatusChange: 데이터 새로고침 실패", err);
         });
-        if (failCount > 0) {
-          setError(`${successCount}건 성공, ${failCount}건 실패했습니다.`);
+        if (failCount > 0) { 
           setToast({
             message: `${successCount}건 성공, ${failCount}건 실패했습니다.`,
             type: "error",
@@ -601,15 +604,14 @@ const OrderingAdminRequestsPage: React.FC = () => {
             type: "success",
           });
         }
-      } else {
-        setError("모든 항목의 상태 변경에 실패했습니다.");
+      } else { 
         setToast({
           message: "모든 항목의 상태 변경에 실패했습니다.",
           type: "error",
         });
       }
     } catch (err: any) {
-      setError(err.message || "일괄 상태 변경 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "일괄 상태 변경 중 오류가 발생했습니다.", type: 'error' });
     } finally {
       setProcessing(false);
     }
@@ -618,7 +620,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
   // 일괄 담당자 배정
   const handleBatchHandlerAssign = () => {
     if (selectedRequests.size === 0) {
-      setError("선택된 항목이 없습니다.");
+      setToast({ message: "선택된 항목이 없습니다.", type: 'error' });
       return;
     }
     setHandlerName("");
@@ -640,7 +642,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       // 사용자 목록에서 이름으로 찾기
       const matchedUser = users.find((u) => u.name === handlerName.trim());
       if (!matchedUser) {
-        setError("배정자가 존재하지 않습니다.");
+        setToast({ message: "배정자가 존재하지 않습니다.", type: 'error' });
         setProcessing(false);
         return;
       }
@@ -694,8 +696,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
           console.error("saveBatchHandlerAssign: 데이터 새로고침 실패", err);
         });
 
-        if (failCount > 0) {
-          setError(`${successCount}건 성공, ${failCount}건 실패했습니다.`);
+        if (failCount > 0) { 
           setToast({
             message: `${successCount}건 성공, ${failCount}건 실패했습니다.`,
             type: "error",
@@ -706,15 +707,14 @@ const OrderingAdminRequestsPage: React.FC = () => {
             type: "success",
           });
         }
-      } else {
-        setError("모든 항목의 담당자 배정에 실패했습니다.");
+      } else { 
         setToast({
           message: "모든 항목의 담당자 배정에 실패했습니다.",
           type: "error",
         });
       }
     } catch (err: any) {
-      setError(err.message || "일괄 담당자 배정 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "일괄 담당자 배정 중 오류가 발생했습니다.", type: 'error' });
     } finally {
       setProcessing(false);
     }
@@ -724,7 +724,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
     return <LoadingOverlay message="데이터를 불러오는 중..." />;
   }
 
-  if (import.meta.env.DEV) console.log(detailRequest);
+  // if (import.meta.env.DEV) console.log(detailRequest);
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <Header
@@ -770,7 +770,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
           </Button>
 
           <Button variant="success" color="green" onClick={handleBatchHandlerAssign}>
-            담당자 배정 ({selectedRequests.size}건)
+            접수 담당자 배정 ({selectedRequests.size}건)
           </Button>
 
           <Button variant="gray" onClick={() => setSelectedRequests(new Set())}>
@@ -1141,18 +1141,19 @@ const OrderingAdminRequestsPage: React.FC = () => {
             </div>
           </div>
         )}
+        
 
-        {error && (
+        {/* {error && (
           <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-800">{error}</p>
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Toast 메시지 */}
       {toast && (
         <Toast
-          message={toast.message}
+          message={toast?.message || ""}
           type={toast.type}
           onClose={() => setToast(null)}
         />

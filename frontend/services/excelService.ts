@@ -8,13 +8,19 @@ import { MasterDataRow, ChecklistData, CHECKLIST_COLUMNS, MASTER_COLUMNS } from 
  * 기본 구글 앱스 스크립트 배포 URL
  * 환경 변수에서 가져오거나 기본값 사용
  */
-export const AUDIT_GAS_URL = (import.meta.env?.VITE_AUDIT_GAS_URL as string) || "https://script.google.com/macros/s/AKfycbzMoin5Oaj1xzIpjjJ9C66Mc7DDgR0f0KErzlNqPC-VTInE8q66RRtA5p_EJGDabfg9/exec"; 
+export const AUDIT_GAS_URL = (import.meta.env?.VITE_AUDIT_GAS_URL as string) || "https://script.google.com/macros/s/AKfycbzMoin5Oaj1xzIpjjJ9C66Mc7DDgR0f0KErzlNqPC-VTInE8q66RRtA5p_EJGDabfg9/exec";
+
+/** URL에 쿼리 구분자(? 또는 &) 붙이기 */
+function getUrlSeparator(url: string): string {
+  return url.includes("?") ? "&" : "?";
+}
+
 /**
  * 시트 목록 조회
  */
 export const fetchSheetList = async (url: string): Promise<string[]> => {
   try {
-    const separator = url.includes('?') ? '&' : '?';
+    const separator = getUrlSeparator(url);
     const fetchUrl = `${url}${separator}action=listSheets&t=${Date.now()}`;
     const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);

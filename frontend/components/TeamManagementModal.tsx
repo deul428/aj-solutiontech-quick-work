@@ -23,7 +23,6 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
 }) => {
   const [regionTeams, setRegionTeams] = useState<RegionTeam[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [expandedRegions, setExpandedRegions] = useState<Set<string>>(new Set());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState<{ region: string; team: string } | null>(null);
@@ -84,7 +83,6 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
       setEditingItem(null);
       setFormData({ region: "", team: "" });
       setSearchTerm("");
-      setError("");
     }
   }, [isOpen]);
 
@@ -105,17 +103,16 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
   const loadRegionTeams = async () => {
     try {
       setLoading(true);
-      setError("");
       const sessionToken = getSessionToken();
       if (!sessionToken) {
-        setError("로그인이 필요합니다.");
+        alert("로그인이 필요합니다.");
         return;
       }
       const data = await getRegionTeams(sessionToken);
       setRegionTeams(data);
     } catch (err: any) {
       console.error("Failed to load region teams:", err);
-      setError(err.message || "지역/팀 목록을 불러오는 중 오류가 발생했습니다.");
+      alert(err.message || "지역/팀 목록을 불러오는 중 오류가 발생했습니다.");
     } finally {
       setLoading(false);
     }
@@ -271,14 +268,6 @@ const TeamManagementModal: React.FC<TeamManagementModalProps> = ({
             <div className="flex items-center justify-center py-12">
               <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
               <span className="ml-3 text-gray-600">로딩 중...</span>
-            </div>
-          ) : error ? (
-            <div className="text-center py-12">
-              <p className="text-red-600 font-bold">{error}</p>
-              <Button variant="primary" onClick={loadRegionTeams} size='md' fullWidth
-              >
-                다시 시도
-              </Button>
             </div>
           ) : (
             <>

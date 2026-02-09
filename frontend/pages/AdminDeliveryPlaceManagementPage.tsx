@@ -25,8 +25,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
   const user = getCurrentUser();
   const [places, setPlaces] = useState<DeliveryPlace[]>([]);
   const [filteredPlaces, setFilteredPlaces] = useState<DeliveryPlace[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true); 
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -53,7 +52,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
   const loadPlaces = useCallback(async () => {
     try {
       setLoading(true);
-      setError("");
+      
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         navigate("/login");
@@ -63,7 +62,10 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
       setPlaces(data);
     } catch (err: any) {
       console.error("Failed to load delivery places:", err);
-      setError(err.message || "배송지 목록을 불러오는 중 오류가 발생했습니다.");
+      setToast({
+        message: err.message || "배송지 목록을 불러오는 중 오류가 발생했습니다.",
+        type: "error",
+      });
     } finally {
       setLoading(false);
     }
@@ -216,16 +218,28 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
       const result = await deleteDeliveryPlace(placeName, sessionToken);
       if (result.success) {
         await loadPlaces();
-        alert(result.message || "배송지가 비활성화되었습니다.");
+        // alert(result.message || "배송지가 비활성화되었습니다.");
+        setToast({
+          message: result.message || "배송지가 비활성화되었습니다.",
+          type: "success",
+        });
       } else {
         const errorMsg = result.message || "배송지 비활성화에 실패했습니다.";
-        setError(errorMsg);
-        alert(errorMsg);
+        
+        setToast({
+          message: errorMsg,
+          type: "error",
+        });
+        // alert(errorMsg);
       }
     } catch (err: any) {
       const errorMsg = err.message || "배송지 비활성화 중 오류가 발생했습니다.";
-      setError(errorMsg);
-      alert(errorMsg);
+      
+      setToast({
+        message: errorMsg,
+        type: "error",
+      });
+      // alert(errorMsg);
     } finally {
       setProcessing(false);
     }
@@ -234,15 +248,16 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
   const handleSave = async () => {
     try {
       setProcessing(true);
-      setError("");
+      
+      setToast(null);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
         navigate("/login");
         return;
       }
 
-      if (!formData["배송지명"]) {
-        setError("배송지명은 필수입니다.");
+      if (!formData["배송지명"]) { 
+        alert("배송지명은 필수입니다.");
         return;
       }
 
@@ -263,17 +278,29 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
         const successMsg = result.message || (editingPlace ? "배송지 정보가 수정되었습니다." : "배송지가 등록되었습니다.");
         setShowModal(false);
         setEditingPlace(null);
-        alert(successMsg);
+        // alert(successMsg);
+        setToast({
+          message: successMsg,
+          type: "success",
+        });
         await loadPlaces();
       } else {
         const errorMsg = result.message || "저장에 실패했습니다.";
-        setError(errorMsg);
-        alert(errorMsg);
+         
+        setToast({
+          message: errorMsg,
+          type: "error",
+        });
+        // alert(errorMsg);
       }
     } catch (err: any) {
       const errorMsg = err.message || "저장 중 오류가 발생했습니다.";
-      setError(errorMsg);
-      alert(errorMsg);
+      
+      setToast({
+        message: errorMsg,
+        type: "error",
+      });
+      // alert(errorMsg);
     } finally {
       setProcessing(false);
     }
@@ -351,7 +378,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, 배송지명: e.target.value })
                     }
-                    disabled={!!editingPlace} 
+                    disabled={!!editingPlace}
                   />
                 </div>
                 <div>
@@ -363,7 +390,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
                     value={formData["소속팀"]}
                     onChange={(e) =>
                       setFormData({ ...formData, 소속팀: e.target.value })
-                    } 
+                    }
                   />
                 </div>
                 <div>
@@ -375,7 +402,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
                     value={formData["주소"]}
                     onChange={(e) =>
                       setFormData({ ...formData, 주소: e.target.value })
-                    } 
+                    }
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -388,7 +415,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
                       value={formData["연락처"]}
                       onChange={(e) =>
                         setFormData({ ...formData, 연락처: e.target.value })
-                      } 
+                      }
                     />
                   </div>
                   <div>
@@ -400,7 +427,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
                       value={formData["담당자"]}
                       onChange={(e) =>
                         setFormData({ ...formData, 담당자: e.target.value })
-                      } 
+                      }
                     />
                   </div>
                 </div>
@@ -455,11 +482,11 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
           </div>
         )}
 
-        {error && (
+        {/*  {error && (
           <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <p className="text-red-800">{error}</p>
           </div>
-        )}
+        )} */}
       </div>
 
       {/* Toast 메시지 */}

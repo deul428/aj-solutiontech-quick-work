@@ -34,8 +34,8 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [showCustomDelivery, setShowCustomDelivery] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false); 
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [success, setSuccess] = useState('');
 
   const showRequiredFieldAlert = (label: string) => {
@@ -81,7 +81,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
         setDeliveryPlaces(places);
       }
     } catch (err: any) {
-      setError(err.message || '데이터 로딩 실패');
+      setToast({ message: err.message || '데이터 로딩 실패', type: 'error' }); 
     } finally {
       setLoading(false);
     }
@@ -103,8 +103,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('파일 크기는 5MB를 초과할 수 없습니다.');
-      setError('파일 크기는 5MB를 초과할 수 없습니다.');
+      alert('파일 크기는 5MB를 초과할 수 없습니다.'); 
       return;
     }
 
@@ -184,8 +183,8 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault(); 
+    setToast(null);
     setSuccess('');
 
     // required 필드 수동 검증 (브라우저 기본 required 경고 대신 토스트 표시)
@@ -212,8 +211,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
     }
 
     // 사진은 필수
-    if (!photoFile) {
-      setError('사진을 첨부해 주세요.');
+    if (!photoFile) { 
       alert('사진을 첨부해 주세요.');
       return;
     }
@@ -302,12 +300,10 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
           onNavigate('ordering');
         }
       } else {
-        setError(result.message || '신청 처리에 실패했습니다.');
-        alert(result.message || '신청 처리에 실패했습니다.');
+        setToast({ message: result.message || '신청 처리에 실패했습니다.', type: 'error' }); 
       }
     } catch (err: any) {
-      setError(err.message || '신청 처리 중 오류가 발생했습니다.');
-      alert(err.message || '신청 처리 중 오류가 발생했습니다.');
+      setToast({ message: err.message || '신청 처리 중 오류가 발생했습니다.', type: 'error' }); 
     } finally {
       setSubmitting(false);
     }
@@ -333,14 +329,14 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
 
       {/* 헤더 */}
       <Header headerTitle="새 신청 등록" headerSubTitle="부품 발주 시스템" level={2} />
-      {error && (
+      {/* {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 hidden">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-5 h-5 text-red-600" />
             <p className="text-red-700 font-bold text-sm">{error}</p>
           </div>
         </div>
-      )}
+      )} */}
 
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">

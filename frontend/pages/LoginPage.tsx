@@ -9,8 +9,7 @@ import Button from '@/components/Button';
 
 const LoginPage: React.FC = () => {
   const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [password, setPassword] = useState(''); 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -25,8 +24,7 @@ const LoginPage: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
+    e.preventDefault(); 
     setLoading(true);
 
     try {
@@ -51,10 +49,10 @@ const LoginPage: React.FC = () => {
         }
         navigate(redirectPath, { replace: true });
       } else {
-        setError(result.message || '로그인에 실패했습니다.');
+        alert(result.message || '로그인에 실패했습니다.');
       }
     } catch (err: any) {
-      setError(err.message || '로그인 중 오류가 발생했습니다.');
+      alert(err.message || '로그인 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);
     }
@@ -75,14 +73,14 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* 에러 메시지 */}
-        {error && (
+        {/* {error && (
           <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-5 h-5 text-red-600" />
               <p className="text-red-700 font-bold text-sm">{error}</p>
             </div>
           </div>
-        )}
+        )} */}
 
         {/* 로그인 폼 */}
         <form onSubmit={handleSubmit} className="space-y-6">

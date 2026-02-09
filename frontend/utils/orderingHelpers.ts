@@ -42,9 +42,9 @@ export function formatDate(
  */
 export function getStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    '접수중': 'bg-yellow-100 text-yellow-800',
-    '발주진행': 'bg-blue-100 text-blue-800',
-    '발주완료(납기확인)': 'bg-green-100 text-green-800',
+    '접수중': 'bg-red-100 text-red-800',
+    '접수완료': 'bg-yellow-100 text-yellow-800',
+    '발주완료(납기확인)': 'bg-blue-100 text-blue-800',
     '발주완료(납기미정)': 'bg-cyan-100 text-cyan-800',
     '처리완료': 'bg-green-100 text-green-800',
     '접수취소': 'bg-gray-100 text-gray-800',

@@ -28,8 +28,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
   const navigate = useNavigate();
   const [request, setRequest] = useState<Request | null>(null);
   const [loading, setLoading] = useState(true);
-  const [processing, setProcessing] = useState(false);
-  const [error, setError] = useState('');
+  const [processing, setProcessing] = useState(false); 
   const [success, setSuccess] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
@@ -47,10 +46,10 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
   const loadRequestDetail = async () => {
     try {
       setLoading(true);
-      setError('');
+      setToast(null);
 
       if (!requestNo) {
-        setError('신청번호가 없습니다.');
+        alert('신청번호가 없습니다.');
         setLoading(false);
         return;
       }
@@ -76,7 +75,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       }
 
       if (!ORDERING_GAS_URL) {
-        setError('GAS URL이 설정되지 않았습니다.');
+        setToast({ message: 'GAS URL이 설정되지 않았습니다.', type: 'error' });
         setLoading(false);
         return;
       }
@@ -89,10 +88,10 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
         // 캐시에 저장 (다음에 빠르게 접근 가능)
         requestCache.set(requestNo, data);
       } else {
-        setError('신청 내역을 찾을 수 없습니다.');
+        setToast({ message: '신청 내역을 찾을 수 없습니다.', type: 'error' });
       }
     } catch (err: any) {
-      setError(err.message || '신청 상세 정보 로딩 실패');
+      setToast({ message: err.message || '신청 상세 정보 로딩 실패', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -107,7 +106,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
 
     try {
       setProcessing(true);
-      setError('');
+      setToast(null);
 
       const sessionToken = getSessionToken();
       if (!sessionToken) {
@@ -131,11 +130,10 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
           }
         }, 1500);
       } else {
-        setError(result.message || '취소 처리에 실패했습니다.');
-        setToast({ message: result.message || '취소 처리에 실패했습니다.', type: 'error' });
+        setToast({ message: result.message || '취소 처리에 실패했습니다.', type: 'error' }); 
       }
     } catch (err: any) {
-      setError(err.message || '취소 처리 중 오류가 발생했습니다.');
+      setToast({ message: err.message || '취소 처리 중 오류가 발생했습니다.', type: 'error' });
     } finally {
       setProcessing(false);
     }
@@ -150,7 +148,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
 
     try {
       setProcessing(true);
-      setError('');
+      setToast(null);
 
       const sessionToken = getSessionToken();
       if (!sessionToken) {
@@ -170,11 +168,10 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
         loadRequestDetail(); // 데이터 새로고침
         setToast({ message: result.message || '수령 확인이 완료되었습니다.', type: 'success' });
       } else {
-        setError(result.message || '수령 확인 처리에 실패했습니다.');
-        setToast({ message: result.message || '수령 확인 처리에 실패했습니다.', type: 'error' });
+        setToast({ message: result.message || '수령 확인 처리에 실패했습니다.', type: 'error' }); 
       }
     } catch (err: any) {
-      setError(err.message || '수령 확인 처리 중 오류가 발생했습니다.');
+      setToast({ message: err.message || '수령 확인 처리 중 오류가 발생했습니다.', type: 'error' });
     } finally {
       setProcessing(false);
     }
@@ -215,11 +212,10 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
         await loadRequestDetail();
         setToast({ message: result.message || '신청자 비고가 저장되었습니다.', type: 'success' });
       } else {
-        setError(result.message || '비고 저장에 실패했습니다.');
         setToast({ message: result.message || '비고 저장에 실패했습니다.', type: 'error' });
       }
     } catch (err: any) {
-      setError(err.message || '비고 저장 중 오류가 발생했습니다.');
+      setToast({ message: err.message || '비고 저장 중 오류가 발생했습니다.', type: 'error' });
     } finally {
       setProcessing(false);
     }
@@ -300,7 +296,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       <div className="max-w-4xl mx-auto py-12 px-6">
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <p className="text-red-700 font-bold mb-4">{error || '신청 내역을 찾을 수 없습니다.'}</p>
+          <p className="text-red-700 font-bold mb-4">{toast?.message || '신청 내역을 찾을 수 없습니다.'}</p>
           <Button
             variant='secondary'
             onClick={goBack}
@@ -319,13 +315,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
 
         {/* 헤더 */}
         <Header headerTitle="신청 상세 정보" headerSubTitle="부품 발주 시스템" level={2} />
-
-        {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">{error}</p>
-          </div>
-        )}
-
+  
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <p className="text-green-800">{success}</p>

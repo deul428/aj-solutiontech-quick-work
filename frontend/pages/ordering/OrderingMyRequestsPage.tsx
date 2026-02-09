@@ -48,8 +48,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 }) => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true); 
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("requestDate");
@@ -116,8 +115,8 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 
   const loadRequests = async () => {
     try {
-      setLoading(true);
-      setError("");
+      setLoading(true); 
+      setToast(null);
 
       const sessionToken = getSessionToken();
       if (!sessionToken) {
@@ -161,7 +160,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       // 캐시에 저장
       requestCache.setMany(newRequests);
     } catch (err: any) {
-      setError(err.message || "신청 목록 로딩 실패");
+      setToast({ message: err.message || "신청 목록 로딩 실패", type: 'error' });
       setRequests([]);
       setTotal(0);
       setTotalPages(1);
@@ -387,7 +386,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 
     try {
       setProcessing(requestNo);
-      setError("");
+      setToast(null);
       setSuccess("");
 
       const sessionToken = getSessionToken();
@@ -415,15 +414,14 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
           message: result.message || "신청이 취소되었습니다.",
           type: "success",
         });
-      } else {
-        setError(result.message || "취소 처리에 실패했습니다.");
+      } else { 
         setToast({
           message: result.message || "취소 처리에 실패했습니다.",
           type: "error",
         });
       }
     } catch (err: any) {
-      setError(err.message || "취소 처리 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "취소 처리 중 오류가 발생했습니다.", type: 'error' });
     } finally {
       setProcessing(null);
     }
@@ -436,7 +434,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 
     try {
       setProcessing(requestNo);
-      setError("");
+      setToast(null);
       setSuccess("");
 
       const sessionToken = getSessionToken();
@@ -465,14 +463,13 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
           type: "success",
         });
       } else {
-        setError(result.message || "수령 확인 처리에 실패했습니다.");
         setToast({
           message: result.message || "수령 확인 처리에 실패했습니다.",
           type: "error",
         });
       }
     } catch (err: any) {
-      setError(err.message || "수령 확인 처리 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "수령 확인 처리 중 오류가 발생했습니다.", type: 'error' });
     } finally {
       setProcessing(null);
     }
@@ -494,7 +491,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
     }
 
     if (!ORDERING_GAS_URL) {
-      setError("GAS URL이 설정되지 않았습니다.");
+      setToast({ message: "GAS URL이 설정되지 않았습니다.", type: 'error' });
       return;
     }
 
@@ -532,7 +529,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       setSuccess("엑셀 파일이 다운로드되었습니다.");
       setShowExcelDateFilter(false);
     } catch (err: any) {
-      setError(err.message || "엑셀 다운로드 중 오류가 발생했습니다.");
+      setToast({ message: err.message || "엑셀 다운로드 중 오류가 발생했습니다.", type: 'error' });
     } finally {
       setIsDownloading(false);
     }
@@ -565,11 +562,11 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
         headerSubTitle="부품 발주 시스템"
         level={2}
       />
-      {error && (
+      {/* {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
           <p className="text-red-700 font-bold text-sm">{error}</p>
         </div>
-      )}
+      )} */}
 
       {success && (
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6">
@@ -606,7 +603,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
               >
                 <option value="all">전체 상태</option>
                 <option value="접수중">접수중</option>
-                <option value="발주진행">발주진행</option>
+                <option value="접수완료">접수완료</option>
                 <option value="발주완료(납기확인)">발주완료(납기확인)</option>
                 <option value="발주완료(납기미정)">발주완료(납기미정)</option>
                 <option value="처리완료">처리완료</option>
