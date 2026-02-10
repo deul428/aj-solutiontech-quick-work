@@ -203,7 +203,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['console', 'user'], // console과 user 모두 접근 가능
+                roles: ['console',/*  'user' */], // console과 user 모두 접근 가능
                 dashboardVisibility: 'all', // 모든 대시보드에 표시
                 navbar: true,
                 navbarLabel: '부품 발주 시스템',
