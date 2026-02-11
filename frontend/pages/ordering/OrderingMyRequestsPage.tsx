@@ -580,7 +580,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mb-6">
         <div className="flex flex-col gap-4">
           {/* 검색 및 상태 필터 */}
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="flex flex-col md:flex-row gap-4 ">
             {/* 검색 */}
             <div className="flex-1 relative">
               <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -610,7 +610,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
                 <option value="접수취소">접수취소</option>
               </select>
             </div>
-            <div className="flex flex-col sm:flex-row items-center gap-2 mr-4 w-full sm:w-auto flex-1">
+            <div className="flex flex-col sm:flex-row items-center gap-2 mr-4 sm:mr-0 w-full sm:w-auto flex-1">
               <input
                 type="date"
                 value={dateFrom}
@@ -705,7 +705,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 
       {/* 신청 목록 */}
       <div className="bg-white rounded-2xl md:rounded-2xl shadow-2xl border border-gray-100 p-4 md:p-6 sm:p-8">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4 md:mb-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
             <h2 className="text-lg md:text-xl font-black text-gray-800">
@@ -750,7 +750,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
                   setPageSize(size);
                   setCurrentPage(1);
                 }}
-                pageSizeOptions={[10, 15, 30, 50]}
+                pageSizeOptions={[8, 10, 15, 30, 50]}
                 keyExtractor={(row) => row.requestNo}
                 emptyMessage="신청 내역이 없습니다."
                 showPagination={!isMobile}

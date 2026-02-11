@@ -20,7 +20,7 @@ const Pagination: React.FC<PaginationProps> = ({
   pageSize,
   onPageChange,
   onPageSizeChange,
-  pageSizeOptions = [10, 15, 30, 50],
+  pageSizeOptions = [8, 10, 15, 30, 50],
   disabled
 }) => {
   // totalPages가 1 이하일 때도 페이지 크기 변경이 필요하므로 항상 렌더링
