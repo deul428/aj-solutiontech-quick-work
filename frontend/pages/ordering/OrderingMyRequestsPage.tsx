@@ -48,7 +48,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 }) => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortField, setSortField] = useState<SortField>("requestDate");
@@ -115,7 +115,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
 
   const loadRequests = async () => {
     try {
-      setLoading(true); 
+      setLoading(true);
       setToast(null);
 
       const sessionToken = getSessionToken();
@@ -414,7 +414,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
           message: result.message || "신청이 취소되었습니다.",
           type: "success",
         });
-      } else { 
+      } else {
         setToast({
           message: result.message || "취소 처리에 실패했습니다.",
           type: "error",
@@ -750,7 +750,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
                   setPageSize(size);
                   setCurrentPage(1);
                 }}
-                pageSizeOptions={[8, 10, 15, 30, 50]}
+                pageSizeOptions={[10, 15, 30, 50]}
                 keyExtractor={(row) => row.requestNo}
                 emptyMessage="신청 내역이 없습니다."
                 showPagination={!isMobile}
