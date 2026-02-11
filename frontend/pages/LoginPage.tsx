@@ -9,7 +9,7 @@ import Button from '@/components/Button';
 
 const LoginPage: React.FC = () => {
   const [userId, setUserId] = useState('');
-  const [password, setPassword] = useState(''); 
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -24,7 +24,7 @@ const LoginPage: React.FC = () => {
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); 
+    e.preventDefault();
     setLoading(true);
 
     try {
@@ -116,7 +116,7 @@ const LoginPage: React.FC = () => {
           <Button
             variant="primary"
             type="submit"
-            disabled={loading} 
+            disabled={loading}
             fullWidth
           >
             <LogIn className="w-4 h-4" />
@@ -127,6 +127,16 @@ const LoginPage: React.FC = () => {
         {/* 푸터 */}
         <div className="mt-6 text-center text-sm text-gray-500">
           <p>&copy; 2026. AJ Networks Corporation. All rights reserved.</p>
+        </div>
+        <div className="mt-4 text-center text-xs text-gray-400">
+          <div>
+            <h4>관리자</h4>
+            <p>test_console | password</p>
+          </div>
+          <div className="mt-2">
+            <h4>사용자</h4>
+            <p>test_user | password</p>
+          </div>
         </div>
       </div>
     </div >
