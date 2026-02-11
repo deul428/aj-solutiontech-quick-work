@@ -27,7 +27,7 @@ const AdminUserManagementPage: React.FC = () => {
   const user = getCurrentUser();
   const [users, setUsers] = useState<User[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true); 
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<"all" | "관리자" | "신청자">(
     "all",
@@ -81,7 +81,7 @@ const AdminUserManagementPage: React.FC = () => {
   const loadUsers = useCallback(async () => {
     try {
       setLoading(true);
-      
+
       setToast(null);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
@@ -347,7 +347,7 @@ const AdminUserManagementPage: React.FC = () => {
         });
       } else {
         const errorMsg = result.message || "사용자 비활성화에 실패했습니다.";
-        
+
         setToast({
           message: errorMsg,
           type: "error",
@@ -356,7 +356,7 @@ const AdminUserManagementPage: React.FC = () => {
       }
     } catch (err: any) {
       const errorMsg = err.message || "사용자 비활성화 중 오류가 발생했습니다.";
-      
+
       setToast({
         message: errorMsg,
         type: "error",
@@ -450,7 +450,7 @@ const AdminUserManagementPage: React.FC = () => {
   const handleSave = async () => {
     try {
       setProcessing(true);
-      
+
       setToast(null);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
@@ -507,9 +507,10 @@ const AdminUserManagementPage: React.FC = () => {
         ];
 
       const firstMissing = requiredFields.find((f) => f.isMissing());
-      if (firstMissing) {
+      if (firstMissing && firstMissing.name !== "password" || (firstMissing && firstMissing.name === "password" && !editingUser)) {
+        console.log(firstMissing);
         showRequiredFieldAlert(firstMissing.label);
-        focusFieldByName(String(firstMissing.name)); 
+        focusFieldByName(String(firstMissing.name));
         return;
       }
 
@@ -573,7 +574,7 @@ const AdminUserManagementPage: React.FC = () => {
         await loadUsers();
       } else {
         const errorMsg = result.message || "저장에 실패했습니다.";
-        
+
         setToast({
           message: errorMsg,
           type: "error",
@@ -582,7 +583,7 @@ const AdminUserManagementPage: React.FC = () => {
       }
     } catch (err: any) {
       const errorMsg = err.message || "저장 중 오류가 발생했습니다.";
-      
+
       setToast({
         message: errorMsg,
         type: "error",
@@ -610,7 +611,7 @@ const AdminUserManagementPage: React.FC = () => {
           }
         />
       )}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[85dvw] mx-auto px-4 sm:px-6 lg:px-8">
         <Header
           headerTitle="사용자 관리"
           headerSubTitle="기준 정보 관리"

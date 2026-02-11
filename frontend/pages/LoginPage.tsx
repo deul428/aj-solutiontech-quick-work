@@ -131,11 +131,11 @@ const LoginPage: React.FC = () => {
         <div className="mt-4 text-center text-xs text-gray-400">
           <div>
             <h4>관리자</h4>
-            <p>test_console | password</p>
+            <p>test_console | test_console!@</p>
           </div>
           <div className="mt-2">
             <h4>사용자</h4>
-            <p>test_user | password</p>
+            <p>test_user | test_user!@</p>
           </div>
         </div>
       </div>

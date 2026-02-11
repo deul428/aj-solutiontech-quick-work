@@ -313,7 +313,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       {processing && <LoadingOverlay message={editingPlace ? "배송지 정보를 수정하는 중..." : showModal ? "배송지를 등록하는 중..." : "배송지를 삭제하는 중..."} />}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[85dvw] mx-auto px-4 sm:px-6 lg:px-8">
         <Header
           headerTitle="부품 배송지 관리"
           headerSubTitle="기준 정보 관리"
