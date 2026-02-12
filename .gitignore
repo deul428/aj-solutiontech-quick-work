@@ -131,3 +131,7 @@ tmp/
 temp/
 backend_gas/SHEETS_SUMMARY.csv
 backend_gas/SHEETS_SUMMARY - 복사본.csv
+backend_gas/pw.csv.bak-20260212_154118
+.gitignore
+backend_gas/pw.csv.bak-20260212_154225
+backend_gas/pw.csv
