@@ -128,7 +128,7 @@ const LoginPage: React.FC = () => {
         <div className="mt-6 text-center text-sm text-gray-500">
           <p>&copy; 2026. AJ Networks Corporation. All rights reserved.</p>
         </div>
-        <div className="mt-4 text-center text-xs text-gray-400">
+        <div className="mt-4 text-center text-xs text-gray-400 hidden">
           <div>
             <h4>관리자</h4>
             <p>test_console | test_console!@</p>
