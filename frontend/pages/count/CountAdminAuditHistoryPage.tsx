@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Search, Download, RefreshCw, X, Info } from "lucide-react";
 import { isAdmin, getCurrentUser } from "../../utils/orderingAuth";
 import {
-  getChecklistData,
   getAllChecklistData,
   downloadChecklistHistoryExcel,
 } from "../../services/adminService";
@@ -267,24 +266,13 @@ const CountAdminAuditHistoryPage: React.FC = () => {
       setLoading(true);
       setError(false);
       setToast(null);
-      // 클라이언트 측 페이지네이션을 위해 전체 데이터를 가져옴
-      const data = await getChecklistData({
-        search: activeSearchTerm || undefined,
-        sortBy: sortBy || undefined,
-        sortOrder: sortOrder,
-        page: 1,
-        pageSize: 9999, // 전체 데이터를 가져와서 클라이언트에서 페이지네이션
-      });
-
-      if (Array.isArray(data)) {
-        setChecklistData(data);
-        setTotal(data.length);
-        setTotalPages(1);
-      } else {
-        setChecklistData(data.data || []);
-        setTotal(data.total || 0);
-        setTotalPages(data.totalPages || 1);
-      }
+      // ✅ 개선: 정렬/검색 변경마다 서버 재호출하지 않도록
+      // - 데이터는 한 번(또는 수동 새로고침)만 전체 로드
+      // - 검색/정렬/필터는 클라이언트에서 처리
+      const allRows = await getAllChecklistData({ pageSize: 500 });
+      setChecklistData(Array.isArray(allRows) ? allRows : []);
+      setTotal(Array.isArray(allRows) ? allRows.length : 0);
+      setTotalPages(1);
     } catch (err: any) {
       console.error("Failed to load checklist data:", err);
       setToast({ message: err.message || "데이터를 불러오는 중 오류가 발생했습니다.", type: 'error' });
@@ -292,7 +280,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeSearchTerm, sortBy, sortOrder]);
+  }, []);
 
   useEffect(() => {
     // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
@@ -423,11 +411,93 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     [],
   );
 
+  const parseDateLoose = useCallback((value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+
+    const str = String(value).trim();
+    if (!str) return null;
+
+    // ISO / 브라우저가 파싱 가능한 형태
+    const d1 = new Date(str);
+    if (!Number.isNaN(d1.getTime())) return d1;
+
+    // yyyy-mm-dd or yyyy/mm/dd 등
+    const normalized = str
+      .replace(/\./g, "-")
+      .replace(/\//g, "-")
+      .replace(/\s+/g, " ");
+    const match = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (match) {
+      const y = Number(match[1]);
+      const m = Number(match[2]) - 1;
+      const day = Number(match[3]);
+      const d2 = new Date(y, m, day);
+      if (!Number.isNaN(d2.getTime())) return d2;
+    }
+
+    return null;
+  }, []);
+
+  const filterBySearchTerm = useCallback(
+    (rows: ChecklistDataItem[], term: string): ChecklistDataItem[] => {
+      const q = String(term || "").trim();
+      if (!q) return rows;
+      const qLower = q.toLowerCase();
+      return rows.filter((row) => {
+        // 모든 컬럼을 문자열로 펼쳐 포함 여부 체크 (서버 검색과 완전 동일하진 않지만 UX는 동일 목적)
+        try {
+          return Object.values(row).some((v) =>
+            String(v ?? "").toLowerCase().includes(qLower),
+          );
+        } catch {
+          return false;
+        }
+      });
+    },
+    [],
+  );
+
+  const sortRows = useCallback(
+    (rows: ChecklistDataItem[], key: string | null, order: "asc" | "desc") => {
+      if (!key) return rows;
+      const dir = order === "asc" ? 1 : -1;
+      const copy = [...rows];
+
+      copy.sort((a, b) => {
+        const av = a?.[key];
+        const bv = b?.[key];
+
+        // 날짜 비교(느슨 파싱)
+        const ad = parseDateLoose(av);
+        const bd = parseDateLoose(bv);
+        if (ad && bd) return (ad.getTime() - bd.getTime()) * dir;
+
+        // 숫자 비교
+        const an = typeof av === "number" ? av : Number(String(av ?? "").replace(/,/g, ""));
+        const bn = typeof bv === "number" ? bv : Number(String(bv ?? "").replace(/,/g, ""));
+        const anOk = Number.isFinite(an);
+        const bnOk = Number.isFinite(bn);
+        if (anOk && bnOk) return (an - bn) * dir;
+
+        // 문자열 비교
+        const as = String(av ?? "").trim();
+        const bs = String(bv ?? "").trim();
+        return as.localeCompare(bs, undefined, { numeric: true, sensitivity: "base" }) * dir;
+      });
+
+      return copy;
+    },
+    [parseDateLoose],
+  );
+
   useEffect(() => {
-    // 클라이언트 측 필터링 (자산실사 여부 필터, 이상자산 여부 필터, 위치 필터 적용)
+    // 클라이언트 측 필터링 + 검색 + 정렬
     let filtered = filterByAuditStatus(checklistData, auditStatusFilter);
     filtered = filterByAbnormalAsset(filtered, abnormalAssetFilter);
     filtered = filterByLocation(filtered, selectedCenter, selectedZone);
+    filtered = filterBySearchTerm(filtered, activeSearchTerm);
+    filtered = sortRows(filtered, sortBy, sortOrder);
     setFilteredData(filtered);
   }, [
     checklistData,
@@ -435,9 +505,14 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     abnormalAssetFilter,
     selectedCenter,
     selectedZone,
+    activeSearchTerm,
+    sortBy,
+    sortOrder,
     filterByAuditStatus,
     filterByAbnormalAsset,
     filterByLocation,
+    filterBySearchTerm,
+    sortRows,
   ]);
 
   const handleRefresh = () => {
@@ -451,7 +526,8 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     setSortBy(null);
     setSortOrder("asc");
     setCurrentPage(1);
-    // loadData는 useEffect에서 activeSearchTerm, sortBy, sortOrder 변경 시 자동 호출됨
+    // ✅ 개선: 데이터 재조회는 필요 시에만 수동으로 수행
+    loadData();
   };
 
   // 센터 옵션: 자산위치_데이터 시트 '센터 구분' 열 기준 (숫자·가나다순)
@@ -489,34 +565,6 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const parseDateLoose = (value: any): Date | null => {
-    if (!value) return null;
-    if (value instanceof Date) return value;
-
-    const str = String(value).trim();
-    if (!str) return null;
-
-    // ISO / 브라우저가 파싱 가능한 형태
-    const d1 = new Date(str);
-    if (!Number.isNaN(d1.getTime())) return d1;
-
-    // yyyy-mm-dd or yyyy/mm/dd 등
-    const normalized = str
-      .replace(/\./g, "-")
-      .replace(/\//g, "-")
-      .replace(/\s+/g, " ");
-    const match = normalized.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-    if (match) {
-      const y = Number(match[1]);
-      const m = Number(match[2]) - 1;
-      const day = Number(match[3]);
-      const d2 = new Date(y, m, day);
-      if (!Number.isNaN(d2.getTime())) return d2;
-    }
-
-    return null;
-  };
-
   const filterByAuditDateRange = (
     rows: ChecklistDataItem[],
     dateFrom: string,
@@ -537,15 +585,8 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     try {
       setIsDownloading(true);
 
-      // 중요: 다운로드는 "현재 페이지"가 아니라, 서버에서 전체 데이터를 가져와 조건으로 필터링
-      const allRows = await getAllChecklistData({
-        search: activeSearchTerm || undefined,
-        sortBy: sortBy || undefined,
-        sortOrder: sortOrder,
-        pageSize: 500,
-      });
-
-      let rowsToDownload: ChecklistDataItem[] = allRows as ChecklistDataItem[];
+      // ✅ 개선: 이미 메모리에 있는(필터/검색/정렬 반영된) 데이터를 다운로드에 사용
+      let rowsToDownload: ChecklistDataItem[] = filteredData;
       if (range.all === false) {
         rowsToDownload = filterByAuditDateRange(
           rowsToDownload,
@@ -570,6 +611,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
       setSortBy(key);
       setSortOrder("asc");
     }
+    setCurrentPage(1);
   };
 
   // 테이블 컬럼 설정 - early return 이전에 Hook 호출
@@ -776,6 +818,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
           }}
           emptyMessage="데이터가 없습니다."
           showPagination={!isMobile}
+          tdMaxW="auto"
         />
       </div>
 

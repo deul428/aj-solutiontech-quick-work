@@ -2949,7 +2949,7 @@ function getSheetByNameLoose_(ss, canonicalName) {
 function setupSheetHeaders(sheet, sheetName) {
   const headers = {
     [CONFIG.SHEETS.REQUESTS]: [
-      '신청번호', '신청일시', '신청자ID', '신청자이름', '기사코드',
+      '신청번호', '신청일시', '신청자이메일', '신청자이름', '기사코드',
       '소속팀', '지역', '품명', '규격', '시리얼번호', '수량',
       '관리번호', '배송지', '전화번호', '업체명', '비고', '사진URL',
       '상태', '접수담당자', '담당자비고', '발주일시', '예상납기일',

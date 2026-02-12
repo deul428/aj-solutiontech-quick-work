@@ -29,6 +29,12 @@ export interface DataTableProps<T = any> {
   className?: string;
   showPagination?: boolean;
   getRowClassName?: (row: T, index: number) => string;
+  /**
+   * 기본 td/th max-width를 강제로 지정합니다.
+   * - 컬럼에서 w-/min-w-/max-w- 등을 명시한 경우에는 적용되지 않습니다.
+   * - 예: "150px", "12rem"
+   */
+  tdMaxW?: string;
 }
 
 const DataTable = <T extends Record<string, any>>({
@@ -46,7 +52,8 @@ const DataTable = <T extends Record<string, any>>({
   emptyMessage = '데이터가 없습니다.',
   className = '',
   showPagination = true,
-  getRowClassName
+  getRowClassName,
+  tdMaxW
 }: DataTableProps<T>) => {
   // 테이블 컬럼 폭 제어:
   // - table-layout:auto(기본)에서는 콘텐츠가 폭을 밀어 max-w가 잘 안 먹습니다.
@@ -62,7 +69,15 @@ const DataTable = <T extends Record<string, any>>({
 
   const getCellMaxWClass = (column: TableColumn<T>) => {
     const explicit = hasExplicitSizing(column.headerClassName) || hasExplicitSizing(column.className);
-    return explicit ? '' : DEFAULT_CELL_MAX_W;
+    // tdMaxW가 주어지면 Tailwind max-w 대신 인라인 스타일로 제어
+    return explicit ? '' : (tdMaxW ? '' : DEFAULT_CELL_MAX_W);
+  };
+
+  const getCellMaxWStyle = (column: TableColumn<T>): React.CSSProperties | undefined => {
+    const explicit = hasExplicitSizing(column.headerClassName) || hasExplicitSizing(column.className);
+    if (explicit) return undefined;
+    if (!tdMaxW) return undefined;
+    return { maxWidth: tdMaxW };
   };
 
   // visible columns만 필터링
@@ -118,6 +133,7 @@ const DataTable = <T extends Record<string, any>>({
                     onClick={() => handleSort(column)}
                     className={`${getCellMaxWClass(column)} px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider ${column.sortable ? 'cursor-pointer hover:bg-gray-100' : ''
                       } ${column.headerClassName || ''}`}
+                    style={getCellMaxWStyle(column)}
                   >
                     {(() => {
                       const label = column.label;
@@ -127,7 +143,7 @@ const DataTable = <T extends Record<string, any>>({
                       if (column.sortable) {
                         return (
                           <div className={`flex items-center gap-2 min-w-0 ${wantsCenter ? 'justify-center' : ''}`}>
-                            {isLabelPrimitive ? <span className="truncate">{label}</span> : label}
+                            {isLabelPrimitive ? <span className={`${tdMaxW && tdMaxW === 'auto' ? '' : 'truncate'}`}>{label}</span> : label}
                             {getSortIcon(column)}
                           </div>
                         );
@@ -136,7 +152,7 @@ const DataTable = <T extends Record<string, any>>({
                       // sortable 아닌 경우: label이 JSX(체크박스 등)면 truncate 래핑하지 않음
                       return (
                         <div className={`${wantsCenter ? 'flex justify-center' : ''}`}>
-                          {isLabelPrimitive ? <span className="truncate">{label}</span> : label}
+                          {isLabelPrimitive ? <span className={`${tdMaxW && tdMaxW === 'auto' ? '' : 'truncate'}`}>{label}</span> : label}
                         </div>
                       );
                     })()}
@@ -177,9 +193,10 @@ const DataTable = <T extends Record<string, any>>({
                           <td
                             key={column.key}
                             className={`${getCellMaxWClass(column)} px-3 py-2 text-sm text-gray-900 ${tdCenterFromHeader ? 'text-center' : ''} ${column.className || ''}`}
+                            style={getCellMaxWStyle(column)}
                           >
                             {isPrimitiveCell ? (
-                              <div className="min-w-0 truncate" title={String(cellContent)}>
+                              <div className={`min-w-0 ${tdMaxW && tdMaxW === 'auto' ? '' : 'truncate'}`} title={String(cellContent)}>
                                 {cellContent}
                               </div>
                             ) : (
@@ -198,18 +215,20 @@ const DataTable = <T extends Record<string, any>>({
       </div>
 
       {/* 페이지네이션 */}
-      {showPagination && onPageChange && data.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          total={data.length}
-          pageSize={pageSize}
-          onPageChange={onPageChange}
-          onPageSizeChange={onPageSizeChange}
-          pageSizeOptions={pageSizeOptions}
-        />
-      )}
-    </div>
+      {
+        showPagination && onPageChange && data.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={data.length}
+            pageSize={pageSize}
+            onPageChange={onPageChange}
+            onPageSizeChange={onPageSizeChange}
+            pageSizeOptions={pageSizeOptions}
+          />
+        )
+      }
+    </div >
   );
 };
 

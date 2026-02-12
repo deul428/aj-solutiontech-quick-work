@@ -199,8 +199,7 @@ class RequestModel {
   _headerToKey(header) {
     const map = {
       '신청번호': 'requestNo',
-      '신청일시': 'requestDate',
-      '신청자ID': 'requesterEmail', // 시트 컬럼명은 '신청자ID'이지만 코드에서는 'requesterEmail'로 사용 (하위 호환성)
+      '신청일시': 'requestDate', 
       '신청자이메일': 'requesterEmail', // 하위 호환성
       '신청자이름': 'requesterName',
       '기사코드': 'employeeCode',

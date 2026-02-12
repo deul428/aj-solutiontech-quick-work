@@ -129,3 +129,5 @@ storybook-static/
 # Temporary folders
 tmp/
 temp/
+backend_gas/SHEETS_SUMMARY.csv
+backend_gas/SHEETS_SUMMARY - 복사본.csv
