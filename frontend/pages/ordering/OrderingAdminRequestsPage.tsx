@@ -729,7 +729,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
     <div className="min-h-screen bg-gray-50 py-8">
       <Header
         headerTitle="부품 신청 현황 (전체 조회)"
-        headerSubTitle="부품 발주 시스템"
+        headerSubTitle="부품 발주"
         level={1}
       />
       <div className="max-w-[85dvw] mx-auto px-4 sm:px-4 lg:px-8">

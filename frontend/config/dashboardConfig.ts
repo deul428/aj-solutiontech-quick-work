@@ -24,7 +24,7 @@ export interface DashboardMenuItem {
     path: string;
     color: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
     // 표시 조건: 'console' | 'user' | 'all'
-    roles?: ('console' | 'user' | 'all')[];
+    roles?: readonly ('console' | 'user' | 'all')[];
     // 숨김 여부
     hidden?: boolean;
     // 비활성화 여부 (true면 메뉴는 보이지만 클릭 불가)
@@ -133,20 +133,20 @@ export const colorClasses = {
 export const adminDashboardSections: DashboardSection[] = [
     {
         id: 'equipment',
-        title: '장비 점검, 실사, QR생성 시스템',
+        title: '장비 점검, 실사, QR생성',
         titleColor: 'blue',
         gridCols: '3',
         menus: [
             {
                 id: 'equiment-main',
-                title: '장비 점검, 실사, QR생성 시스템',
-                description: '장비 점검, 실사, QR생성 시스템',
+                title: '장비 점검, 실사, QR생성',
+                description: '장비 점검, 실사, QR생성',
                 icon: ClipboardCheck,
                 path: '/equipment',
                 color: 'blue',
                 roles: ['console'],
                 navbar: true,
-                navbarLabel: '장비 점검, 실사, QR생성 시스템',
+                navbarLabel: '장비 점검, 실사, QR생성',
                 navbarOrder: 1
             },
             /* 
@@ -192,13 +192,13 @@ export const adminDashboardSections: DashboardSection[] = [
     },
     {
         id: 'ordering',
-        title: '부품 발주 시스템',
+        title: '부품 발주',
         titleColor: 'green',
         gridCols: '3',
         menus: [
             {
                 id: 'ordering-main',
-                title: '부품 발주 시스템',
+                title: '부품 발주',
                 description: '새 부품 신청, 내 부품 신청 내역 확인, 관리자 부품 신청 현황 조회',
                 icon: Package,
                 path: '/ordering',
@@ -206,7 +206,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 roles: ['console',/*  'user' */], // console과 user 모두 접근 가능
                 dashboardVisibility: 'all', // 모든 대시보드에 표시
                 navbar: true,
-                navbarLabel: '부품 발주 시스템',
+                navbarLabel: '부품 발주',
                 navbarActivePath: '/ordering',
                 navbarOrder: 20
             }
@@ -256,7 +256,7 @@ export interface SystemHomeCard {
     // 클릭 시 이동할 경로 또는 함수
     navigateTo: string | ((isAdmin: boolean, isUser: boolean) => string);
     // 표시 조건: 'console' | 'user' | 'all'
-    roles?: ('console' | 'user' | 'all')[];
+    roles?: readonly ('console' | 'user' | 'all')[];
     // 숨김 여부
     hidden?: boolean;
 }
@@ -271,7 +271,7 @@ const currentUser = getCurrentUser();
 export const userDashboardSections: DashboardSection[] = [
     {
         id: 'equipment',
-        title: '장비 점검, 실사, QR생성 시스템',
+        title: '장비 점검, 실사, QR생성',
         titleColor: 'blue',
         gridCols: '2',
         menus: [
@@ -292,13 +292,13 @@ export const userDashboardSections: DashboardSection[] = [
     },
     {
         id: 'ordering',
-        title: '부품 발주 시스템',
+        title: '부품 발주',
         titleColor: 'green',
         gridCols: '2',
         menus: [
             {
                 id: 'ordering-main',
-                title: '부품 발주 시스템',
+                title: '부품 발주',
                 description: '새 부품 신청, 내 부품 신청 내역 확인',
                 icon: Package,
                 path: '/ordering',
@@ -306,7 +306,7 @@ export const userDashboardSections: DashboardSection[] = [
                 roles: ['user'], // console도 접근 가능 (navbar나 직접 URL로)
                 dashboardVisibility: 'user-only', // user 대시보드에만 표시
                 navbar: true,
-                navbarLabel: '부품 발주 시스템',
+                navbarLabel: '부품 발주',
                 navbarActivePath: '/ordering',
                 navbarOrder: 20
             }
@@ -327,7 +327,7 @@ export interface NavbarOnlyMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: ('console' | 'user' | 'all' | 'guest')[];
+    roles?: readonly ('console' | 'user' | 'all' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -404,7 +404,7 @@ export interface NavbarMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: ('console' | 'user' | 'all' | 'guest')[];
+    roles?: readonly ('console' | 'user' | 'all' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -472,7 +472,7 @@ export const navbarMenuItems: NavbarMenuItem[] = [
 export const systemHomeCards: SystemHomeCard[] = [
     {
         id: 'equipment',
-        title: '장비 점검 · 실사 · QR생성 시스템',
+        title: '장비 점검 · 실사 · QR생성',
         description: (isAdmin: boolean) =>
             isAdmin
                 ? 'QR코드가 포함된 정비 체크리스트 자동 생성, 자산 실사 내역 확인'
@@ -488,7 +488,7 @@ export const systemHomeCards: SystemHomeCard[] = [
     },
     {
         id: 'ordering',
-        title: '부품 발주 시스템',
+        title: '부품 발주',
         description: (isAdmin: boolean) =>
             isAdmin
                 ? '부품 신청 내역 확인, 상태 변경, 기준 정보 관리'

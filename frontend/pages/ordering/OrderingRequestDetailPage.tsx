@@ -314,7 +314,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
         {processing && <LoadingOverlay message="처리 중..." />}
 
         {/* 헤더 */}
-        <Header headerTitle="신청 상세 정보" headerSubTitle="부품 발주 시스템" level={2} />
+        <Header headerTitle="신청 상세 정보" headerSubTitle="부품 발주" level={2} />
   
         {success && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">

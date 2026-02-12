@@ -360,7 +360,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
                     </div>
                     <ArrowRight className="w-8 h-8 text-gray-200 group-hover:text-green-600 transition-transform group-hover:translate-x-2" />
                   </div>
-                  <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">부품 발주 시스템</h3>
+                  <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">부품 발주</h3>
                   <p className="text-gray-500 text-sm leading-relaxed font-bold text-pretty relative z-10">부품 신청 현황, 상태 변경, 담당자 배정, 기준 정보 관리</p>
                 </div>
               </>
@@ -399,7 +399,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
                     </div>
                     <ArrowRight className="w-8 h-8 text-gray-200 group-hover:text-green-600 transition-transform group-hover:translate-x-2" />
                   </div>
-                  <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">부품 발주 시스템</h3>
+                  <h3 className="text-2xl font-black text-gray-900 mb-3 relative z-10">부품 발주</h3>
                   <p className="text-gray-500 text-sm leading-relaxed font-bold text-pretty relative z-10">내 신청 등록, 내 신청 내역 확인, 내 정보 변경</p>
                 </div>
               </>

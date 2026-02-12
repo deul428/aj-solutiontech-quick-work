@@ -16,7 +16,7 @@ const EquipmentMainPage: React.FC = () => {
   const equipmentSections: DashboardSection[] = [
     {
       id: 'equipment',
-      title: '장비 점검, 실사, QR생성 시스템',
+      title: '장비 점검, 실사, QR생성',
       titleColor: 'blue',
       gridCols: '3',
       menus: [
@@ -107,7 +107,7 @@ const EquipmentMainPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
-      <Header headerTitle="장비 점검, 실사, QR생성 시스템" headerSubTitle="AJ솔루션테크" level={1} />
+      <Header headerTitle="장비 점검, 실사, QR생성" headerSubTitle="AJ솔루션테크" level={1} />
 
       {equipmentSections.map((section) => {
         const titleColors = colorClasses[section.titleColor];

@@ -209,7 +209,7 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
   return (
     <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
       {loading && <LoadingOverlay message="대시보드 로딩 중..." />}
-      <Header headerTitle={headerTitle} headerSubTitle="부품 발주 시스템" level={2} />
+      <Header headerTitle={headerTitle} headerSubTitle="부품 발주" level={2} />
 
       {/* 요약 카드 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">

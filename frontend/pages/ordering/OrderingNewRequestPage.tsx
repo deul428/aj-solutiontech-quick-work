@@ -328,7 +328,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
       {submitting && <LoadingOverlay message="신청 처리 중..." />}
 
       {/* 헤더 */}
-      <Header headerTitle="새 신청 등록" headerSubTitle="부품 발주 시스템" level={2} />
+      <Header headerTitle="새 신청 등록" headerSubTitle="부품 발주" level={2} />
       {/* {error && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-4 hidden">
           <div className="flex items-center gap-2">

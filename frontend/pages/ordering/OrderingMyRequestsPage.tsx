@@ -559,7 +559,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       {/* 헤더 */}
       <Header
         headerTitle="내 신청 목록 조회"
-        headerSubTitle="부품 발주 시스템"
+        headerSubTitle="부품 발주"
         level={2}
       />
       {/* {error && (
