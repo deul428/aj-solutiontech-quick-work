@@ -163,7 +163,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
     <div className="max-w-4xl mx-auto py-12 px-6">
       {isProcessing && <LoadingOverlay message="데이터 동기화 중..." />}
 
-      <Header headerTitle="마스터 파일 관리" headerSubTitle="장비 점검, 실사, QR생성" level={1} />
+      <Header headerTitle="마스터 파일 관리" headerSubTitle="장비 점검, 실사, QR생성" level={2} />
 
       <div className="grid grid-cols-1 md:grid-cols-1 gap-8">
         {/* Connection Status Section */}

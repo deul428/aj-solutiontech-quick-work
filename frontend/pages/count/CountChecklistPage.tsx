@@ -159,7 +159,7 @@ const CountChecklistPage: React.FC<CountChecklistPageProps> = ({ masterData, ser
     <div className="max-w-5xl mx-auto py-10 px-6">
       {isProcessing && <LoadingOverlay message={processingMessage} />}
       <div className="text-center mb-12">
-        <Header headerTitle="체크리스트 일괄 생성" headerSubTitle="장비 점검, 실사, QR생성" level={1} />
+        <Header headerTitle="체크리스트 일괄 생성" headerSubTitle="장비 점검, 실사, QR생성" level={2} />
       </div>
       {selectedSheet && <p className="text-xs font-bold text-blue-500 mb-4 text-right">참조: {selectedSheet}</p>}
       <div className="space-y-6">

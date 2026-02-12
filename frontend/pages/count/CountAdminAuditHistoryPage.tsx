@@ -653,7 +653,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
       <Header
         headerTitle="자산 실사내역 확인"
         headerSubTitle="장비 점검, 실사, QR생성"
-        level={1}
+        level={2}
       />
       <div className="max-w-[85dvw] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-6 flex justify-between items-center">

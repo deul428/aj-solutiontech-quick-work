@@ -42,7 +42,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const [requests, setRequests] = useState<Request[]>([]);
   const [filteredRequests, setFilteredRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState(true);
- 
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("requestNo");
@@ -94,13 +94,14 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   // user의 userId를 메모이제이션하여 안정적인 참조 생성
   const userId = useMemo(() => user?.userId || null, [user?.userId]);
+  const username = useMemo(() => user?.name || null, [user?.name]);
   const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
 
   // loadRequests를 useCallback으로 메모이제이션
   // 클라이언트 측 필터링/페이징을 위해 전체 데이터를 가져옴
   const loadRequests = useCallback(async () => {
     try {
-      setLoading(true); 
+      setLoading(true);
       setToast(null);
       const sessionToken = getSessionToken();
       if (!sessionToken) {
@@ -128,7 +129,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       setTotalPages(1);
     } catch (err: any) {
       console.error("Failed to load requests:", err);
-      setToast({ message: err.message || "데이터를 불러오는 중 오류가 발생했습니다.", type: 'error' });   
+      setToast({ message: err.message || "데이터를 불러오는 중 오류가 발생했습니다.", type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -518,7 +519,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   // 일괄 상태 변경
   const handleBatchStatusChange = () => {
-    if (selectedRequests.size === 0) { 
+    if (selectedRequests.size === 0) {
       setToast({
         message: "선택된 항목이 없습니다.",
         type: "error",
@@ -593,7 +594,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         loadRequests().catch((err) => {
           console.error("saveBatchStatusChange: 데이터 새로고침 실패", err);
         });
-        if (failCount > 0) { 
+        if (failCount > 0) {
           setToast({
             message: `${successCount}건 성공, ${failCount}건 실패했습니다.`,
             type: "error",
@@ -604,7 +605,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
             type: "success",
           });
         }
-      } else { 
+      } else {
         setToast({
           message: "모든 항목의 상태 변경에 실패했습니다.",
           type: "error",
@@ -696,7 +697,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
           console.error("saveBatchHandlerAssign: 데이터 새로고침 실패", err);
         });
 
-        if (failCount > 0) { 
+        if (failCount > 0) {
           setToast({
             message: `${successCount}건 성공, ${failCount}건 실패했습니다.`,
             type: "error",
@@ -707,7 +708,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
             type: "success",
           });
         }
-      } else { 
+      } else {
         setToast({
           message: "모든 항목의 담당자 배정에 실패했습니다.",
           type: "error",
@@ -730,7 +731,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       <Header
         headerTitle="부품 신청 현황 (전체 조회)"
         headerSubTitle="부품 발주"
-        level={1}
+        level={2}
       />
       <div className="max-w-[85dvw] mx-auto px-4 sm:px-4 lg:px-8">
         <div className="mb-6">
@@ -872,6 +873,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                   </label>
                   <input
                     type="text"
+                    defaultValue={isUserAdmin && username ? username : ""}
                     value={handlerName}
                     onChange={(e) => setHandlerName(e.target.value)}
                     placeholder="관리자 이름을 입력하세요"
@@ -1141,7 +1143,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
             </div>
           </div>
         )}
-        
+
 
         {/* {error && (
           <div className="mt-4 bg-red-50 border border-red-200 rounded-lg p-4">

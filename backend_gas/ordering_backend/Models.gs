@@ -199,7 +199,7 @@ class RequestModel {
   _headerToKey(header) {
     const map = {
       '신청번호': 'requestNo',
-      '신청일시': 'requestDate', 
+      '신청일시': 'requestDate',  
       '신청자이메일': 'requesterEmail', // 하위 호환성
       '신청자이름': 'requesterName',
       '기사코드': 'employeeCode',
