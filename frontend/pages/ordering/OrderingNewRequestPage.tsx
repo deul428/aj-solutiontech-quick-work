@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Upload, X, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, X, AlertCircle, Camera } from 'lucide-react';
 import { User, DeliveryPlace } from '../../types/ordering';
 import {
   getDeliveryPlacesOrdering,
@@ -513,19 +513,39 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
           <div className="mb-4">
             <input
               type="file"
-              id="photoInput"
+              id="photoInputSelect"
               accept="image/*"
-              capture="environment"
               className="hidden"
               onChange={handlePhotoSelect}
-              required
+              onClick={(e) => {
+                // 같은 파일을 다시 선택해도 onChange가 발생하도록 초기화
+                (e.currentTarget as HTMLInputElement).value = '';
+              }}
             />
             <label
-              htmlFor="photoInput"
+              htmlFor="photoInputSelect"
               className="inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 px-4 py-3 text-sm gap-2 w-full sm:w-auto"
             >
               <Upload className="w-5 h-5" />
               파일 선택
+            </label>
+            <input
+              type="file"
+              id="photoInputCapture"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handlePhotoSelect}
+              onClick={(e) => {
+                (e.currentTarget as HTMLInputElement).value = '';
+              }}
+            />
+            <label
+              htmlFor="photoInputCapture"
+              className="mt-2 sm:mt-0 sm:ml-2 inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-700 text-white hover:bg-gray-800 focus:ring-gray-500 px-4 py-3 text-sm gap-2 w-full sm:w-auto lg:hidden"
+            >
+              <Camera className="w-5 h-5" />
+              촬영
             </label>
           </div>
           {photoPreview && (
