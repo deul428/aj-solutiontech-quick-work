@@ -19,6 +19,9 @@ frontend/.vite/
 .vite/
 .vite-cache/
 
+files
+
+
 # Environment variables
 # .env
 .env.local
