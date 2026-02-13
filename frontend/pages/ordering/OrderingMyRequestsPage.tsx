@@ -288,6 +288,28 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
         ),
       },
       {
+        key: "requestDate",
+        label: "신청일시",
+        sortable: true,
+        sortKey: "requestDate",
+        render: (value) => (
+          <span className="">{formatDate(value)}</span>
+        ),
+      },
+      {
+        key: "status",
+        label: "상태",
+        sortable: true,
+        sortKey: "status",
+        render: (value) => (
+          <span
+            className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(value)}`}
+          >
+            {value}
+          </span>
+        ),
+      },
+      {
         key: "itemName",
         label: "품명",
         sortable: false,
@@ -323,25 +345,19 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
         },
       },
       {
-        key: "status",
-        label: "상태",
+        key: "orderDate",
+        label: "발주일시",
         sortable: true,
-        sortKey: "status",
         render: (value) => (
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(value)}`}
-          >
-            {value}
-          </span>
+          <span className="">{value ? formatDate(value) : "-"}</span>
         ),
       },
       {
-        key: "requestDate",
-        label: "신청일",
+        key: "expectedDeliveryDate",
+        label: "예상납기일시",
         sortable: true,
-        sortKey: "requestDate",
         render: (value) => (
-          <span className="">{formatDate(value, "date")}</span>
+          <span className="">{value ? formatDate(value) : "-"}</span>
         ),
       },
       {
@@ -770,7 +786,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
                         {req.requestNo}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        {formatDate(req.requestDate, "date")}
+                        {formatDate(req.requestDate)}
                       </p>
                     </div>
                     <span

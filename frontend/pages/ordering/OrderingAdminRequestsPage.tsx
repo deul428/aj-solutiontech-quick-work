@@ -289,7 +289,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         label: "신청일시",
         sortable: true,
         sortKey: "requestDate",
-        render: (value) => value || "-",
+        render: (value) => (value ? formatDate(value) : "-"),
       },
       {
         key: "requester",
@@ -337,6 +337,18 @@ const OrderingAdminRequestsPage: React.FC = () => {
             {value || "-"}
           </Button>
         ),
+      },
+    {
+        key: "orderDate",
+        label: "발주일시",
+        sortable: true,
+        render: (value) => (value ? formatDate(value) : "-"),
+      },
+      {
+        key: "expectedDeliveryDate",
+        label: "예상납기일시",
+        sortable: true,
+        render: (value) => (value ? formatDate(value) : "-"),
       },
       {
         key: "handler",
@@ -937,7 +949,23 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           신청 일시
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest?.requestDate}
+                          {detailRequest?.requestDate ? formatDate(detailRequest.requestDate) : "-"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                          발주 일시
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-900">
+                          {detailRequest?.orderDate ? formatDate(detailRequest.orderDate) : "-"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-gray-500 bg-gray-50">
+                          예상 납기일
+                        </td>
+                        <td className="px-4 py-4 text-sm text-gray-900">
+                          {detailRequest?.expectedDeliveryDate ? formatDate(detailRequest.expectedDeliveryDate) : "-"}
                         </td>
                       </tr>
                       <tr>

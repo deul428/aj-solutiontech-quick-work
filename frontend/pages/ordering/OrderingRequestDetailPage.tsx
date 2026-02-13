@@ -82,7 +82,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
 
       const data = await getRequestDetailOrdering(ORDERING_GAS_URL, requestNo, sessionToken);
 
-      if (data) {
+      if (data) {  
         setRequest(data);
         setRequesterRemarks(data.remarks || '');
         // 캐시에 저장 (다음에 빠르게 접근 가능)
@@ -349,6 +349,22 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
                   </tr>
                   <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
                     <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
+                      발주 일시
+                    </td>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
+                      {request.orderDate ? formatDate(request.orderDate) : '-'}
+                    </td>
+                  </tr>
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
+                      예상 납기일
+                    </td>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
+                      {request.expectedDeliveryDate ? formatDate(request.expectedDeliveryDate) : '-'}
+                    </td>
+                  </tr>
+                  <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
                       신청자
                     </td>
                     <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
@@ -507,7 +523,7 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
               <table className="min-w-full divide-y divide-gray-200">
                 <tbody className="bg-white divide-y divide-gray-200">
                   <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
-                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50  ">
                       접수 담당자
                     </td>
                     <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
@@ -515,10 +531,10 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
                     </td>
                   </tr>
                   <tr className='flex flex-col sm:table-row py-1 sm:py-0'>
-                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 whitespace-nowrap text-sm font-medium text-gray-500 sm:bg-gray-50  ">
                       접수 담당자 비고
                     </td>
-                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm">
+                    <td className="px-2 py-1 sm:px-4 sm:py-4 text-gray-900 text-base sm:text-sm ">
                       {request.handlerRemarks || '-'}
                     </td>
                   </tr>

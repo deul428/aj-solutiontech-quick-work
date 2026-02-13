@@ -4,6 +4,18 @@ import ExcelJS from "exceljs";
 import QRCode from "qrcode";
 import { MasterDataRow, ChecklistData, CHECKLIST_COLUMNS, MASTER_COLUMNS } from "../types";
 
+/** 기기 로케일/타임존과 무관하게 KST(Asia/Seoul) 기준 YYYY-MM-DD */
+function getKstDateOnly(): string {
+  const now = new Date();
+  // 현재 시각을 UTC로 만든 뒤 KST(+9h)로 이동
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  const kst = new Date(utcMs + 9 * 60 * 60 * 1000);
+  const y = kst.getUTCFullYear();
+  const m = String(kst.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(kst.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 /**
  * 기본 구글 앱스 스크립트 배포 URL
  * 환경 변수에서 가져오거나 기본값 사용
@@ -157,7 +169,8 @@ export const syncAuditDataToCloud = async (
       
       return {
         [CHECKLIST_COLUMNS.MGMT_NO]: String(row[MASTER_COLUMNS.MGMT_NO] || row[CHECKLIST_COLUMNS.MGMT_NO] || "").trim(),
-        [CHECKLIST_COLUMNS.AUDIT_DATE]: row[CHECKLIST_COLUMNS.AUDIT_DATE] || row['자산실사일'] || new Date().toLocaleDateString(),
+        // 실사일 저장 포맷 통일: KST 기준 YYYY-MM-DD
+        [CHECKLIST_COLUMNS.AUDIT_DATE]: row[CHECKLIST_COLUMNS.AUDIT_DATE] || row['자산실사일'] || getKstDateOnly(),
         [CHECKLIST_COLUMNS.AUDIT_STATUS]: "O",
         [CHECKLIST_COLUMNS.CENTER_LOC]: centerLocation || "",
         [CHECKLIST_COLUMNS.ASSET_LOC]: assetLocation || "",

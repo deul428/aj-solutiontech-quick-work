@@ -243,8 +243,9 @@ function getChecklistData(params) {
           if (cellValue === null || cellValue === undefined || cellValue === '') {
             obj[headerName] = '';
           } else if (cellValue instanceof Date) {
-            // Date 객체를 문자열로 변환
-            obj[headerName] = Utilities.formatDate(cellValue, Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+            // Date 객체를 문자열로 변환 (KST ISO +09:00로 통일)
+            const base = Utilities.formatDate(cellValue, 'Asia/Seoul', "yyyy-MM-dd'T'HH:mm:ss");
+            obj[headerName] = base + '+09:00';
           } else if (typeof cellValue === 'object') {
             // 다른 객체인 경우 문자열로 변환 시도
             try {

@@ -26,7 +26,7 @@ const Button: React.FC<ButtonProps> = ({
 
   // Variant별 스타일
   const variantClasses = {
-    link: 'text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors !font-bold px-0 py-0',
+    link: 'text-blue-600 hover:text-blue-900 hover:underline cursor-pointer transition-colors !font-bold px-0 py-0 text-left',
     primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
     secondary: 'bg-gray-600 text-white hover:bg-gray-700 focus:ring-gray-500',
     success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',

@@ -52,7 +52,8 @@ class RequestService {
       // 5. 데이터 준비
       const requestData = {
         requestNo: requestNo,
-        requestDate: new Date(),
+        // 날짜/시간 저장 포맷 통일 (KST ISO +09:00)
+        requestDate: formatKstIsoDateTime(new Date()),
         requesterEmail: user.userId, // 사용자 ID 사용
         requesterName: user.name,
         employeeCode: user.employeeCode,
@@ -74,7 +75,7 @@ class RequestService {
         orderDate: '',
         expectedDeliveryDate: '',
         receiptDate: '',
-        lastModified: new Date(),
+        lastModified: formatKstIsoDateTime(new Date()),
         lastModifiedBy: user.userId
       };
       
@@ -123,7 +124,7 @@ class RequestService {
       // 상태 변경
       const updates = {
         status: newStatus,
-        lastModified: new Date(),
+        lastModified: formatKstIsoDateTime(new Date()),
         lastModifiedBy: user.userId
       };
       
@@ -133,17 +134,17 @@ class RequestService {
       
       // 특정 상태일 때 날짜 기록
       if (newStatus === CONFIG.STATUS.ORDERING) {
-        updates.orderDate = new Date();
+        updates.orderDate = formatKstIsoDateTime(new Date());
       }
       
       if (newStatus === CONFIG.STATUS.COMPLETED_CONFIRMED || newStatus === CONFIG.STATUS.COMPLETED_PENDING) {
         if (!request.orderDate) {
-          updates.orderDate = new Date();
+          updates.orderDate = formatKstIsoDateTime(new Date());
         }
       }
       
       if (newStatus === CONFIG.STATUS.FINISHED) {
-        updates.receiptDate = new Date();
+        updates.receiptDate = formatKstIsoDateTime(new Date());
       }
       
       this.requestModel.update(requestNo, updates);
@@ -432,7 +433,8 @@ class LogService {
   
   log(action, requestNo, userEmail, details = '') {
     this.sheet.appendRow([
-      new Date(),
+      // 로그 시간도 통일 포맷으로 저장
+      formatKstIsoDateTime(new Date()),
       'INFO',
       action,
       requestNo || '',
@@ -443,7 +445,8 @@ class LogService {
   
   error(action, requestNo, userEmail, errorMessage) {
     this.sheet.appendRow([
-      new Date(),
+      // 로그 시간도 통일 포맷으로 저장
+      formatKstIsoDateTime(new Date()),
       'ERROR',
       action,
       requestNo || '',

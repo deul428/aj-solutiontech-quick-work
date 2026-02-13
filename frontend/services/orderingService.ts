@@ -821,7 +821,7 @@ export async function downloadMyRequestsExcel(
             '접수담당자',
             '담당자비고',
             '발주일시',
-            '예상납기일',
+            '예상납기일시',
             '수령확인일시'
         ];
 

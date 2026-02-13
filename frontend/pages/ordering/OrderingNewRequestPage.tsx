@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, Upload, X, AlertCircle, Camera } from 'lucide-react';
 import { User, DeliveryPlace } from '../../types/ordering';
 import {
@@ -8,6 +8,7 @@ import {
 } from '../../services/orderingService';
 import { getCurrentUser, getSessionToken } from '../../utils/orderingAuth';
 import LoadingOverlay from '../../components/LoadingOverlay';
+import Toast from '../../components/Toast';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
 
@@ -34,12 +35,49 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
   const [photoPreview, setPhotoPreview] = useState<string>('');
   const [showCustomDelivery, setShowCustomDelivery] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false); 
+  const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [success, setSuccess] = useState('');
+  const photoSelectInputRef = useRef<HTMLInputElement | null>(null);
+  const photoCaptureInputRef = useRef<HTMLInputElement | null>(null);
 
   const showRequiredFieldAlert = (label: string) => {
     alert(`${label} 란을 입력하세요.`);
+  };
+
+  const handleCameraCaptureClick = async () => {
+    try {
+      const md = navigator.mediaDevices;
+      if (!md?.enumerateDevices) {
+        setToast({ message: '카메라를 찾지 못했습니다.', type: 'error' });
+        return;
+      }
+
+      const devices = await md.enumerateDevices();
+      // 일부 브라우저/환경에서는 권한 이슈로 빈 배열이 나올 수 있어,
+      // "목록이 있을 때만" 카메라 존재 여부를 확정적으로 판단합니다.
+      if (devices.length > 0) {
+        const hasCamera = devices.some((d) => d.kind === 'videoinput');
+        if (!hasCamera) {
+          setToast({ message: '카메라를 찾지 못했습니다.', type: 'error' });
+          return;
+        }
+      }
+
+      const el = photoCaptureInputRef.current;
+      if (!el) return;
+      el.value = '';
+      el.click();
+    } catch (e) {
+      setToast({ message: '카메라를 찾지 못했습니다.', type: 'error' });
+    }
+  };
+
+  const handleFileSelectClick = () => {
+    const el = photoSelectInputRef.current;
+    if (!el) return;
+    el.value = '';
+    el.click();
   };
 
   const focusFieldByName = (name: string) => {
@@ -81,7 +119,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
         setDeliveryPlaces(places);
       }
     } catch (err: any) {
-      setToast({ message: err.message || '데이터 로딩 실패', type: 'error' }); 
+      setToast({ message: err.message || '데이터 로딩 실패', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -103,7 +141,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('파일 크기는 5MB를 초과할 수 없습니다.'); 
+      alert('파일 크기는 5MB를 초과할 수 없습니다.');
       return;
     }
 
@@ -183,7 +221,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); 
+    e.preventDefault();
     setToast(null);
     setSuccess('');
 
@@ -211,7 +249,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
     }
 
     // 사진은 필수
-    if (!photoFile) { 
+    if (!photoFile) {
       alert('사진을 첨부해 주세요.');
       return;
     }
@@ -300,10 +338,10 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
           onNavigate('ordering');
         }
       } else {
-        setToast({ message: result.message || '신청 처리에 실패했습니다.', type: 'error' }); 
+        setToast({ message: result.message || '신청 처리에 실패했습니다.', type: 'error' });
       }
     } catch (err: any) {
-      setToast({ message: err.message || '신청 처리 중 오류가 발생했습니다.', type: 'error' }); 
+      setToast({ message: err.message || '신청 처리 중 오류가 발생했습니다.', type: 'error' });
     } finally {
       setSubmitting(false);
     }
@@ -342,6 +380,14 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
         <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
           <p className="text-green-700 font-bold text-sm">{success}</p>
         </div>
+      )}
+
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
       )}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-6">
@@ -510,43 +556,44 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
           <h3 className="text-xl font-black text-gray-800 mb-4">
             사진 첨부 <span className="text-red-500">*</span>
           </h3>
-          <div className="mb-4">
-            <input
-              type="file"
-              id="photoInputSelect"
-              accept="image/*"
-              className="hidden"
-              onChange={handlePhotoSelect}
-              onClick={(e) => {
-                // 같은 파일을 다시 선택해도 onChange가 발생하도록 초기화
-                (e.currentTarget as HTMLInputElement).value = '';
-              }}
-            />
-            <label
-              htmlFor="photoInputSelect"
-              className="inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500 px-4 py-3 text-sm gap-2 w-full sm:w-auto"
-            >
-              <Upload className="w-5 h-5" />
-              파일 선택
-            </label>
-            <input
-              type="file"
-              id="photoInputCapture"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handlePhotoSelect}
-              onClick={(e) => {
-                (e.currentTarget as HTMLInputElement).value = '';
-              }}
-            />
-            <label
-              htmlFor="photoInputCapture"
-              className="mt-2 sm:mt-0 sm:ml-2 inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed bg-gray-700 text-white hover:bg-gray-800 focus:ring-gray-500 px-4 py-3 text-sm gap-2 w-full sm:w-auto lg:hidden"
-            >
-              <Camera className="w-5 h-5" />
-              촬영
-            </label>
+          <div className="mb-4 flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
+              <input
+                type="file"
+                id="photoInputSelect"
+                accept="image/*"
+                className="hidden"
+                onChange={handlePhotoSelect}
+                ref={photoSelectInputRef}
+              />
+              <Button
+                type="button"
+                onClick={handleFileSelectClick}
+                variant="primary"
+                className="w-full sm:w-auto"
+              >
+                <Upload className="w-5 h-5" />
+                파일 선택
+              </Button>
+              <input
+                type="file"
+                id="photoInputCapture"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoSelect}
+                ref={photoCaptureInputRef}
+              />
+              <Button
+                type="button"
+                onClick={handleCameraCaptureClick}
+                variant="secondary"
+                className="w-full sm:w-auto"
+              >
+                <Camera className="w-5 h-5" />
+                촬영
+              </Button>
+            </div>
           </div>
           {photoPreview && (
             <div className="relative flex flex-col justify-center sm:inline-block">
@@ -570,8 +617,10 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               )}
             </div>
           )}
-          <div className="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-gray-700 font-bold">
-            💡 팁: 부품 또는 장비의 사진을 첨부해 주세요. 사진은 자동으로 압축되어 전송됩니다. (최대 5MB, JPG/PNG 형식, 자동 리사이즈)
+          <div className="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-gray-700 font-semibold">
+            <p>
+              💡 부품 또는 장비의 사진을 첨부해 주세요. (최대 5MB, JPG/PNG 형식, 자동 리사이즈)
+            </p>
           </div>
         </div>
 

@@ -2,39 +2,117 @@
  * 날짜 포맷팅
  */
 export function formatDate(
-  dateString: string | null | undefined,
-  format: 'full' | 'short' | 'date' = 'full'
+  input: string | number | Date | null | undefined
 ): string {
-  if (!dateString) return '';
-  
-  try {
-    const date = new Date(dateString);
-    
-    if (format === 'date') {
-      return date.toLocaleDateString('ko-KR', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      });
+  if (input === null || input === undefined) return '';
+
+  const raw = typeof input === 'string' ? input.trim() : input;
+  if (raw === '') return '';
+
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+
+  /**
+   * Date(UTC epoch)를 KST(+9) 기준으로 표시용 파츠로 변환
+   * - 기기/브라우저 타임존과 무관하게 항상 KST로 출력
+   */
+  const toKstParts = (date: Date) => {
+    const kstMs = date.getTime() + 9 * 60 * 60 * 1000;
+    const kst = new Date(kstMs);
+    return {
+      yyyy: kst.getUTCFullYear(),
+      mm: pad2(kst.getUTCMonth() + 1),
+      dd: pad2(kst.getUTCDate()),
+      hh: pad2(kst.getUTCHours()),
+      mi: pad2(kst.getUTCMinutes()),
+      ss: pad2(kst.getUTCSeconds()),
+    };
+  };
+
+  const inputHasTime = (v: typeof input): boolean => {
+    if (v instanceof Date) {
+      return v.getHours() !== 0 || v.getMinutes() !== 0 || v.getSeconds() !== 0;
     }
-    
-    if (format === 'short') {
-      return date.toLocaleDateString('ko-KR', {
-        month: '2-digit',
-        day: '2-digit',
-      });
+    if (typeof v === 'number') {
+      // epoch(ms)로 들어온 값은 시간 정보를 포함한다고 보고 time 출력
+      return true;
     }
-    
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch (e) {
-    return String(dateString);
-  }
+    if (typeof v === 'string') {
+      const s = v.trim();
+      // 10:30 / 10:30:45 / 오전 9:45:44 등
+      return /(\d{1,2}:\d{2})(:\d{2})?/.test(s) || /(오전|오후)/.test(s);
+    }
+    return false;
+  };
+
+  const parseToDate = (v: typeof input): Date | null => {
+    if (v instanceof Date) return v;
+    if (typeof v === 'number') {
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof v !== 'string') return null;
+
+    const s = v.trim();
+    if (!s) return null;
+
+    // "YYYY-MM-DD"는 KST 날짜(일)로 취급 (기기 타임존 영향 제거)
+    const mYmdDash = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (mYmdDash) {
+      const y = Number(mYmdDash[1]);
+      const mo = Number(mYmdDash[2]);
+      const d = Number(mYmdDash[3]);
+      // KST 00:00:00 -> UTC로는 전날 15:00:00
+      const utcMs = Date.UTC(y, mo - 1, d, 0, 0, 0) - 9 * 60 * 60 * 1000;
+      return new Date(utcMs);
+    }
+
+    // "YYYY.MM.DD" 또는 "YYYY. M. D" + (오전/오후) + HH:mm(:ss)
+    const mKo = s.match(
+      /^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})(?:\s+(오전|오후)\s+(\d{1,2})(?::(\d{2}))(?::(\d{2}))?)?$/
+    );
+    if (mKo) {
+      const y = Number(mKo[1]);
+      const mo = Number(mKo[2]);
+      const d = Number(mKo[3]);
+      let hh = mKo[5] ? Number(mKo[5]) : 0;
+      const mm = mKo[6] ? Number(mKo[6]) : 0;
+      const ss = mKo[7] ? Number(mKo[7]) : 0;
+      const ampm = mKo[4];
+      if (ampm) {
+        // 오전/오후 12시 처리 포함
+        if (ampm === '오후' && hh < 12) hh += 12;
+        if (ampm === '오전' && hh === 12) hh = 0;
+      }
+      // KST 기준으로 고정 생성
+      const utcMs = Date.UTC(y, mo - 1, d, hh, mm, ss) - 9 * 60 * 60 * 1000;
+      return new Date(utcMs);
+    }
+
+    // "YYYY.MM.DD" / "YYYY/M/D" / "YYYY-M-D" 계열(시간 없음)
+    const mYmdAny = s.match(/^(\d{4})[./-]\s*(\d{1,2})[./-]\s*(\d{1,2})$/);
+    if (mYmdAny) {
+      const y = Number(mYmdAny[1]);
+      const mo = Number(mYmdAny[2]);
+      const d = Number(mYmdAny[3]);
+      const utcMs = Date.UTC(y, mo - 1, d, 0, 0, 0) - 9 * 60 * 60 * 1000;
+      return new Date(utcMs);
+    }
+
+    // 마지막 fallback: Date 파서
+    const d = new Date(s);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
+  const hasTime = inputHasTime(input);
+  const date = parseToDate(input);
+  if (!date) return String(input);
+
+  const parts = toKstParts(date);
+  const base = `${parts.yyyy}.${parts.mm}.${parts.dd}`;
+
+  if (!hasTime) return base;
+
+  return `${base} ${parts.hh}:${parts.mi}:${parts.ss}`;
 }
 
 /**
@@ -61,47 +139,51 @@ export function getDateRange(period: 'today' | 'thisWeek' | 'thisMonth' | 'last3
   dateFrom: string;
   dateTo: string;
 } {
-  const today = new Date();
-  today.setHours(23, 59, 59, 999); // 오늘 끝 시간
+  // 기기/브라우저 타임존과 무관하게 KST(Asia/Seoul) 기준으로 날짜 범위를 계산
+  const now = new Date();
+  const utcMs = now.getTime() + now.getTimezoneOffset() * 60 * 1000;
+  const kstNow = new Date(utcMs + 9 * 60 * 60 * 1000);
+  // KST 프레임에서의 "오늘 끝" (UTC getter/setter 사용)
+  const today = new Date(kstNow.getTime());
+  today.setUTCHours(23, 59, 59, 999);
 
   let dateFrom: Date;
-  const dateTo = new Date(today);
+  const dateTo = new Date(today.getTime());
 
   switch (period) {
     case 'today':
-      dateFrom = new Date(today);
-      dateFrom.setHours(0, 0, 0, 0);
+      dateFrom = new Date(today.getTime());
+      dateFrom.setUTCHours(0, 0, 0, 0);
       break;
 
     case 'thisWeek':
-      dateFrom = new Date(today);
-      const dayOfWeek = today.getDay(); // 0: 일요일, 6: 토요일
-      dateFrom.setDate(today.getDate() - dayOfWeek); // 이번 주 월요일
-      dateFrom.setHours(0, 0, 0, 0);
+      dateFrom = new Date(today.getTime());
+      const dayOfWeek = today.getUTCDay(); // 0: 일요일, 6: 토요일 (KST 프레임)
+      dateFrom.setUTCDate(today.getUTCDate() - dayOfWeek);
+      dateFrom.setUTCHours(0, 0, 0, 0);
       break;
 
     case 'thisMonth':
-      dateFrom = new Date(today.getFullYear(), today.getMonth(), 1);
-      dateFrom.setHours(0, 0, 0, 0);
+      dateFrom = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1, 0, 0, 0, 0));
       break;
 
     case 'last3Months':
-      dateFrom = new Date(today);
-      dateFrom.setMonth(today.getMonth() - 3);
-      dateFrom.setDate(1); // 3개월 전 1일
-      dateFrom.setHours(0, 0, 0, 0);
+      dateFrom = new Date(today.getTime());
+      dateFrom.setUTCMonth(today.getUTCMonth() - 3);
+      dateFrom.setUTCDate(1);
+      dateFrom.setUTCHours(0, 0, 0, 0);
       break;
 
     default:
-      dateFrom = new Date(today);
-      dateFrom.setHours(0, 0, 0, 0);
+      dateFrom = new Date(today.getTime());
+      dateFrom.setUTCHours(0, 0, 0, 0);
   }
 
   // YYYY-MM-DD 형식으로 변환
   const formatDate = (date: Date): string => {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
 

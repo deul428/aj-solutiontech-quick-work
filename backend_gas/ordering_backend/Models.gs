@@ -169,7 +169,8 @@ class RequestModel {
   delete(requestNo) {
     return this.update(requestNo, { 
       status: CONFIG.STATUS.CANCELLED,
-      lastModified: new Date()
+      // 날짜/시간 저장 포맷 통일 (KST ISO +09:00)
+      lastModified: formatKstIsoDateTime(new Date())
     });
   }
   
@@ -221,7 +222,7 @@ class RequestModel {
       '접수담당자': 'handler',
       '담당자비고': 'handlerRemarks',
       '발주일시': 'orderDate',
-      '예상납기일': 'expectedDeliveryDate',
+      '예상납기일시': 'expectedDeliveryDate',
       '수령확인일시': 'receiptDate',
       '최종수정일시': 'lastModified',
       '최종수정자': 'lastModifiedBy'
@@ -258,26 +259,35 @@ class RequestModel {
       try {
         if (!obj.requestDate) return false;
         
-        // requestDate를 문자열로 변환 (YYYY-MM-DD 형식)
-        let reqDateStr;
+        // requestDate를 YYYY-MM-DD 문자열로 정규화
+        // - 신규 데이터는 "YYYY-MM-DDTHH:mm:ss+09:00" (KST ISO)로 저장
+        // - 레거시 데이터는 "YYYY. M. D 오전/오후 ..." 등도 존재 가능
+        let reqDateStr = '';
         if (obj.requestDate instanceof Date) {
-          reqDateStr = Utilities.formatDate(obj.requestDate, 'Asia/Seoul', 'yyyy-MM-dd');
+          reqDateStr = formatKstDateOnly(obj.requestDate);
         } else {
-          // 문자열인 경우 날짜 부분만 추출 (예: "2026. 1. 7 오전 9:45:44" -> "2026-01-07")
-          const dateStr = String(obj.requestDate);
-          if (dateStr.includes('.')) {
-            // "2026. 1. 7 오전 9:45:44" 형식
-            const parts = dateStr.split(' ')[0].split('.').map(p => p.trim());
-            if (parts.length >= 3) {
+          const dateStr = String(obj.requestDate).trim();
+          // ISO / "YYYY-MM-DD ..." 계열: 앞 10자리 사용
+          const mIsoLike = dateStr.match(/^(\d{4}-\d{2}-\d{2})/);
+          if (mIsoLike) {
+            reqDateStr = mIsoLike[1];
+          } else {
+            // "2026. 1. 7 오전 9:45:44" → y-m-d
+            const parts = dateStr.split(' ')[0].split('.').map(p => p.trim()).filter(Boolean);
+            if (parts.length >= 3 && /^\d{4}$/.test(parts[0])) {
               const year = parts[0];
-              const month = parts[1].padStart(2, '0');
-              const day = parts[2].padStart(2, '0');
+              const month = String(parts[1] || '').padStart(2, '0');
+              const day = String(parts[2] || '').padStart(2, '0');
               reqDateStr = `${year}-${month}-${day}`;
             } else {
-              reqDateStr = dateStr.split(' ')[0]; // 공백 앞부분만 사용
+              // 최후 fallback: Date 파싱 시도
+              const d = new Date(dateStr);
+              if (!isNaN(d.getTime())) {
+                reqDateStr = formatKstDateOnly(d);
+              } else {
+                reqDateStr = dateStr.split(' ')[0];
+              }
             }
-          } else {
-            reqDateStr = dateStr.split(' ')[0]; // 공백 앞부분만 사용
           }
         }
         

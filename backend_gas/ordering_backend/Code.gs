@@ -692,14 +692,23 @@ function getAllRequests(filter = {}, sessionToken) {
       return [];
     }
     
-    // 프론트엔드용 포맷팅
+    // 프론트엔드/저장 포맷 통일
+    // - 모든 날짜/시간은 KST ISO 8601(+09:00) 문자열로 반환
     const formatDateField = function(dateValue) {
       if (!dateValue) return '';
       try {
         if (dateValue instanceof Date) {
-          return Utilities.formatDate(dateValue, 'Asia/Seoul', 'yyyy. M. d a hh:mm:ss');
+          return formatKstIsoDateTime(dateValue);
         }
-        return String(dateValue);
+        const s = String(dateValue).trim();
+        // 이미 ISO 형태면 그대로 사용 (최소한 YYYY-MM-DD는 유지)
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/.test(s)) {
+          return s;
+        }
+        // 레거시 "2026. 1. 7 오전 9:45:44" → ISO로 변환
+        const d = parseKoKstDateTimeString_(s);
+        if (d) return formatKstIsoDateTime(d);
+        return s;
       } catch (e) {
         return String(dateValue);
       }
@@ -803,7 +812,7 @@ function assignHandler(requestNo, handlerEmail, sessionToken) {
  * @param {string} remarks - 담당자 비고 (선택사항)
  * @param {string} sessionToken - 세션 토큰
  * @param {string} handler - 담당자 (선택사항)
- * @param {string} expectedDeliveryDate - 예상납기일 (선택사항)
+ * @param {string} expectedDeliveryDate - 예상납기일시 (선택사항)
  * @return {Object} 결과 객체 {success: boolean, message: string}
  */
 function updateRequestStatus(requestNo, newStatus, remarks, sessionToken, handler, expectedDeliveryDate, requesterRemarks) {
@@ -2953,7 +2962,7 @@ function setupSheetHeaders(sheet, sheetName) {
       '신청번호', '신청일시', '신청자아이디', '신청자이메일', '신청자이름', '기사코드',
       '소속팀', '지역', '품명', '규격', '시리얼번호', '수량',
       '관리번호', '배송지', '전화번호', '업체명', '비고', '사진URL',
-      '상태', '접수담당자', '담당자비고', '발주일시', '예상납기일',
+      '상태', '접수담당자', '담당자비고', '발주일시', '예상납기일시',
       '수령확인일시', '최종수정일시', '최종수정자'
     ],
     [CONFIG.SHEETS.USERS]: [

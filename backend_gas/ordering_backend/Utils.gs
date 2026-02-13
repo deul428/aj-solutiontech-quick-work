@@ -14,6 +14,49 @@ function formatDate(date, format = 'yyyy-MM-dd') {
 }
 
 /**
+ * KST(Asia/Seoul) 기준 ISO 8601 문자열로 통일합니다.
+ * - 시스템/기기 로케일과 무관하게 파싱이 안정적입니다.
+ * - 예: 2026-02-13T15:04:05+09:00
+ */
+function formatKstIsoDateTime(date) {
+  if (!date) return '';
+  const base = Utilities.formatDate(new Date(date), 'Asia/Seoul', "yyyy-MM-dd'T'HH:mm:ss");
+  // 한국은 DST가 없으므로 +09:00 고정
+  return base + '+09:00';
+}
+
+/**
+ * KST(Asia/Seoul) 기준 날짜(일) 문자열로 통일합니다.
+ * - 예: 2026-02-13
+ */
+function formatKstDateOnly(date) {
+  if (!date) return '';
+  return Utilities.formatDate(new Date(date), 'Asia/Seoul', 'yyyy-MM-dd');
+}
+
+/**
+ * "2026. 1. 7 오전 9:45:44" 같은 한국어 날짜 문자열을 Date로 파싱합니다.
+ * 파싱 실패 시 null 반환.
+ */
+function parseKoKstDateTimeString_(s) {
+  if (!s) return null;
+  const str = String(s).trim();
+  // yyyy. M. d 오전/오후 h:mm(:ss)
+  const m = str.match(/^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})\s+(오전|오후)\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return null;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const ampm = m[4];
+  let hh = Number(m[5]);
+  const mm = Number(m[6]);
+  const ss = m[7] ? Number(m[7]) : 0;
+  if (ampm === '오후' && hh < 12) hh += 12;
+  if (ampm === '오전' && hh === 12) hh = 0;
+  return new Date(y, mo - 1, d, hh, mm, ss);
+}
+
+/**
  * 두 날짜가 같은 날인지 비교합니다.
  * @param {Date|string} date1 - 첫 번째 날짜
  * @param {Date|string} date2 - 두 번째 날짜
