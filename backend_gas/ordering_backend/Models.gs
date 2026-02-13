@@ -186,6 +186,12 @@ class RequestModel {
         obj[key] = row[index];
       }
     });
+    // 레거시 정규화:
+    // - 과거 데이터는 신청자ID가 '신청자이메일' 컬럼(requesterEmail)에 저장되었을 수 있으므로
+    //   requesterUserId가 비어있으면 requesterEmail을 사용자ID로 간주해 채웁니다.
+    if (!obj.requesterUserId && obj.requesterEmail) {
+      obj.requesterUserId = obj.requesterEmail;
+    }
     return obj;
   }
   
@@ -198,10 +204,14 @@ class RequestModel {
   }
   
   _headerToKey(header) {
+    const h = String(header === null || header === undefined ? '' : header).trim();
     const map = {
       '신청번호': 'requestNo',
-      '신청일시': 'requestDate',  
-      '신청자이메일': 'requesterEmail', // 하위 호환성
+      '신청일시': 'requestDate',   
+      // 신청자 식별자 컬럼은 운영 중 헤더명이 다를 수 있어 변형을 함께 지원합니다.
+      '신청자아이디': 'requesterUserId',
+      '신청자ID': 'requesterUserId',
+      '신청자이메일': 'requesterEmail',
       '신청자이름': 'requesterName',
       '기사코드': 'employeeCode',
       '소속팀': 'team',
@@ -227,29 +237,36 @@ class RequestModel {
       '최종수정일시': 'lastModified',
       '최종수정자': 'lastModifiedBy'
     };
-    return map[header] || header;
+    return map[h] || h;
   }
   
   _getColumnIndex(key) {
-    const reverseMap = {
-      'requestNo': 0, 'requestDate': 1, 'requesterEmail': 2,
-      'requesterName': 3, 'employeeCode': 4, 'team': 5,
-      'region': 6, 'itemName': 7, 'modelName': 8,
-      'serialNo': 9, 'quantity': 10, 'assetNo': 11,
-      'deliveryPlace': 12, 'phone': 13, 'company': 14,
-      'remarks': 15, 'photoUrl': 16, 'status': 17,
-      'handler': 18, 'handlerRemarks': 19, 'orderDate': 20,
-      'expectedDeliveryDate': 21, 'receiptDate': 22,
-      'lastModified': 23, 'lastModifiedBy': 24
-    };
-    return reverseMap[key] !== undefined ? reverseMap[key] : -1;
+    // 시트 컬럼 순서가 바뀌어도 동작하도록 "헤더명 기반"으로 컬럼 위치를 찾습니다.
+    // (reverseMap 고정 인덱스 방식은 운영 중 컬럼 변경에 취약)
+    try {
+      if (!this.sheet) return -1;
+      const headers = this.sheet
+        .getRange(1, 1, 1, this.sheet.getLastColumn())
+        .getValues()[0];
+
+      for (let i = 0; i < headers.length; i++) {
+        const mappedKey = this._headerToKey(headers[i]);
+        if (mappedKey === key) return i;
+      }
+      return -1;
+    } catch (e) {
+      Logger.log('_getColumnIndex error: ' + e);
+      return -1;
+    }
   }
   
   _matchFilter(obj, filter) {
     if (filter.status && obj.status !== filter.status) return false;
-    // 사용자 ID 기반 필터링 지원
-    if (filter.requesterUserId && obj.requesterEmail !== filter.requesterUserId) return false;
-    if (filter.requesterEmail && obj.requesterEmail !== filter.requesterEmail) return false;
+    // 사용자 ID 기반 필터링 지원 (신규: requesterUserId, 레거시: requesterEmail에 사용자ID가 저장된 경우)
+    const objRequesterUserId = String(obj.requesterUserId || obj.requesterEmail || '').trim();
+    if (filter.requesterUserId && objRequesterUserId !== String(filter.requesterUserId || '').trim()) return false;
+    // 하위 호환성: requesterEmail 파라미터가 들어오면 "신청자ID"로 취급
+    if (filter.requesterEmail && objRequesterUserId !== String(filter.requesterEmail || '').trim()) return false;
     if (filter.region && obj.region !== filter.region) return false;
     // 관리번호 필터링 지원
     if (filter.assetNo && String(obj.assetNo || '').trim() !== String(filter.assetNo || '').trim()) return false;

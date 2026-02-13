@@ -66,6 +66,21 @@ export function formatDate(
       return new Date(utcMs);
     }
 
+    // "YYYY-MM-DD HH:mm" / "YYYY-MM-DD HH:mm:ss" (백엔드에서 자주 내려오는 포맷)
+    const mYmdDashTime = s.match(
+      /^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/
+    );
+    if (mYmdDashTime) {
+      const y = Number(mYmdDashTime[1]);
+      const mo = Number(mYmdDashTime[2]);
+      const d = Number(mYmdDashTime[3]);
+      const hh = Number(mYmdDashTime[4]);
+      const mi = Number(mYmdDashTime[5]);
+      const ss = mYmdDashTime[6] ? Number(mYmdDashTime[6]) : 0;
+      const utcMs = Date.UTC(y, mo - 1, d, hh, mi, ss) - 9 * 60 * 60 * 1000;
+      return new Date(utcMs);
+    }
+
     // "YYYY.MM.DD" 또는 "YYYY. M. D" + (오전/오후) + HH:mm(:ss)
     const mKo = s.match(
       /^(\d{4})\.\s*(\d{1,2})\.\s*(\d{1,2})(?:\s+(오전|오후)\s+(\d{1,2})(?::(\d{2}))(?::(\d{2}))?)?$/
@@ -113,6 +128,101 @@ export function formatDate(
   if (!hasTime) return base;
 
   return `${base} ${parts.hh}:${parts.mi}:${parts.ss}`;
+}
+
+/**
+ * KST 기준 datetime-local 값(YYYY-MM-DDTHH:mm:ss)으로 변환합니다.
+ * - 관리자 화면 입력 기본값 용도
+ */
+export function toDatetimeLocalValue(
+  input: string | number | Date | null | undefined
+): string {
+  if (input === null || input === undefined) return '';
+  const s = typeof input === 'string' ? input.trim() : input;
+  if (s === '') return '';
+
+  // formatDate 내부와 동일한 파싱 규칙(일부 중복)
+  const parseToDate = (v: typeof input): Date | null => {
+    if (v instanceof Date) return v;
+    if (typeof v === 'number') {
+      const d = new Date(v);
+      return Number.isNaN(d.getTime()) ? null : d;
+    }
+    if (typeof v !== 'string') return null;
+    const str = v.trim();
+    if (!str) return null;
+
+    // "YYYY-MM-DD" (KST date-only)
+    const mYmd = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (mYmd) {
+      const y = Number(mYmd[1]);
+      const mo = Number(mYmd[2]);
+      const d = Number(mYmd[3]);
+      const utcMs = Date.UTC(y, mo - 1, d, 0, 0, 0) - 9 * 60 * 60 * 1000;
+      return new Date(utcMs);
+    }
+
+    // "YYYY-MM-DD HH:mm(:ss)"
+    const mYmdTime = str.match(/^(\d{4})-(\d{2})-(\d{2})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (mYmdTime) {
+      const y = Number(mYmdTime[1]);
+      const mo = Number(mYmdTime[2]);
+      const d = Number(mYmdTime[3]);
+      const hh = Number(mYmdTime[4]);
+      const mi = Number(mYmdTime[5]);
+      const ss = mYmdTime[6] ? Number(mYmdTime[6]) : 0;
+      const utcMs = Date.UTC(y, mo - 1, d, hh, mi, ss) - 9 * 60 * 60 * 1000;
+      return new Date(utcMs);
+    }
+
+    // datetime-local "YYYY-MM-DDTHH:mm(:ss)" (KST)
+    const mLocal = str.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (mLocal) {
+      const y = Number(mLocal[1]);
+      const mo = Number(mLocal[2]);
+      const d = Number(mLocal[3]);
+      const hh = Number(mLocal[4]);
+      const mi = Number(mLocal[5]);
+      const ss = mLocal[6] ? Number(mLocal[6]) : 0;
+      const utcMs = Date.UTC(y, mo - 1, d, hh, mi, ss) - 9 * 60 * 60 * 1000;
+      return new Date(utcMs);
+    }
+
+    // fallback: ISO 포함 (Z/오프셋 포함 가능)
+    const d = new Date(str);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
+  const date = parseToDate(input);
+  if (!date) return '';
+
+  // KST parts
+  const kstMs = date.getTime() + 9 * 60 * 60 * 1000;
+  const kst = new Date(kstMs);
+  const yyyy = kst.getUTCFullYear();
+  const mm = String(kst.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(kst.getUTCDate()).padStart(2, '0');
+  const hh = String(kst.getUTCHours()).padStart(2, '0');
+  const mi = String(kst.getUTCMinutes()).padStart(2, '0');
+  const ss = String(kst.getUTCSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}T${hh}:${mi}:${ss}`;
+}
+
+/**
+ * datetime-local(YYYY-MM-DDTHH:mm:ss)을 timestampz 호환 ISO(+09:00)로 변환합니다.
+ * - 예: 2026-02-13T15:39:41 -> 2026-02-13T15:39:41+09:00
+ * - 빈 문자열은 '' 반환(값 비우기)
+ */
+export function datetimeLocalToKstIsoOffset(value: string): string {
+  const s = String(value || '').trim();
+  if (!s) return '';
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return s; // 유효하지 않으면 그대로(서버에서 검증/정규화)
+  const datePart = m[1];
+  const hh = m[2];
+  const mi = m[3];
+  const ss = m[4] || '00';
+  return `${datePart}T${hh}:${mi}:${ss}+09:00`;
 }
 
 /**

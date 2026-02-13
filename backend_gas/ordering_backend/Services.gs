@@ -54,7 +54,10 @@ class RequestService {
         requestNo: requestNo,
         // 날짜/시간 저장 포맷 통일 (KST ISO +09:00)
         requestDate: formatKstIsoDateTime(new Date()),
-        requesterEmail: user.userId, // 사용자 ID 사용
+        // 신규: 신청자 식별자는 requesterUserId(=사용자ID)로 저장
+        requesterUserId: user.userId,
+        // 이메일 컬럼은 실제 이메일이 있는 경우에만 저장 (레거시/환경별 userId가 이메일일 수도 있음)
+        requesterEmail: (user.userId && String(user.userId).includes('@')) ? user.userId : '',
         requesterName: user.name,
         employeeCode: user.employeeCode,
         team: user.team,
@@ -352,7 +355,8 @@ class RequestService {
     }
     
     // 신청자는 '접수중' 상태만 취소 가능
-    if (user.userId === request.requesterEmail) {
+    const requesterUserId = String(request.requesterUserId || request.requesterEmail || '').trim();
+    if (String(user.userId || '').trim() === requesterUserId) {
       if (request.status === CONFIG.STATUS.REQUESTED && 
           newStatus === CONFIG.STATUS.CANCELLED) {
         return;
@@ -405,8 +409,10 @@ class RequestService {
       
       const message = statusMessages[newStatus];
       if (message) {
-        // requesterEmail이 이메일 형식일 수도 있고 사용자 ID일 수도 있음
-        const userEmail = request.requesterEmail.includes('@') ? request.requesterEmail : request.requesterEmail + '@example.com';
+        // 이메일이 없으면 requesterUserId 기반으로 fallback
+        const emailOrId = String(request.requesterEmail || request.requesterUserId || '').trim();
+        if (!emailOrId) return;
+        const userEmail = emailOrId.includes('@') ? emailOrId : emailOrId + '@example.com';
         MailApp.sendEmail({
           to: userEmail,
           subject: '[부품발주] 상태 변경 - ' + request.requestNo,

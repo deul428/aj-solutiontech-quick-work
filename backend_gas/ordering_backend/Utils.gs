@@ -57,6 +57,34 @@ function parseKoKstDateTimeString_(s) {
 }
 
 /**
+ * 시트/프론트 공용: 날짜/시간 필드를 KST ISO(+09:00) 문자열로 정규화합니다.
+ * - Date → KST ISO
+ * - 이미 ISO(+09:00)면 그대로
+ * - 레거시 "2026. 1. 7 오전 9:45:44" → 파싱 후 KST ISO
+ * - 그 외는 문자열 그대로 반환
+ */
+function formatDateField(dateValue) {
+  if (!dateValue) return '';
+  try {
+    if (dateValue instanceof Date) {
+      return formatKstIsoDateTime(dateValue);
+    }
+    const s = String(dateValue).trim();
+    if (s === '') return '';
+    // 이미 KST ISO 형태면 그대로
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/.test(s)) {
+      return s;
+    }
+    // 레거시 한국어 문자열 → ISO로 변환
+    const d = parseKoKstDateTimeString_(s);
+    if (d) return formatKstIsoDateTime(d);
+    return s;
+  } catch (e) {
+    return String(dateValue);
+  }
+}
+
+/**
  * 두 날짜가 같은 날인지 비교합니다.
  * @param {Date|string} date1 - 첫 번째 날짜
  * @param {Date|string} date2 - 두 번째 날짜

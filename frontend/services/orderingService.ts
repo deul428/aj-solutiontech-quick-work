@@ -734,6 +734,41 @@ export async function updateHandlerRemarksOrdering(
 }
 
 /**
+ * (관리자 전용) 신청 건의 발주일시/예상납기일/접수담당자비고를 부분 업데이트합니다.
+ * - 전달된 필드만 업데이트(빈 문자열로 보내면 비우기)
+ */
+export async function updateRequestFieldsOrdering(
+    url: string,
+    requestNo: string,
+    updates: {
+        orderDate?: string;
+        expectedDeliveryDate?: string;
+        handlerRemarks?: string;
+    },
+    sessionToken: string
+): Promise<{ success: boolean; message?: string }> {
+    try {
+        const result = await postOrderingData<{ success: boolean; message?: string }>(
+            url,
+            'updateRequestFields',
+            {
+                requestNo,
+                updates,
+                token: sessionToken
+            }
+        );
+
+        return result;
+    } catch (error: any) {
+        console.error('Failed to update request fields:', error);
+        return {
+            success: false,
+            message: error.message || '신청 정보 업데이트 중 오류가 발생했습니다.'
+        };
+    }
+}
+
+/**
  * 내 신청 목록을 엑셀 파일로 다운로드 (기간 필터 지원)
  */
 export async function downloadMyRequestsExcel(

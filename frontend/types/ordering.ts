@@ -13,7 +13,10 @@ export interface User {
 export interface Request {
   requestNo: string;
   requestDate: string;
-  requesterEmail: string;
+  // 신규: 신청자 식별자는 사용자ID 기준
+  requesterUserId?: string;
+  // 하위 호환성: 과거에는 requesterEmail에 사용자ID가 들어오기도 했음
+  requesterEmail?: string;
   requesterName: string;
   employeeCode?: string;
   team: string;

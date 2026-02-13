@@ -211,8 +211,7 @@ function getMyRequests(filter = {}, sessionToken) {
     
     // 사용자 ID 기반으로 필터링
     filter.requesterUserId = user.userId;
-    filter.requesterEmail = user.userId; // 하위 호환성
-    filter.requesterEmail = user.userId; // 하위 호환성
+    filter.requesterEmail = user.userId; // 하위 호환성 (requesterEmail 파라미터를 사용자ID로 취급)
     
     const requestModel = new RequestModel();
     
@@ -242,11 +241,11 @@ function getMyRequests(filter = {}, sessionToken) {
     
     const result = requestModel.findAll(serverFilter, options);
     
-    // 포맷팅 함수
+    // 포맷팅 함수 (timestampz 호환 ISO(+09:00) 문자열로 통일)
     const formatRequest = function(req) {
       return {
         requestNo: req.requestNo,
-        requestDate: formatDate(req.requestDate, 'yyyy-MM-dd HH:mm'),
+        requestDate: formatDateField(req.requestDate),
         requesterName: req.requesterName || '',
         employeeCode: req.employeeCode || '',
         team: req.team || '',
@@ -264,9 +263,9 @@ function getMyRequests(filter = {}, sessionToken) {
         status: req.status,
         handler: req.handler || '',
         handlerRemarks: req.handlerRemarks || '',
-        orderDate: req.orderDate ? formatDate(req.orderDate, 'yyyy-MM-dd HH:mm') : '',
-        expectedDeliveryDate: req.expectedDeliveryDate ? formatDate(req.expectedDeliveryDate, 'yyyy-MM-dd') : '',
-        receiptDate: req.receiptDate ? formatDate(req.receiptDate, 'yyyy-MM-dd HH:mm') : '',
+        orderDate: formatDateField(req.orderDate),
+        expectedDeliveryDate: formatDateField(req.expectedDeliveryDate),
+        receiptDate: formatDateField(req.receiptDate),
         canCancel: req.status === CONFIG.STATUS.REQUESTED,
         canConfirmReceipt: req.status === CONFIG.STATUS.COMPLETED_CONFIRMED || req.status === CONFIG.STATUS.COMPLETED_PENDING
       };
@@ -716,13 +715,17 @@ function getAllRequests(filter = {}, sessionToken) {
     
     const formatted = requests.map((req, index) => {
       try {
+        const requesterUserId = String(req.requesterUserId || req.requesterEmail || '').trim();
         return {
           rowIndex: req._rowIndex,
           requestNo: req.requestNo,
           requestDate: formatDateField(req.requestDate),
           requester: req.requesterName,
           requesterName: req.requesterName, 
-          requesterEmail: req.requesterEmail,
+          // 신규: requesterUserId를 기준으로 사용 (레거시 fallback 포함)
+          requesterUserId: requesterUserId,
+          // requesterEmail은 "실제 이메일" 값이 있는 경우만 내려줌 (없으면 빈 문자열)
+          requesterEmail: req.requesterEmail || '',
           team: req.team,
           region: req.region,
           itemName: req.itemName,
@@ -855,9 +858,10 @@ function updateRequestStatus(requestNo, newStatus, remarks, sessionToken, handle
       // getAllRequests 캐시는 TTL에 의존 (패턴 매칭 어려움)
       // 통계 캐시는 사용자별로 관리되므로 해당 사용자 캐시만 제거
       const request = requestModel.findById(requestNo);
-      if (request && request.requesterEmail) {
-        cacheManager.remove('request_stats_' + request.requesterEmail);
-        cacheManager.remove('my_requests_' + request.requesterEmail);
+      const requesterKey = request ? String(request.requesterUserId || request.requesterEmail || '').trim() : '';
+      if (requesterKey) {
+        cacheManager.remove('request_stats_' + requesterKey);
+        cacheManager.remove('my_requests_' + requesterKey);
       }
     }
     
@@ -890,7 +894,7 @@ function updateRequesterRemarks(requestNo, requesterRemarks, sessionToken) {
     }
     
     // 권한 체크: 신청자 본인 또는 관리자만 가능
-    const requestUserId = String(request.requesterEmail || '').trim();
+    const requestUserId = String(request.requesterUserId || request.requesterEmail || '').trim();
     const currentUserId = String(user.userId || '').trim();
     const isRequester = requestUserId === currentUserId;
     const isAdmin = user.role === CONFIG.ROLES.ADMIN;
@@ -910,9 +914,10 @@ function updateRequesterRemarks(requestNo, requesterRemarks, sessionToken) {
     // 캐시 무효화
     const cacheManager = new CacheManager();
     cacheManager.remove('request_' + requestNo);
-    if (request.requesterEmail) {
-      cacheManager.remove('request_stats_' + request.requesterEmail);
-      cacheManager.remove('my_requests_' + request.requesterEmail);
+    const requesterKey = String(request.requesterUserId || request.requesterEmail || '').trim();
+    if (requesterKey) {
+      cacheManager.remove('request_stats_' + requesterKey);
+      cacheManager.remove('my_requests_' + requesterKey);
     }
     
     new LogService().log('신청자 비고 업데이트', requestNo, user.userId);
@@ -967,9 +972,10 @@ function updateHandlerRemarks(requestNo, handlerRemarks, sessionToken) {
     // 캐시 무효화
     const cacheManager = new CacheManager();
     cacheManager.remove('request_' + requestNo);
-    if (request.requesterEmail) {
-      cacheManager.remove('request_stats_' + request.requesterEmail);
-      cacheManager.remove('my_requests_' + request.requesterEmail);
+    const requesterKey = String(request.requesterUserId || request.requesterEmail || '').trim();
+    if (requesterKey) {
+      cacheManager.remove('request_stats_' + requesterKey);
+      cacheManager.remove('my_requests_' + requesterKey);
     }
     
     new LogService().log('접수 담당자 비고 업데이트', requestNo, user.userId);
@@ -981,6 +987,109 @@ function updateHandlerRemarks(requestNo, handlerRemarks, sessionToken) {
   } catch (error) {
     log('ERROR', 'updateHandlerRemarks error: ' + error);
     return ErrorHandler.handle(error, 'updateHandlerRemarks');
+  }
+}
+
+/**
+ * (관리자 전용) 신청 건의 일부 필드를 업데이트합니다.
+ * - 발주일시(orderDate), 예상납기일시(expectedDeliveryDate), 접수담당자비고(handlerRemarks)
+ * - 전달된 키만 업데이트하며, 빈 문자열은 값 비우기로 처리합니다.
+ *
+ * @param {string} requestNo - 신청번호
+ * @param {Object} updatesPayload - 업데이트할 필드들
+ * @param {string} sessionToken - 세션 토큰
+ * @return {Object} 결과 객체 {success: boolean, message: string}
+ */
+function updateRequestFields(requestNo, updatesPayload, sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      throw new Error('관리자만 변경할 수 있습니다.');
+    }
+
+    const requestModel = new RequestModel();
+    const request = requestModel.findById(requestNo);
+    if (!request) {
+      throw new Error('신청 건을 찾을 수 없습니다.');
+    }
+
+    const updates = {};
+    const payload = updatesPayload || {};
+
+    // timestampz(ISO+09:00) 정규화
+    const normalizeKstIso_ = (v) => {
+      if (v === null || v === undefined) return '';
+      const s = String(v).trim();
+      if (s === '') return '';
+      // 이미 원하는 형태
+      if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+09:00$/.test(s)) return s;
+      // datetime-local: YYYY-MM-DDTHH:mm(:ss)
+      const mLocal = s.match(/^(\d{4}-\d{2}-\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+      if (mLocal) {
+        const datePart = mLocal[1];
+        const hh = mLocal[2];
+        const mm = mLocal[3];
+        const ss = mLocal[4] ? mLocal[4] : '00';
+        return `${datePart}T${hh}:${mm}:${ss}+09:00`;
+      }
+      // YYYY-MM-DD HH:mm(:ss)
+      const mSpace = s.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/);
+      if (mSpace) {
+        const datePart = mSpace[1];
+        const hh = mSpace[2];
+        const mm = mSpace[3];
+        const ss = mSpace[4] ? mSpace[4] : '00';
+        return `${datePart}T${hh}:${mm}:${ss}+09:00`;
+      }
+      // date-only: YYYY-MM-DD
+      if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T00:00:00+09:00`;
+      // 레거시 한국어 문자열
+      const dKo = parseKoKstDateTimeString_(s);
+      if (dKo) return formatKstIsoDateTime(dKo);
+      // 기타: Date 파싱 시도 후 ISO로
+      const d = new Date(s);
+      if (!isNaN(d.getTime())) return formatKstIsoDateTime(d);
+      return s;
+    };
+
+    // 전달된 키만 반영 (빈 문자열도 허용)
+    if (Object.prototype.hasOwnProperty.call(payload, 'orderDate')) {
+      updates.orderDate = normalizeKstIso_(payload.orderDate);
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'expectedDeliveryDate')) {
+      updates.expectedDeliveryDate = normalizeKstIso_(payload.expectedDeliveryDate);
+    }
+    if (Object.prototype.hasOwnProperty.call(payload, 'handlerRemarks')) {
+      updates.handlerRemarks = payload.handlerRemarks;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return { success: true, message: '변경사항이 없습니다.' };
+    }
+
+    updates.lastModified = new Date();
+    updates.lastModifiedBy = user.userId;
+
+    requestModel.update(requestNo, updates);
+
+    // 캐시 무효화
+    const cacheManager = new CacheManager();
+    cacheManager.remove('request_' + requestNo);
+    const requesterKey = String(request.requesterUserId || request.requesterEmail || '').trim();
+    if (requesterKey) {
+      cacheManager.remove('request_stats_' + requesterKey);
+      cacheManager.remove('my_requests_' + requesterKey);
+    }
+
+    new LogService().log('신청 정보 업데이트', requestNo, user.userId);
+
+    return {
+      success: true,
+      message: '저장되었습니다.'
+    };
+  } catch (error) {
+    log('ERROR', 'updateRequestFields error: ' + error);
+    return ErrorHandler.handle(error, 'updateRequestFields');
   }
 }
 
@@ -2299,11 +2408,11 @@ function getRequest(requestNo, sessionToken) {
     Logger.log('getRequest - requesterName: ' + request.requesterName);
     Logger.log('getRequest - team: ' + request.team);
     Logger.log('getRequest - employeeCode: ' + request.employeeCode);
-    Logger.log('getRequest - requesterEmail: ' + request.requesterEmail);
+    Logger.log('getRequest - requesterUserId: ' + (request.requesterUserId || request.requesterEmail));
     Logger.log('getRequest - Current user userId: ' + user.userId);
     
-    // 권한 체크 (requesterEmail과 userId 비교 시 정규화)
-    const requestUserId = String(request.requesterEmail || '').trim();
+    // 권한 체크 (신청자ID와 userId 비교 시 정규화, 레거시 fallback 포함)
+    const requestUserId = String(request.requesterUserId || request.requesterEmail || '').trim();
     const currentUserId = String(user.userId || '').trim();
     
     if (user.role !== CONFIG.ROLES.ADMIN && requestUserId !== currentUserId) {
@@ -2315,6 +2424,7 @@ function getRequest(requestNo, sessionToken) {
       rowIndex: request._rowIndex,
       requestNo: request.requestNo ? String(request.requestNo) : '',
       requestDate: request.requestDate ? String(request.requestDate) : '',
+      requesterUserId: String(request.requesterUserId || request.requesterEmail || ''),
       requesterEmail: request.requesterEmail || '',
       requesterName: request.requesterName || '',
       employeeCode: request.employeeCode || '', // requesterCode -> employeeCode로 수정
@@ -2865,7 +2975,9 @@ function getRequestDetail(requestNo, sessionToken) {
     // 권한 체크 (세션이 있는 경우)
     if (sessionToken) {
       const user = getCurrentUser(sessionToken);
-      if (user && user.role !== CONFIG.ROLES.ADMIN && request.requesterEmail !== user.userId) {
+      const requestUserId = String(request.requesterUserId || request.requesterEmail || '').trim();
+      const currentUserId = String(user && user.userId ? user.userId : '').trim();
+      if (user && user.role !== CONFIG.ROLES.ADMIN && requestUserId !== currentUserId) {
         throw new Error('조회 권한이 없습니다.');
       }
     }
@@ -2959,7 +3071,7 @@ function getSheetByNameLoose_(ss, canonicalName) {
 function setupSheetHeaders(sheet, sheetName) {
   const headers = {
     [CONFIG.SHEETS.REQUESTS]: [
-      '신청번호', '신청일시', '신청자아이디', '신청자이메일', '신청자이름', '기사코드',
+      '신청번호', '신청일시', '신청자ID', '신청자이메일', '신청자이름', '기사코드',
       '소속팀', '지역', '품명', '규격', '시리얼번호', '수량',
       '관리번호', '배송지', '전화번호', '업체명', '비고', '사진URL',
       '상태', '접수담당자', '담당자비고', '발주일시', '예상납기일시',
@@ -3146,6 +3258,23 @@ function handleGetApi(action, params) {
             params.handlerRemarks || '',
             sessionToken
           );
+        }
+        break;
+
+      case 'updateRequestFields':
+        if (!params.requestNo) {
+          result = { success: false, message: '신청번호가 필요합니다.' };
+        } else {
+          let updatesPayload = params.updates || {};
+          if (typeof updatesPayload === 'string') {
+            try {
+              updatesPayload = JSON.parse(updatesPayload);
+            } catch (e) {
+              result = { success: false, message: 'updates 파싱 오류: ' + e.toString() };
+              break;
+            }
+          }
+          result = updateRequestFields(params.requestNo, updatesPayload, sessionToken);
         }
         break;
         
@@ -3434,6 +3563,18 @@ function doPost(e) {
           result = updateHandlerRemarks(
             payload.requestNo,
             payload.handlerRemarks || '',
+            sessionToken
+          );
+        }
+        break;
+
+      case 'updateRequestFields':
+        if (!payload.requestNo) {
+          result = { success: false, message: '신청번호가 필요합니다.' };
+        } else {
+          result = updateRequestFields(
+            payload.requestNo,
+            payload.updates || {},
             sessionToken
           );
         }

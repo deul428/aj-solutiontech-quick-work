@@ -20,6 +20,7 @@ import {
   assignHandlerOrdering,
   getRequestDetailOrdering,
   updateHandlerRemarksOrdering,
+  updateRequestFieldsOrdering,
   PaginatedResult,
   ORDERING_GAS_URL,
 } from "../../services/orderingService";
@@ -29,6 +30,8 @@ import {
   formatDate,
   getStatusColor,
   getImageUrl,
+  toDatetimeLocalValue,
+  datetimeLocalToKstIsoOffset,
 } from "../../utils/orderingHelpers";
 import LoadingOverlay from "../../components/LoadingOverlay";
 import DataTable, { TableColumn } from "../../components/DataTable";
@@ -66,6 +69,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const [originalDetailRemarks, setOriginalDetailRemarks] = useState("");
   const [originalDetailRequesterRemarks, setOriginalDetailRequesterRemarks] =
     useState("");
+  const [detailOrderDate, setDetailOrderDate] = useState("");
+  const [detailExpectedDeliveryDate, setDetailExpectedDeliveryDate] = useState("");
+  const [originalDetailOrderDate, setOriginalDetailOrderDate] = useState("");
+  const [originalDetailExpectedDeliveryDate, setOriginalDetailExpectedDeliveryDate] = useState("");
   const [processing, setProcessing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
@@ -338,18 +345,18 @@ const OrderingAdminRequestsPage: React.FC = () => {
           </Button>
         ),
       },
-    {
-        key: "orderDate",
-        label: "발주일시",
-        sortable: true,
-        render: (value) => (value ? formatDate(value) : "-"),
-      },
-      {
-        key: "expectedDeliveryDate",
-        label: "예상납기일시",
-        sortable: true,
-        render: (value) => (value ? formatDate(value) : "-"),
-      },
+      // {
+      //   key: "orderDate",
+      //   label: "발주일시",
+      //   sortable: true,
+      //   render: (value) => (value ? formatDate(value) : "-"),
+      // },
+      // {
+      //   key: "expectedDeliveryDate",
+      //   label: "예상납기일시",
+      //   sortable: true,
+      //   render: (value) => (value ? formatDate(value) : "-"),
+      // },
       {
         key: "handler",
         label: "접수담당자",
@@ -404,6 +411,14 @@ const OrderingAdminRequestsPage: React.FC = () => {
     setDetailRequesterRemarks(request.remarks || "");
     setOriginalDetailRemarks(request.handlerRemarks || "");
     setOriginalDetailRequesterRemarks(request.remarks || "");
+    const initOrderDate = request.orderDate ? toDatetimeLocalValue(request.orderDate) : "";
+    const initExpected = request.expectedDeliveryDate
+      ? toDatetimeLocalValue(request.expectedDeliveryDate)
+      : "";
+    setDetailOrderDate(initOrderDate);
+    setDetailExpectedDeliveryDate(initExpected);
+    setOriginalDetailOrderDate(initOrderDate);
+    setOriginalDetailExpectedDeliveryDate(initExpected);
     setHasChanges(false);
     setShowDetailModal(true);
     /* 
@@ -435,13 +450,22 @@ const OrderingAdminRequestsPage: React.FC = () => {
       const remarksChanged = detailRemarks !== originalDetailRemarks;
       const requesterRemarksChanged =
         detailRequesterRemarks !== originalDetailRequesterRemarks;
-      setHasChanges(remarksChanged || requesterRemarksChanged);
+      const orderDateChanged = detailOrderDate !== originalDetailOrderDate;
+      const expectedChanged =
+        detailExpectedDeliveryDate !== originalDetailExpectedDeliveryDate;
+      setHasChanges(
+        remarksChanged || requesterRemarksChanged || orderDateChanged || expectedChanged,
+      );
     }
   }, [
     detailRemarks,
     detailRequesterRemarks,
     originalDetailRemarks,
     originalDetailRequesterRemarks,
+    detailOrderDate,
+    detailExpectedDeliveryDate,
+    originalDetailOrderDate,
+    originalDetailExpectedDeliveryDate,
     detailRequest,
   ]);
 
@@ -457,23 +481,36 @@ const OrderingAdminRequestsPage: React.FC = () => {
         return;
       }
 
-      // 접수 담당자 비고 업데이트
-      if (detailRemarks !== originalDetailRemarks) {
-        const result = await updateHandlerRemarksOrdering(
-          ORDERING_GAS_URL,
-          detailRequest.requestNo,
-          detailRemarks,
-          sessionToken,
-        );
+      // 변경된 필드만 전송 (빈 문자열도 업데이트 가능)
+      const updates: {
+        orderDate?: string;
+        expectedDeliveryDate?: string;
+        handlerRemarks?: string;
+      } = {};
 
-        if (!result.success) {
-          setToast({
-            message: result.message || "접수 담당자 비고 저장에 실패했습니다.",
-            type: "error",
-          });
-          setProcessing(false);
-          return;
-        }
+      if (detailOrderDate !== originalDetailOrderDate) {
+        updates.orderDate = datetimeLocalToKstIsoOffset(detailOrderDate);
+      }
+      if (detailExpectedDeliveryDate !== originalDetailExpectedDeliveryDate) {
+        updates.expectedDeliveryDate = datetimeLocalToKstIsoOffset(detailExpectedDeliveryDate);
+      }
+      if (detailRemarks !== originalDetailRemarks) {
+        updates.handlerRemarks = detailRemarks;
+      }
+
+      const result = await updateRequestFieldsOrdering(
+        ORDERING_GAS_URL,
+        detailRequest.requestNo,
+        updates,
+        sessionToken,
+      );
+
+      if (!result.success) {
+        setToast({
+          message: result.message || "저장에 실패했습니다.",
+          type: "error",
+        });
+        return;
       }
 
       // 데이터 새로고침
@@ -487,8 +524,23 @@ const OrderingAdminRequestsPage: React.FC = () => {
       });
 
       setOriginalDetailRemarks(detailRemarks);
+      setOriginalDetailOrderDate(detailOrderDate);
+      setOriginalDetailExpectedDeliveryDate(detailExpectedDeliveryDate);
       setHasChanges(false);
       setToast({ message: "저장되었습니다.", type: "success" });
+
+      // 상세 모달 내부 표시도 즉시 반영
+      setDetailRequest((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          orderDate: detailOrderDate ? datetimeLocalToKstIsoOffset(detailOrderDate) : '',
+          expectedDeliveryDate: detailExpectedDeliveryDate
+            ? datetimeLocalToKstIsoOffset(detailExpectedDeliveryDate)
+            : '',
+          handlerRemarks: detailRemarks,
+        };
+      });
 
 
       /* const updated = await getRequestDetailOrdering(
@@ -525,6 +577,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
     setDetailRequesterRemarks("");
     setOriginalDetailRemarks("");
     setOriginalDetailRequesterRemarks("");
+    setDetailOrderDate("");
+    setDetailExpectedDeliveryDate("");
+    setOriginalDetailOrderDate("");
+    setOriginalDetailExpectedDeliveryDate("");
     setHasChanges(false);
     setExpandedImage(null);
   };
@@ -957,7 +1013,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           발주 일시
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest?.orderDate ? formatDate(detailRequest.orderDate) : "-"}
+                          <input
+                            type="datetime-local"
+                            step={1}
+                            value={detailOrderDate}
+                            onChange={(e) => setDetailOrderDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
                         </td>
                       </tr>
                       <tr>
@@ -965,7 +1027,13 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           예상 납기일
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest?.expectedDeliveryDate ? formatDate(detailRequest.expectedDeliveryDate) : "-"}
+                          <input
+                            type="datetime-local"
+                            step={1}
+                            value={detailExpectedDeliveryDate}
+                            onChange={(e) => setDetailExpectedDeliveryDate(e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
                         </td>
                       </tr>
                       <tr>
@@ -1125,10 +1193,6 @@ const OrderingAdminRequestsPage: React.FC = () => {
                             rows={4}
                             placeholder="비고를 입력하세요"
                           />
-                          <Button variant="primary" onClick={saveDetailChanges}
-                            disabled={processing}>
-                            {processing ? "저장 중..." : "저장"}
-                          </Button>
                         </td>
                       </tr>
                     </tbody>
@@ -1136,14 +1200,22 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 </div>
 
                 {/* Footer 버튼 */}
-                {/* <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
-                  <Button variant="outlined" color="gray"
+                <div className="flex justify-end gap-2 pt-4 border-t border-gray-200">
+                  <Button
+                    variant="secondary"
                     onClick={handleCloseDetailModal}
-                    className="bg-gray-500 text-white hover:bg-gray-600"
+                    disabled={processing}
                   >
                     닫기
                   </Button>
-                </div> */}
+                  <Button
+                    variant="primary"
+                    onClick={saveDetailChanges}
+                    disabled={processing || !hasChanges}
+                  >
+                    {processing ? "저장 중..." : "저장"}
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
