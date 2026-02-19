@@ -323,10 +323,8 @@ const MainApp: React.FC = () => {
         <Route path="/manager/users" element={<ProtectedAdminRoute><AdminUserManagementPage /></ProtectedAdminRoute>} />
         <Route path="/manager/delivery-places" element={<ProtectedAdminRoute><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
 
-        {/* 사용자 라우트 - 관리자도 접근 가능 */}
-        {(isUser(getCurrentUser()) || isAdmin(getCurrentUser())) && (
-          <Route path="/user" element={<UserDashboardPage />} />
-        )}
+        {/* 사용자 라우트 */}
+        {isUser(getCurrentUser()) && <Route path="/user" element={<UserDashboardPage />} />}
       </Routes>
     );
   };

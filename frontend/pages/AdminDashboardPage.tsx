@@ -1,6 +1,6 @@
 import React from 'react';
 import { isAdmin, getCurrentUser } from '../utils/orderingAuth';
-import { adminDashboardSections, userDashboardSections } from '../config/dashboardConfig';
+import { adminDashboardSections } from '../config/dashboardConfig';
 import DashboardPage from '../components/DashboardPage';
 
 const AdminDashboardPage: React.FC = () => {
@@ -12,25 +12,9 @@ const AdminDashboardPage: React.FC = () => {
     return <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>;
   }
 
-  // manager adminDashboardSections + userDashboardSections 둘 다 볼 수 있음
-  // 같은 id의 섹션은 병합 (메뉴 통합)
-  const sectionMap = new Map<string, typeof adminDashboardSections[0]>();
-  
-  [...adminDashboardSections, ...userDashboardSections].forEach(section => {
-    const existing = sectionMap.get(section.id);
-    if (existing) {
-      // 같은 id의 섹션이 있으면 메뉴 통합
-      existing.menus = [...existing.menus, ...section.menus];
-    } else {
-      sectionMap.set(section.id, { ...section });
-    }
-  });
-  
-  const allSections = Array.from(sectionMap.values());
-
   return (
     <DashboardPage
-      sections={allSections}
+      sections={adminDashboardSections}
       headerTitle="관리자 대시보드"
       userRole="manager"
       userName={user?.name}

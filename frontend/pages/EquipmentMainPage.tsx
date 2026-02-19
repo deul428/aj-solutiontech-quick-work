@@ -18,17 +18,26 @@ const EquipmentMainPage: React.FC = () => {
       id: 'equipment',
       title: '장비 점검, 실사, QR생성',
       titleColor: 'blue',
-      gridCols: '3',
+      gridCols: '4',
       menus: [
         // 관리자 메뉴
         ...(userIsAdmin ? [
+          {
+            id: 'audit',
+            title: '자산 실사',
+            description: 'QR코드로 빠르게 자산 실사를 수행',
+            icon: ScanQrCode,
+            path: '/equipment/audit',
+            color: 'blue' as const,
+            roles: ['manager'] as const
+          },
           {
             id: 'checklist',
             title: '체크리스트 생성',
             description: '자산 점검용 체크리스트 생성',
             icon: ClipboardCheck,
             path: '/equipment/checklist',
-            color: 'blue' as const,
+            color: 'yellow' as const,
             roles: ['manager'] as const
           },
           {
@@ -111,9 +120,9 @@ const EquipmentMainPage: React.FC = () => {
 
       {equipmentSections.map((section) => {
         const titleColors = colorClasses[section.titleColor];
-        const gridCols = section.gridCols || '3';
+        const gridCols = section.gridCols || '4';
         return (
-          <div className={`grid grid-cols-1 md:grid-cols-3 gap-6`}>
+          <div className={`grid grid-cols-1 md:grid-cols-${gridCols} gap-6`}>
             {section.menus
               .filter(menu => !menu.hidden)
               .map((menu) => (

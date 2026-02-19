@@ -24,16 +24,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   const canAccessMenu = (menu: DashboardMenuItem) => {
     if (menu.hidden) return false;
 
-    // 대시보드 표시 여부 체크
-    const visibility = menu.dashboardVisibility || 'all';
-    if (visibility === 'user-only' && userRole === 'manager') return false;
-    if (visibility === 'manager-only' && userRole === 'user') return false;
+    // 역할이 지정되지 않은 메뉴는 표시(레거시 호환)
+    if (!menu.roles || menu.roles.length === 0) return true;
 
-    if (!menu.roles || menu.roles.includes('all')) return true;
-    // role 계층: manager(관리자)은 user 권한을 포함
-    if (userRole === 'manager') {
-      return menu.roles.includes('manager') || menu.roles.includes('user');
-    }
+    // 역할은 명시적으로 분리: manager는 user를 자동 포함하지 않음
     return menu.roles.includes(userRole);
   };
 

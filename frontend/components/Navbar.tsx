@@ -41,7 +41,6 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
     // 역할별 필터링
     for (const role of item.roles) {
       if (role === 'guest' && !loggedIn) return true;
-      if (role === 'all' && loggedIn) return true;
       if (role === 'manager' && loggedIn && userIsAdmin) return true;
       if (role === 'user' && loggedIn && userIsUser) return true;
     }

@@ -1,15 +1,12 @@
 import {
     ClipboardCheck,
-    FileText,
-    RefreshCcw,
     Package,
     Users,
     MapPin,
     ScanQrCode,
     Home as HomeIcon,
     User as UserIcon,
-    Key,
-    ArrowRight
+    Key
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
 
@@ -23,17 +20,12 @@ export interface DashboardMenuItem {
     icon: LucideIcon;
     path: string;
     color: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
-    // 표시 조건: 'manager' | 'user' | 'all'
-    roles?: readonly ('manager' | 'user' | 'all')[];
+    // 표시 조건: 'manager' | 'user'
+    roles?: readonly ('manager' | 'user')[];
     // 숨김 여부
     hidden?: boolean;
     // 비활성화 여부 (true면 메뉴는 보이지만 클릭 불가)
     disabled?: boolean;
-    // 대시보드 표시 여부: 'all' | 'user-only' | 'manager-only'
-    // 'all': 모든 대시보드에 표시 (기본값)
-    // 'user-only': user 대시보드에만 표시 (manager 대시보드에는 숨김, 하지만 접근은 가능)
-    // 'manager-only': manager 대시보드에만 표시
-    dashboardVisibility?: 'all' | 'user-only' | 'manager-only';
     // Navbar에 표시할지 여부 (true면 navbar에 표시, false면 표시 안 함)
     navbar?: boolean;
     // Navbar에서 사용할 라벨 (없으면 title 사용)
@@ -51,7 +43,7 @@ export interface DashboardSection {
     id: string;
     title: string;
     titleColor: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
-    gridCols?: '1' | '2' | '3'; // 그리드 컬럼 수 (기본값: '3')
+    gridCols?: '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10'; // 그리드 컬럼 수 (기본값: '3')
     menus: DashboardMenuItem[];
 }
 
@@ -123,6 +115,27 @@ export const colorClasses = {
         accent: 'bg-pink-50',
         titleBar: 'bg-pink-600'
     }
+};
+
+/**
+ * 메뉴 베이스 정의
+ * - 각 대시보드별(관리자/사용자) 표시 정책만 다르게 덮어씁니다.
+ */
+const EQUIPMENT_AUDIT_MENU_BASE: Omit<DashboardMenuItem, 'roles'> = {
+    id: 'equipment-audit',
+    title: '자산 실사',
+    description: 'QR코드로 빠르게 자산 실사를 수행',
+    icon: ScanQrCode,
+    path: '/equipment/audit',
+    color: 'blue',
+    navbar: true,
+    navbarLabel: '자산 실사',
+    navbarOrder: 10
+};
+
+const EQUIPMENT_AUDIT_MENU_FOR_USER: DashboardMenuItem = {
+    ...EQUIPMENT_AUDIT_MENU_BASE,
+    roles: ['user']
 };
 
 /**
@@ -203,8 +216,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['manager',/*  'user' */], // manager과 user 모두 접근 가능
-                dashboardVisibility: 'all', // 모든 대시보드에 표시
+                roles: ['manager'],
                 navbar: true,
                 navbarLabel: '부품 발주',
                 navbarActivePath: '/ordering',
@@ -255,8 +267,8 @@ export interface SystemHomeCard {
     iconBgColor: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
     // 클릭 시 이동할 경로 또는 함수
     navigateTo: string | ((isAdmin: boolean, isUser: boolean) => string);
-    // 표시 조건: 'manager' | 'user' | 'all'
-    roles?: readonly ('manager' | 'user' | 'all')[];
+    // 표시 조건: 'manager' | 'user'
+    roles?: readonly ('manager' | 'user')[];
     // 숨김 여부
     hidden?: boolean;
 }
@@ -275,19 +287,7 @@ export const userDashboardSections: DashboardSection[] = [
         titleColor: 'blue',
         gridCols: '2',
         menus: [
-            {
-                id: 'audit',
-                title: '자산 실사',
-                description: 'QR코드로 빠르게 자산 실사를 수행',
-                icon: ScanQrCode,
-                path: '/equipment/audit',
-                color: 'blue',
-                roles: ['user'], // manager 접근 가능 (navbar나 직접 URL로)
-                dashboardVisibility: 'user-only', // user 대시보드에만 표시
-                navbar: true,
-                navbarLabel: '자산 실사',
-                navbarOrder: 10
-            }
+            EQUIPMENT_AUDIT_MENU_FOR_USER
         ]
     },
     {
@@ -303,8 +303,7 @@ export const userDashboardSections: DashboardSection[] = [
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['user'], // manager 접근 가능 (navbar나 직접 URL로)
-                dashboardVisibility: 'user-only', // user 대시보드에만 표시
+                roles: ['user'],
                 navbar: true,
                 navbarLabel: '부품 발주',
                 navbarActivePath: '/ordering',
@@ -327,7 +326,7 @@ export interface NavbarOnlyMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: readonly ('manager' | 'user' | 'all' | 'guest')[];
+    roles?: readonly ('manager' | 'user' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -372,7 +371,7 @@ export const navbarOnlyMenuItems: NavbarOnlyMenuItem[] = [
         label: currentUser ? `${currentUser?.name} (${currentUser?.team})` : '내 정보',
         path: '/info',
         icon: UserIcon,
-        roles: ['all'],
+        roles: ['manager', 'user'],
         navbarOrder: 90
     },
     // 로그인/로그아웃
@@ -390,7 +389,7 @@ export const navbarOnlyMenuItems: NavbarOnlyMenuItem[] = [
         label: '로그아웃',
         path: '#',
         icon: Key,
-        roles: ['all'],
+        roles: ['manager', 'user'],
         isLogout: true,
         navbarOrder: 100
     }
@@ -404,7 +403,7 @@ export interface NavbarMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: readonly ('manager' | 'user' | 'all' | 'guest')[];
+    roles?: readonly ('manager' | 'user' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -417,13 +416,13 @@ export interface NavbarMenuItem {
  * 모든 대시보드 섹션에서 navbar: true인 메뉴를 추출하여 Navbar 메뉴 아이템으로 변환
  */
 export function getNavbarMenuItemsFromDashboards(): NavbarMenuItem[] {
-    const items: NavbarMenuItem[] = [];
+    const byId = new Map<string, NavbarMenuItem>();
 
     // 관리자 대시보드 메뉴에서 추출
     adminDashboardSections.forEach(section => {
         section.menus.forEach(menu => {
             if (menu.navbar && !menu.hidden) {
-                items.push({
+                const item: NavbarMenuItem = {
                     id: menu.id,
                     label: menu.navbarLabel || menu.title,
                     path: menu.path,
@@ -431,7 +430,25 @@ export function getNavbarMenuItemsFromDashboards(): NavbarMenuItem[] {
                     roles: menu.roles,
                     activePath: menu.navbarActivePath,
                     navbarOrder: menu.navbarOrder
-                });
+                };
+                const existing = byId.get(item.id);
+                if (!existing) {
+                    byId.set(item.id, item);
+                } else {
+                    // roles는 합집합(중복 제거)으로 병합
+                    const mergedRoles = Array.from(
+                        new Set([...(existing.roles || []), ...(item.roles || [])])
+                    ) as NavbarMenuItem['roles'];
+                    const merged: NavbarMenuItem = { ...existing, roles: mergedRoles };
+
+                    const prevOrder = existing.navbarOrder ?? 999;
+                    const nextOrder = item.navbarOrder ?? 999;
+                    if (nextOrder < prevOrder) {
+                        byId.set(item.id, { ...item, roles: mergedRoles });
+                    } else {
+                        byId.set(item.id, merged);
+                    }
+                }
             }
         });
     });
@@ -440,7 +457,7 @@ export function getNavbarMenuItemsFromDashboards(): NavbarMenuItem[] {
     userDashboardSections.forEach(section => {
         section.menus.forEach(menu => {
             if (menu.navbar && !menu.hidden) {
-                items.push({
+                const item: NavbarMenuItem = {
                     id: menu.id,
                     label: menu.navbarLabel || menu.title,
                     path: menu.path,
@@ -448,12 +465,29 @@ export function getNavbarMenuItemsFromDashboards(): NavbarMenuItem[] {
                     roles: menu.roles,
                     activePath: menu.navbarActivePath,
                     navbarOrder: menu.navbarOrder
-                });
+                };
+                const existing = byId.get(item.id);
+                if (!existing) {
+                    byId.set(item.id, item);
+                } else {
+                    const mergedRoles = Array.from(
+                        new Set([...(existing.roles || []), ...(item.roles || [])])
+                    ) as NavbarMenuItem['roles'];
+                    const merged: NavbarMenuItem = { ...existing, roles: mergedRoles };
+
+                    const prevOrder = existing.navbarOrder ?? 999;
+                    const nextOrder = item.navbarOrder ?? 999;
+                    if (nextOrder < prevOrder) {
+                        byId.set(item.id, { ...item, roles: mergedRoles });
+                    } else {
+                        byId.set(item.id, merged);
+                    }
+                }
             }
         });
     });
 
-    return items;
+    return Array.from(byId.values());
 }
 
 /**

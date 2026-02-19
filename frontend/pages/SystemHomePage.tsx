@@ -31,7 +31,6 @@ const SystemHomePage: React.FC = () => {
     if (card.hidden) return false;
     if (!card.roles || card.roles.length === 0) return true;
     return card.roles.some(role => {
-      if (role === 'all') return true;
       if (role === 'manager' && userIsAdmin) return true;
       if (role === 'user' && userIsUser) return true;
       return false;
