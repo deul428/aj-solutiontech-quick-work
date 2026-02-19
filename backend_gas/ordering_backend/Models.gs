@@ -136,68 +136,33 @@ class RequestModel {
   // 수정 (배치 업데이트 최적화)
   update(requestNo, updates) {
     if (!this.sheet) return false;
-
-    try {
-      const data = this.sheet.getDataRange().getValues();
-      const requestNoStr = String(requestNo);
-
-      // 먼저 대상 행을 찾아 rowIndex(1-based)를 결정합니다.
-      let targetRow = -1;
-      for (let i = 1; i < data.length; i++) {
-        if (String(data[i][0]) === requestNoStr) {
-          targetRow = i + 1; // sheet row is 1-based (header is row 1)
-          break;
-        }
-      }
-
-      if (targetRow === -1) return false;
-
-      // 헤더를 한 번만 읽어 1-based 컬럼 인덱스 맵 생성
-      const headers = this.sheet.getRange(1, 1, 1, this.sheet.getLastColumn()).getValues()[0];
-      const headerMap = {};
-      for (let idx = 0; idx < headers.length; idx++) {
-        const mappedKey = this._headerToKey(headers[idx]);
-        headerMap[mappedKey] = idx + 1; // 1-based
-      }
-
-      const updatesArray = [];
-      Object.keys(updates).forEach(key => {
-        const col = headerMap[key];
-        if (col && col > 0) {
-          updatesArray.push({
-            range: this.sheet.getRange(targetRow, col),
-            value: updates[key]
-          });
-        }
-      });
-
-      // 디버그 로깅: 실제 어떤 셀들에 어떤 값들을 쓸지 기록
-      try {
-        const debugMap = updatesArray.map(u => {
-          try {
-            return {
-              row: u.range.getRow(),
-              col: u.range.getColumn(),
-              value: u.value
-            };
-          } catch (e) {
-            return { error: 'range.getRow/Column failed', detail: String(e) };
+    
+    const data = this.sheet.getDataRange().getValues();
+    const requestNoStr = String(requestNo);
+    
+    for (let i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === requestNoStr) {
+        // 배치 업데이트: 여러 셀을 한 번에 업데이트
+        const updatesArray = [];
+        Object.keys(updates).forEach(key => {
+          const colIndex = this._getColumnIndex(key);
+          if (colIndex >= 0) {
+            updatesArray.push({
+              range: this.sheet.getRange(i + 1, colIndex + 1),
+              value: updates[key]
+            });
           }
         });
-        Logger.log('RequestModel.update - requestNo=' + requestNoStr + ' - updates:' + JSON.stringify(debugMap));
-      } catch (logErr) {
-        Logger.log('RequestModel.update - debug log error: ' + logErr);
+        
+        // 한 번에 업데이트 (배치 처리)
+        updatesArray.forEach(update => {
+          update.range.setValue(update.value);
+        });
+        
+        return true;
       }
-
-      updatesArray.forEach(update => {
-        update.range.setValue(update.value);
-      });
-
-      return true;
-    } catch (error) {
-      Logger.log('RequestModel.update error: ' + error);
-      return false;
     }
+    return false;
   }
   
   // 삭제 (실제로는 상태 변경)
@@ -239,7 +204,14 @@ class RequestModel {
   }
   
   _headerToKey(header) {
-    const h = String(header === null || header === undefined ? '' : header).trim();
+    // 헤더 정규화:
+    // - 공백/개행/탭 제거
+    // - zero-width 문자 제거 (복사/붙여넣기 시 섞이는 경우)
+    const normalizeHeader_ = (v) =>
+      String(v === null || v === undefined ? '' : v)
+        .replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+        .trim();
+    const h = normalizeHeader_(header);
     const map = {
       '신청번호': 'requestNo',
       '신청일시': 'requestDate',   
@@ -265,6 +237,10 @@ class RequestModel {
       '사진URL': 'photoUrl',
       '상태': 'status',
       '접수담당자': 'handler',
+      '접수담당자명': 'handler',
+      '접수담당자이름': 'handler',
+      '접수담당자메일': 'handler',
+      '접수담당자이메일': 'handler',
       '담당자비고': 'handlerRemarks',
       '발주일시': 'orderDate',
       '예상납기일시': 'expectedDeliveryDate',

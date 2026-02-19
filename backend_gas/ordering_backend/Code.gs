@@ -782,6 +782,13 @@ function assignHandler(requestNo, handlerEmail, sessionToken) {
     if (!user || user.role !== CONFIG.ROLES.ADMIN) {
       throw new Error('관리자만 배정할 수 있습니다.');
     }
+
+    // 안전장치: 상태/접수담당자 헤더가 뒤바뀐 경우 자동으로 헤더 교정(데이터 이동 없음)
+    try {
+      repairRequestSheetStatusHandlerHeaders(sessionToken);
+    } catch (e) {
+      Logger.log('assignHandler: header repair skipped: ' + e);
+    }
     
     const requestModel = new RequestModel();
     const handler = new UserModel().findByEmail(handlerEmail);
@@ -823,6 +830,13 @@ function updateRequestStatus(requestNo, newStatus, remarks, sessionToken, handle
     const user = getCurrentUser(sessionToken);
     if (!user || user.role !== CONFIG.ROLES.ADMIN) {
       throw new Error('관리자만 변경할 수 있습니다.');
+    }
+
+    // 안전장치: 상태/접수담당자 헤더가 뒤바뀐 경우 자동으로 헤더 교정(데이터 이동 없음)
+    try {
+      repairRequestSheetStatusHandlerHeaders(sessionToken);
+    } catch (e) {
+      Logger.log('updateRequestStatus: header repair skipped: ' + e);
     }
     
     const service = new RequestService();
@@ -3154,6 +3168,303 @@ function getImageAsBase64(driveUrl, sessionToken) {
 // ==========================================
 
 /**
+ * (관리자 전용) Request 시트의 헤더/키 매핑을 디버그용으로 반환합니다.
+ * - 헤더 원문/정규화 값/매핑된 key
+ * - status/handler/photoUrl 등의 컬럼 인덱스
+ */
+function debugRequestSheetMapping(sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      return { success: false, message: '관리자만 접근 가능합니다.' };
+    }
+
+    const requestModel = new RequestModel();
+    if (!requestModel.sheet) {
+      return { success: false, message: 'Request 시트를 찾을 수 없습니다.' };
+    }
+
+    const sheet = requestModel.sheet;
+    const lastCol = sheet.getLastColumn();
+    const headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+
+    const normalizeHeader_ = (v) =>
+      String(v === null || v === undefined ? '' : v)
+        .replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+        .trim();
+
+    const columns = headers.map((h, i) => {
+      let mappedKey = '';
+      try {
+        mappedKey = requestModel._headerToKey(h);
+      } catch (e) {
+        mappedKey = '(error) ' + e.toString();
+      }
+      return {
+        index1Based: i + 1,
+        headerRaw: h,
+        headerNormalized: normalizeHeader_(h),
+        mappedKey: mappedKey
+      };
+    });
+
+    const keyToIndices = {};
+    columns.forEach(c => {
+      const k = String(c.mappedKey || '');
+      if (!keyToIndices[k]) keyToIndices[k] = [];
+      keyToIndices[k].push(c.index1Based);
+    });
+
+    const indices0 = {
+      status: requestModel._getColumnIndex('status'),
+      handler: requestModel._getColumnIndex('handler'),
+      photoUrl: requestModel._getColumnIndex('photoUrl'),
+      handlerRemarks: requestModel._getColumnIndex('handlerRemarks')
+    };
+
+    return {
+      success: true,
+      user: { userId: user.userId, role: user.role },
+      sheet: { name: sheet.getName(), lastColumn: lastCol },
+      indices0Based: indices0,
+      indices1Based: Object.keys(indices0).reduce((acc, k) => {
+        const v = indices0[k];
+        acc[k] = typeof v === 'number' && v >= 0 ? v + 1 : v;
+        return acc;
+      }, {}),
+      keyToIndices: keyToIndices,
+      columns: columns
+    };
+  } catch (error) {
+    Logger.log('debugRequestSheetMapping error: ' + error);
+    Logger.log('debugRequestSheetMapping stack: ' + error.stack);
+    return { success: false, message: error.message || String(error) };
+  }
+}
+
+/**
+ * (관리자 전용) 신청내역 시트에서 '상태'와 '접수담당자' 헤더가 뒤바뀐 것으로 보이면
+ * 헤더 텍스트만 서로 교환합니다. (데이터는 이동하지 않음)
+ */
+function repairRequestSheetStatusHandlerHeaders(sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      return { success: false, message: '관리자만 접근 가능합니다.' };
+    }
+
+    const requestModel = new RequestModel();
+    if (!requestModel.sheet) {
+      return { success: false, message: 'Request 시트를 찾을 수 없습니다.' };
+    }
+
+    const sheet = requestModel.sheet;
+    const lastCol = sheet.getLastColumn();
+    const lastRow = sheet.getLastRow();
+    const headers = lastCol > 0 ? sheet.getRange(1, 1, 1, lastCol).getValues()[0] : [];
+
+    const normalizeHeader_ = (v) =>
+      String(v === null || v === undefined ? '' : v)
+        .replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+        .trim();
+
+    // 헤더 위치 찾기 (정규화 기준)
+    let statusHeaderCol1 = -1;
+    let handlerHeaderCol1 = -1;
+    for (let i = 0; i < headers.length; i++) {
+      const hn = normalizeHeader_(headers[i]);
+      if (hn === '상태') statusHeaderCol1 = i + 1;
+      if (hn === '접수담당자') handlerHeaderCol1 = i + 1;
+    }
+
+    if (statusHeaderCol1 < 1 || handlerHeaderCol1 < 1) {
+      return {
+        success: false,
+        message: '상태/접수담당자 헤더를 찾지 못했습니다.',
+        detected: { statusHeaderCol1, handlerHeaderCol1 }
+      };
+    }
+
+    // 데이터 샘플로 "상태값(정해진 코드)" 비율 비교
+    const allowedStatuses = Object.keys(CONFIG.STATUS).map(k => CONFIG.STATUS[k]);
+    const sampleSize = Math.min(Math.max(lastRow - 1, 0), 50); // 최대 50행 샘플
+    let statusLikeInStatusCol = 0;
+    let statusLikeInHandlerCol = 0;
+    let totalChecked = 0;
+
+    if (sampleSize > 0) {
+      const range = sheet.getRange(2, Math.min(statusHeaderCol1, handlerHeaderCol1), sampleSize, Math.abs(statusHeaderCol1 - handlerHeaderCol1) + 1);
+      const values = range.getValues(); // 2차원
+      const offset = Math.min(statusHeaderCol1, handlerHeaderCol1);
+
+      const idxStatus = statusHeaderCol1 - offset;
+      const idxHandler = handlerHeaderCol1 - offset;
+
+      for (let r = 0; r < values.length; r++) {
+        const vStatus = String(values[r][idxStatus] ?? '').trim();
+        const vHandler = String(values[r][idxHandler] ?? '').trim();
+        if (vStatus || vHandler) {
+          totalChecked++;
+          if (allowedStatuses.indexOf(vStatus) >= 0) statusLikeInStatusCol++;
+          if (allowedStatuses.indexOf(vHandler) >= 0) statusLikeInHandlerCol++;
+        }
+      }
+    }
+
+    // 뒤바뀜 판단: handler 컬럼에 상태값이 훨씬 많이 들어있으면 헤더 교환
+    const shouldSwap =
+      totalChecked >= 5 &&
+      statusLikeInHandlerCol >= Math.max(3, Math.ceil(totalChecked * 0.6)) &&
+      statusLikeInStatusCol <= Math.floor(totalChecked * 0.4);
+
+    if (!shouldSwap) {
+      return {
+        success: true,
+        swapped: false,
+        message: '헤더 교환 조건에 해당하지 않습니다.',
+        detected: {
+          statusHeaderCol1,
+          handlerHeaderCol1,
+          totalChecked,
+          statusLikeInStatusCol,
+          statusLikeInHandlerCol
+        }
+      };
+    }
+
+    // 헤더 텍스트만 교환
+    const statusHeaderRaw = headers[statusHeaderCol1 - 1];
+    const handlerHeaderRaw = headers[handlerHeaderCol1 - 1];
+
+    sheet.getRange(1, statusHeaderCol1).setValue(handlerHeaderRaw || '접수담당자');
+    sheet.getRange(1, handlerHeaderCol1).setValue(statusHeaderRaw || '상태');
+
+    return {
+      success: true,
+      swapped: true,
+      message: '상태/접수담당자 헤더를 교환했습니다. (데이터 이동 없음)',
+      before: {
+        statusHeaderCol1,
+        handlerHeaderCol1,
+        statusHeaderRaw,
+        handlerHeaderRaw
+      },
+      detected: {
+        totalChecked,
+        statusLikeInStatusCol,
+        statusLikeInHandlerCol
+      }
+    };
+  } catch (error) {
+    Logger.log('repairRequestSheetStatusHandlerHeaders error: ' + error);
+    Logger.log('repairRequestSheetStatusHandlerHeaders stack: ' + error.stack);
+    return { success: false, message: error.message || String(error) };
+  }
+}
+
+/**
+ * (관리자 전용) 신청내역 시트에서 "상태/접수담당자 값이 서로 바뀐 행"을 보수적으로 감지해 복구합니다.
+ * - 상태 컬럼 값이 상태코드 목록에 없고, 접수담당자 컬럼 값이 상태코드 목록에 있으면 두 값을 교환
+ * - 헤더 텍스트는 건드리지 않습니다. (필요시 repairRequestSheetStatusHandlerHeaders 먼저 수행)
+ */
+function repairRequestSheetStatusHandlerData(sessionToken) {
+  try {
+    const user = getCurrentUser(sessionToken);
+    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+      return { success: false, message: '관리자만 접근 가능합니다.' };
+    }
+
+    const requestModel = new RequestModel();
+    if (!requestModel.sheet) {
+      return { success: false, message: 'Request 시트를 찾을 수 없습니다.' };
+    }
+
+    const sheet = requestModel.sheet;
+    const lastCol = sheet.getLastColumn();
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2 || lastCol < 1) {
+      return { success: true, repairedRows: 0, message: '복구할 데이터가 없습니다.' };
+    }
+
+    const headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+    const normalizeHeader_ = (v) =>
+      String(v === null || v === undefined ? '' : v)
+        .replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+        .trim();
+
+    let statusCol1 = -1;
+    let handlerCol1 = -1;
+    for (let i = 0; i < headers.length; i++) {
+      const hn = normalizeHeader_(headers[i]);
+      if (hn === '상태') statusCol1 = i + 1;
+      if (hn === '접수담당자') handlerCol1 = i + 1;
+    }
+    if (statusCol1 < 1 || handlerCol1 < 1) {
+      return {
+        success: false,
+        message: '상태/접수담당자 헤더를 찾지 못했습니다.',
+        detected: { statusCol1, handlerCol1 }
+      };
+    }
+
+    const allowedStatuses = Object.keys(CONFIG.STATUS).map(k => CONFIG.STATUS[k]);
+    const rowCount = lastRow - 1;
+
+    // 두 컬럼만 한 번에 읽어서 처리
+    const offsetCol = Math.min(statusCol1, handlerCol1);
+    const width = Math.abs(statusCol1 - handlerCol1) + 1;
+    const values = sheet.getRange(2, offsetCol, rowCount, width).getValues();
+    const idxStatus = statusCol1 - offsetCol;
+    const idxHandler = handlerCol1 - offsetCol;
+
+    const rowsToSwap = [];
+    for (let r = 0; r < values.length; r++) {
+      const vStatus = String(values[r][idxStatus] ?? '').trim();
+      const vHandler = String(values[r][idxHandler] ?? '').trim();
+
+      const statusIsValid = allowedStatuses.indexOf(vStatus) >= 0;
+      const handlerIsStatus = allowedStatuses.indexOf(vHandler) >= 0;
+
+      // "서로 바뀜"으로 강하게 의심되는 케이스만
+      if (!statusIsValid && handlerIsStatus) {
+        rowsToSwap.push(r);
+      }
+    }
+
+    // 실제 스왑 적용
+    rowsToSwap.forEach(r => {
+      const tmp = values[r][idxStatus];
+      values[r][idxStatus] = values[r][idxHandler];
+      values[r][idxHandler] = tmp;
+    });
+
+    if (rowsToSwap.length > 0) {
+      sheet.getRange(2, offsetCol, rowCount, width).setValues(values);
+    }
+
+    const sampleRowNumbers = rowsToSwap.slice(0, 20).map(r => r + 2); // 실제 시트 행번호
+    return {
+      success: true,
+      repairedRows: rowsToSwap.length,
+      message:
+        rowsToSwap.length > 0
+          ? '상태/접수담당자 값이 뒤바뀐 행을 복구했습니다.'
+          : '복구 조건에 해당하는 행이 없습니다.',
+      detected: {
+        statusCol1,
+        handlerCol1
+      },
+      sampleRowNumbers: sampleRowNumbers,
+      sampleRowNumbersTruncated: rowsToSwap.length > 20
+    };
+  } catch (error) {
+    Logger.log('repairRequestSheetStatusHandlerData error: ' + error);
+    Logger.log('repairRequestSheetStatusHandlerData stack: ' + error.stack);
+    return { success: false, message: error.message || String(error) };
+  }
+}
+
+/**
  * GET 요청 API 핸들러
  */
 function handleGetApi(action, params) {
@@ -3349,6 +3660,18 @@ function handleGetApi(action, params) {
         
       case 'getWebAppUrl':
         result = getWebAppUrl();
+        break;
+
+      case 'debugRequestSheetMapping':
+        result = debugRequestSheetMapping(sessionToken);
+        break;
+
+      case 'repairRequestSheetStatusHandlerHeaders':
+        result = repairRequestSheetStatusHandlerHeaders(sessionToken);
+        break;
+
+      case 'repairRequestSheetStatusHandlerData':
+        result = repairRequestSheetStatusHandlerData(sessionToken);
         break;
         
       case 'getImageAsBase64':
