@@ -507,8 +507,7 @@ const AdminUserManagementPage: React.FC = () => {
         ];
 
       const firstMissing = requiredFields.find((f) => f.isMissing());
-      if (firstMissing && firstMissing.name !== "password" || (firstMissing && firstMissing.name === "password" && !editingUser)) {
-        console.log(firstMissing);
+      if (firstMissing && firstMissing.name !== "password" || (firstMissing && firstMissing.name === "password" && !editingUser)) { 
         showRequiredFieldAlert(firstMissing.label);
         focusFieldByName(String(firstMissing.name));
         return;

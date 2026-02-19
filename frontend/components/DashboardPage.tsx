@@ -7,7 +7,7 @@ import Header from './Header';
 interface DashboardPageProps {
   sections: DashboardSection[];
   headerTitle: string;
-  userRole: 'console' | 'user';
+  userRole: 'manager' | 'user';
   userName?: string;
   userTeam?: string;
 }
@@ -23,16 +23,16 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
 
   const canAccessMenu = (menu: DashboardMenuItem) => {
     if (menu.hidden) return false;
-    
+
     // 대시보드 표시 여부 체크
     const visibility = menu.dashboardVisibility || 'all';
-    if (visibility === 'user-only' && userRole === 'console') return false;
-    if (visibility === 'console-only' && userRole === 'user') return false;
-    
+    if (visibility === 'user-only' && userRole === 'manager') return false;
+    if (visibility === 'manager-only' && userRole === 'user') return false;
+
     if (!menu.roles || menu.roles.includes('all')) return true;
-    // role 계층: console(관리자)은 user 권한을 포함
-    if (userRole === 'console') {
-      return menu.roles.includes('console') || menu.roles.includes('user');
+    // role 계층: manager(관리자)은 user 권한을 포함
+    if (userRole === 'manager') {
+      return menu.roles.includes('manager') || menu.roles.includes('user');
     }
     return menu.roles.includes(userRole);
   };
@@ -65,11 +65,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     return (
       <div
         onClick={handleClick}
-        className={`p-8 sm:p-8 rounded-2xl bg-white shadow-2xl border border-gray-100 relative overflow-hidden flex-1 transition-all ${
-          isDisabled 
-            ? 'opacity-50 cursor-not-allowed grayscale' 
+        className={`p-8 sm:p-8 rounded-2xl bg-white shadow-2xl border border-gray-100 relative overflow-hidden flex-1 transition-all ${isDisabled
+            ? 'opacity-50 cursor-not-allowed grayscale'
             : `cursor-pointer group ${colors.shadow}`
-        }`}
+          }`}
       >
         <div className={`absolute top-0 right-0 w-32 h-32 ${colors.accent} rounded-bl-[5rem] -mr-10 -mt-10 ${!isDisabled && 'group-hover:scale-110'} transition-transform`}></div>
         <div className="flex justify-between items-start mb-6 relative z-10">

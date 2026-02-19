@@ -23,17 +23,17 @@ export interface DashboardMenuItem {
     icon: LucideIcon;
     path: string;
     color: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
-    // 표시 조건: 'console' | 'user' | 'all'
-    roles?: readonly ('console' | 'user' | 'all')[];
+    // 표시 조건: 'manager' | 'user' | 'all'
+    roles?: readonly ('manager' | 'user' | 'all')[];
     // 숨김 여부
     hidden?: boolean;
     // 비활성화 여부 (true면 메뉴는 보이지만 클릭 불가)
     disabled?: boolean;
-    // 대시보드 표시 여부: 'all' | 'user-only' | 'console-only'
+    // 대시보드 표시 여부: 'all' | 'user-only' | 'manager-only'
     // 'all': 모든 대시보드에 표시 (기본값)
-    // 'user-only': user 대시보드에만 표시 (console 대시보드에는 숨김, 하지만 접근은 가능)
-    // 'console-only': console 대시보드에만 표시
-    dashboardVisibility?: 'all' | 'user-only' | 'console-only';
+    // 'user-only': user 대시보드에만 표시 (manager 대시보드에는 숨김, 하지만 접근은 가능)
+    // 'manager-only': manager 대시보드에만 표시
+    dashboardVisibility?: 'all' | 'user-only' | 'manager-only';
     // Navbar에 표시할지 여부 (true면 navbar에 표시, false면 표시 안 함)
     navbar?: boolean;
     // Navbar에서 사용할 라벨 (없으면 title 사용)
@@ -144,7 +144,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: ClipboardCheck,
                 path: '/equipment',
                 color: 'blue',
-                roles: ['console'],
+                roles: ['manager'],
                 navbar: true,
                 navbarLabel: '장비 점검, 실사, QR생성',
                 navbarOrder: 1
@@ -158,7 +158,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: ClipboardCheck,
                 path: '/equipment/checklist',
                 color: 'blue',
-                roles: ['console'],
+                roles: ['manager'],
                 disabled: true, // 비활성화 (메뉴는 보이지만 클릭 불가)
                 navbar: false,
                 navbarLabel: '체크리스트 생성',
@@ -172,8 +172,8 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: FileText,
                 path: '/equipment/audit-history',
                 color: 'pink',
-                roles: ['console'],
-                dashboardVisibility: 'console-only', // console 대시보드에만 표시
+                roles: ['manager'],
+                dashboardVisibility: 'manager-only', // manager 대시보드에만 표시
                 navbar: false,
                 navbarOrder: 3
             },
@@ -184,7 +184,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: RefreshCcw,
                 path: '/equipment/master',
                 color: 'purple',
-                roles: ['console'],
+                roles: ['manager'],
                 navbar: false
             }
             */
@@ -203,7 +203,7 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['console',/*  'user' */], // console과 user 모두 접근 가능
+                roles: ['manager',/*  'user' */], // manager과 user 모두 접근 가능
                 dashboardVisibility: 'all', // 모든 대시보드에 표시
                 navbar: true,
                 navbarLabel: '부품 발주',
@@ -223,9 +223,9 @@ export const adminDashboardSections: DashboardSection[] = [
                 title: '사용자 관리',
                 description: '사용자 등록/수정/삭제',
                 icon: Users,
-                path: '/console/users',
+                path: '/manager/users',
                 color: 'yellow',
-                roles: ['console'],
+                roles: ['manager'],
                 navbar: false // 대시보드에만 표시
             },
             {
@@ -233,9 +233,9 @@ export const adminDashboardSections: DashboardSection[] = [
                 title: '부품 배송지 관리',
                 description: '배송지 등록/수정/삭제',
                 icon: MapPin,
-                path: '/console/delivery-places',
+                path: '/manager/delivery-places',
                 color: 'red',
-                roles: ['console'],
+                roles: ['manager'],
                 navbar: false // 대시보드에만 표시
             }
         ]
@@ -255,8 +255,8 @@ export interface SystemHomeCard {
     iconBgColor: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
     // 클릭 시 이동할 경로 또는 함수
     navigateTo: string | ((isAdmin: boolean, isUser: boolean) => string);
-    // 표시 조건: 'console' | 'user' | 'all'
-    roles?: readonly ('console' | 'user' | 'all')[];
+    // 표시 조건: 'manager' | 'user' | 'all'
+    roles?: readonly ('manager' | 'user' | 'all')[];
     // 숨김 여부
     hidden?: boolean;
 }
@@ -282,7 +282,7 @@ export const userDashboardSections: DashboardSection[] = [
                 icon: ScanQrCode,
                 path: '/equipment/audit',
                 color: 'blue',
-                roles: ['user'], // console도 접근 가능 (navbar나 직접 URL로)
+                roles: ['user'], // manager 접근 가능 (navbar나 직접 URL로)
                 dashboardVisibility: 'user-only', // user 대시보드에만 표시
                 navbar: true,
                 navbarLabel: '자산 실사',
@@ -303,7 +303,7 @@ export const userDashboardSections: DashboardSection[] = [
                 icon: Package,
                 path: '/ordering',
                 color: 'green',
-                roles: ['user'], // console도 접근 가능 (navbar나 직접 URL로)
+                roles: ['user'], // manager 접근 가능 (navbar나 직접 URL로)
                 dashboardVisibility: 'user-only', // user 대시보드에만 표시
                 navbar: true,
                 navbarLabel: '부품 발주',
@@ -327,7 +327,7 @@ export interface NavbarOnlyMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: readonly ('console' | 'user' | 'all' | 'guest')[];
+    roles?: readonly ('manager' | 'user' | 'all' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -353,9 +353,9 @@ export const navbarOnlyMenuItems: NavbarOnlyMenuItem[] = [
     {
         id: 'admin-home',
         label: '관리자 홈',
-        path: '/console',
+        path: '/manager',
         icon: HomeIcon,
-        roles: ['console'],
+        roles: ['manager'],
         navbarOrder: 1
     },
     {
@@ -404,7 +404,7 @@ export interface NavbarMenuItem {
     label: string;
     path: string;
     icon: LucideIcon;
-    roles?: readonly ('console' | 'user' | 'all' | 'guest')[];
+    roles?: readonly ('manager' | 'user' | 'all' | 'guest')[];
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -484,7 +484,7 @@ export const systemHomeCards: SystemHomeCard[] = [
             if (isUser) return '/equipment';
             return '/login';
         },
-        roles: ['console', 'user']
+        roles: ['manager', 'user']
     },
     {
         id: 'ordering',
@@ -496,11 +496,11 @@ export const systemHomeCards: SystemHomeCard[] = [
         icon: Package,
         iconBgColor: 'green',
         navigateTo: (isAdmin: boolean, isUser: boolean) => {
-            if (isAdmin) return '/console';
+            if (isAdmin) return '/manager';
             if (isUser) return '/ordering';
             return '/login';
         },
-        roles: ['console', 'user']
+        roles: ['manager', 'user']
     }
 ];
 

@@ -12,7 +12,7 @@ const AdminDashboardPage: React.FC = () => {
     return <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>;
   }
 
-  // console은 adminDashboardSections + userDashboardSections 둘 다 볼 수 있음
+  // manager adminDashboardSections + userDashboardSections 둘 다 볼 수 있음
   // 같은 id의 섹션은 병합 (메뉴 통합)
   const sectionMap = new Map<string, typeof adminDashboardSections[0]>();
   
@@ -32,7 +32,7 @@ const AdminDashboardPage: React.FC = () => {
     <DashboardPage
       sections={allSections}
       headerTitle="관리자 대시보드"
-      userRole="console"
+      userRole="manager"
       userName={user?.name}
       userTeam={user?.team}
     />

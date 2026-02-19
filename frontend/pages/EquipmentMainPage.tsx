@@ -29,7 +29,7 @@ const EquipmentMainPage: React.FC = () => {
             icon: ClipboardCheck,
             path: '/equipment/checklist',
             color: 'blue' as const,
-            roles: ['console'] as const
+            roles: ['manager'] as const
           },
           {
             id: 'audit-history',
@@ -38,7 +38,7 @@ const EquipmentMainPage: React.FC = () => {
             icon: FileText,
             path: '/equipment/audit-history',
             color: 'pink' as const,
-            roles: ['console'] as const
+            roles: ['manager'] as const
           },
           {
             id: 'master-file',
@@ -47,7 +47,7 @@ const EquipmentMainPage: React.FC = () => {
             icon: RefreshCcw,
             path: '/equipment/master',
             color: 'purple' as const,
-            roles: ['console'] as const
+            roles: ['manager'] as const
           }
         ] : []),
         // 사용자 메뉴

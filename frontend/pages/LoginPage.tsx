@@ -41,8 +41,8 @@ const LoginPage: React.FC = () => {
         // 권한에 따라 리다이렉트 경로 결정
         let redirectPath = getRedirectPath();
         if (isAdmin(result.user)) {
-          // 관리자는 /console이 홈 역할
-          redirectPath = '/console';
+          // 관리자는 /manager 홈 역할
+          redirectPath = '/manager';
         } else if (isUser(result.user)) {
           // 사용자는 /user가 홈 역할
           redirectPath = '/user';
@@ -131,7 +131,7 @@ const LoginPage: React.FC = () => {
         <div className="mt-4 text-center text-xs text-gray-400 hidden">
           <div>
             <h4>관리자</h4>
-            <p>test_console | test_console!@</p>
+            <p>quickwork_mgr | test!@</p>
           </div>
           <div className="mt-2">
             <h4>사용자</h4>

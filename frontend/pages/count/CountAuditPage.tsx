@@ -334,7 +334,7 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({
       return () => {
         clearTimeout(timer);
         if (html5QrCodeRef.current && html5QrCodeRef.current.isScanning) {
-          html5QrCodeRef.current.stop().catch(() => {});
+          html5QrCodeRef.current.stop().catch(() => { });
         }
       };
     }
@@ -634,14 +634,13 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({
                         isCoolingDown ||
                         isSyncing
                       }
-                      className={`${
-                        showScanModal ||
-                        showTransferModal ||
-                        isCoolingDown ||
-                        isSyncing
+                      className={`${showScanModal ||
+                          showTransferModal ||
+                          isCoolingDown ||
+                          isSyncing
                           ? "bg-gray-600 cursor-not-allowed"
                           : "bg-blue-600 hover:bg-blue-700 hover:shadow-blue-200"
-                      }`}
+                        }`}
                     >
                       <ScanQrCode className="w-5 h-5" />
                       테스트 스캔 실행

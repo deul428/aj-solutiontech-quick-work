@@ -318,10 +318,10 @@ const MainApp: React.FC = () => {
         )}
 
         {/* 관리자 라우트 - 보호된 라우트 */}
-        <Route path="/console" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
-        <Route path="/console/audit-history" element={<ProtectedAdminRoute><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
-        <Route path="/console/users" element={<ProtectedAdminRoute><AdminUserManagementPage /></ProtectedAdminRoute>} />
-        <Route path="/console/delivery-places" element={<ProtectedAdminRoute><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
+        <Route path="/manager" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
+        <Route path="/manager/audit-history" element={<ProtectedAdminRoute><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
+        <Route path="/manager/users" element={<ProtectedAdminRoute><AdminUserManagementPage /></ProtectedAdminRoute>} />
+        <Route path="/manager/delivery-places" element={<ProtectedAdminRoute><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
 
         {/* 사용자 라우트 - 관리자도 접근 가능 */}
         {(isUser(getCurrentUser()) || isAdmin(getCurrentUser())) && (

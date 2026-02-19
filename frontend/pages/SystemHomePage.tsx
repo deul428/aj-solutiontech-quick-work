@@ -20,7 +20,7 @@ const SystemHomePage: React.FC = () => {
     }
     // 이미 로그인한 경우 권한에 따라 적절한 대시보드로 리다이렉트
     if (userIsAdmin) {
-      navigate('/console', { replace: true });
+      navigate('/manager', { replace: true });
     } else if (userIsUser) {
       navigate('/user', { replace: true });
     }
@@ -32,7 +32,7 @@ const SystemHomePage: React.FC = () => {
     if (!card.roles || card.roles.length === 0) return true;
     return card.roles.some(role => {
       if (role === 'all') return true;
-      if (role === 'console' && userIsAdmin) return true;
+      if (role === 'manager' && userIsAdmin) return true;
       if (role === 'user' && userIsUser) return true;
       return false;
     });
