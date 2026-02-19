@@ -571,7 +571,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
   }
 
   return (
-    <div className="max-w-7xl mx-auto py-8 md:py-12 px-4 md:px-6">
+    <div className="sm:max-w-[85dvw] mx-auto py-8 md:py-12 px-4 md:px-6">
       {/* 헤더 */}
       <Header
         headerTitle="내 신청 목록 조회"
@@ -720,7 +720,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       </div>
 
       {/* 신청 목록 */}
-      <div className="bg-white rounded-2xl md:rounded-2xl shadow-2xl border border-gray-100 p-4 md:p-6 sm:p-8">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 md:p-6 sm:p-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
