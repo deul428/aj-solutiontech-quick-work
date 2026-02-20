@@ -69,6 +69,11 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const [originalDetailRemarks, setOriginalDetailRemarks] = useState("");
   const [originalDetailRequesterRemarks, setOriginalDetailRequesterRemarks] =
     useState("");
+  const [detailStatus, setDetailStatus] = useState("");
+  const [originalDetailStatus, setOriginalDetailStatus] = useState("");
+  const [detailHandlerName, setDetailHandlerName] = useState("");
+  const [originalDetailHandlerName, setOriginalDetailHandlerName] = useState("");
+  const [detailStatusRemarks, setDetailStatusRemarks] = useState("");
   const [detailOrderDate, setDetailOrderDate] = useState("");
   const [detailExpectedDeliveryDate, setDetailExpectedDeliveryDate] = useState("");
   const [originalDetailOrderDate, setOriginalDetailOrderDate] = useState("");
@@ -241,24 +246,24 @@ const OrderingAdminRequestsPage: React.FC = () => {
       {
         key: "checkbox",
         label: (
-          <input
+          <input 
             type="checkbox"
             checked={
               selectedRequests.size === sortedAndFilteredRequests.length &&
               sortedAndFilteredRequests.length > 0
             }
             onChange={handleSelectAll}
-            className=" rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className=" rounded border-gray-300 text-blue-600 focus:ring-blue-500 hidden"
           />
         ),
         sortable: false,
-        headerClassName: "w-12 text-center",
+        headerClassName: "w-12 text-center ",
         render: (_, row) => (
           <input
             type="checkbox"
             checked={selectedRequests.has(row.requestNo)}
             onChange={() => handleSelectRequest(row.requestNo)}
-            className="translate-y-[2px] rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            className="translate-y-[2px] rounded border-gray-300 text-blue-600 focus:ring-blue-500 hidden"
           />
         ),
       },
@@ -411,6 +416,11 @@ const OrderingAdminRequestsPage: React.FC = () => {
     setDetailRequesterRemarks(request.remarks || "");
     setOriginalDetailRemarks(request.handlerRemarks || "");
     setOriginalDetailRequesterRemarks(request.remarks || "");
+    setDetailStatus(request.status || "");
+    setOriginalDetailStatus(request.status || "");
+    setDetailHandlerName(request.handler || "");
+    setOriginalDetailHandlerName(request.handler || "");
+    setDetailStatusRemarks("");
     const initOrderDate = request.orderDate ? toDatetimeLocalValue(request.orderDate) : "";
     const initExpected = request.expectedDeliveryDate
       ? toDatetimeLocalValue(request.expectedDeliveryDate)
@@ -453,8 +463,15 @@ const OrderingAdminRequestsPage: React.FC = () => {
       const orderDateChanged = detailOrderDate !== originalDetailOrderDate;
       const expectedChanged =
         detailExpectedDeliveryDate !== originalDetailExpectedDeliveryDate;
+      const statusChanged = detailStatus !== originalDetailStatus;
+      const handlerChanged = detailHandlerName !== originalDetailHandlerName;
       setHasChanges(
-        remarksChanged || requesterRemarksChanged || orderDateChanged || expectedChanged,
+        remarksChanged ||
+          requesterRemarksChanged ||
+          orderDateChanged ||
+          expectedChanged ||
+          statusChanged ||
+          handlerChanged,
       );
     }
   }, [
@@ -462,6 +479,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
     detailRequesterRemarks,
     originalDetailRemarks,
     originalDetailRequesterRemarks,
+    detailStatus,
+    originalDetailStatus,
+    detailHandlerName,
+    originalDetailHandlerName,
     detailOrderDate,
     detailExpectedDeliveryDate,
     originalDetailOrderDate,
@@ -479,6 +500,66 @@ const OrderingAdminRequestsPage: React.FC = () => {
       if (!sessionToken) {
         navigate("/login");
         return;
+      }
+
+      const statusChanged = detailStatus !== originalDetailStatus;
+      const handlerChanged = detailHandlerName !== originalDetailHandlerName;
+
+      // 접수 담당자 변경(관리자 이름 → userId 매핑 후 assignHandler 호출)
+      if (handlerChanged) {
+        const trimmed = detailHandlerName.trim();
+        if (!trimmed) {
+          setToast({ message: "접수 담당자 이름을 입력하세요.", type: "error" });
+          return;
+        }
+        if (!users || users.length === 0) {
+          setToast({
+            message: "사용자 목록을 불러오는 중입니다. 잠시 후 다시 시도해 주세요.",
+            type: "info",
+          });
+          return;
+        }
+        const matchedUser = users.find(
+          (u) => u.role === "관리자" && u.name === trimmed,
+        );
+        if (!matchedUser) {
+          setToast({ message: "배정자가 존재하지 않습니다.", type: "error" });
+          return;
+        }
+
+        const assignResult = await assignHandlerOrdering(
+          ORDERING_GAS_URL,
+          detailRequest.requestNo,
+          matchedUser.userId, // userId를 handlerEmail로 사용
+          sessionToken,
+        );
+        if (!assignResult.success) {
+          setToast({
+            message: assignResult.message || "담당자 배정에 실패했습니다.",
+            type: "error",
+          });
+          return;
+        }
+      }
+
+      // 상태 변경
+      if (statusChanged) {
+        const statusResult = await updateRequestStatusOrdering(
+          ORDERING_GAS_URL,
+          detailRequest.requestNo,
+          detailStatus,
+          detailStatusRemarks,
+          undefined,
+          undefined,
+          sessionToken,
+        );
+        if (!statusResult.success) {
+          setToast({
+            message: statusResult.message || "상태 변경에 실패했습니다.",
+            type: "error",
+          });
+          return;
+        }
       }
 
       // 변경된 필드만 전송 (빈 문자열도 업데이트 가능)
@@ -513,19 +594,36 @@ const OrderingAdminRequestsPage: React.FC = () => {
         return;
       }
 
-      // 데이터 새로고침
-      await loadRequests();
-      setDetailRequest((prev) => {
-        if (!prev) return prev;
-        const updatedFromList = requests.find(
-          (r) => r.requestNo === prev.requestNo,
-        );
-        return updatedFromList || prev;
+      // 로컬 상태 즉시 업데이트 (낙관적 업데이트)
+      setRequests((prevRequests) =>
+        prevRequests.map((r) => {
+          if (r.requestNo !== detailRequest.requestNo) return r;
+          return {
+            ...r,
+            status: detailStatus,
+            handler: detailHandlerName.trim(),
+            orderDate: detailOrderDate
+              ? datetimeLocalToKstIsoOffset(detailOrderDate)
+              : "",
+            expectedDeliveryDate: detailExpectedDeliveryDate
+              ? datetimeLocalToKstIsoOffset(detailExpectedDeliveryDate)
+              : "",
+            handlerRemarks: detailRemarks,
+          };
+        }),
+      );
+
+      // 백그라운드에서 데이터 새로고침 (비동기)
+      loadRequests().catch((err) => {
+        console.error("saveDetailChanges: 데이터 새로고침 실패", err);
       });
 
       setOriginalDetailRemarks(detailRemarks);
       setOriginalDetailOrderDate(detailOrderDate);
       setOriginalDetailExpectedDeliveryDate(detailExpectedDeliveryDate);
+      setOriginalDetailStatus(detailStatus);
+      setOriginalDetailHandlerName(detailHandlerName.trim());
+      setDetailStatusRemarks("");
       setHasChanges(false);
       setToast({ message: "저장되었습니다.", type: "success" });
 
@@ -538,6 +636,8 @@ const OrderingAdminRequestsPage: React.FC = () => {
           expectedDeliveryDate: detailExpectedDeliveryDate
             ? datetimeLocalToKstIsoOffset(detailExpectedDeliveryDate)
             : '',
+          status: detailStatus,
+          handler: detailHandlerName.trim(),
           handlerRemarks: detailRemarks,
         };
       });
@@ -577,6 +677,11 @@ const OrderingAdminRequestsPage: React.FC = () => {
     setDetailRequesterRemarks("");
     setOriginalDetailRemarks("");
     setOriginalDetailRequesterRemarks("");
+    setDetailStatus("");
+    setOriginalDetailStatus("");
+    setDetailHandlerName("");
+    setOriginalDetailHandlerName("");
+    setDetailStatusRemarks("");
     setDetailOrderDate("");
     setDetailExpectedDeliveryDate("");
     setOriginalDetailOrderDate("");
@@ -1056,11 +1161,33 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           현재 상태
                         </td>
                         <td className="px-4 py-4">
-                          <span
-                            className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(detailRequest.status)}`}
-                          >
-                            {detailRequest.status}
-                          </span>
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <select
+                                value={detailStatus}
+                                onChange={(e) => setDetailStatus(e.target.value)}
+                                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-full"
+                              >
+                                {statusOptions.map((status) => (
+                                  <option key={status} value={status}>
+                                    {status}
+                                  </option>
+                                ))}
+                              </select>
+                              {/* <span
+                                className={`inline-block px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(detailStatus || detailRequest.status)}`}
+                              >
+                                {detailStatus || detailRequest.status}
+                              </span> */}
+                            </div>
+                            <input
+                              type="text"
+                              value={detailStatusRemarks}
+                              onChange={(e) => setDetailStatusRemarks(e.target.value)}
+                              placeholder="상태 변경 비고 (선택)"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 hidden"
+                            />
+                          </div>
                         </td>
                       </tr>
                       <tr>
@@ -1178,7 +1305,26 @@ const OrderingAdminRequestsPage: React.FC = () => {
                           접수 담당자
                         </td>
                         <td className="px-4 py-4 text-sm text-gray-900">
-                          {detailRequest.handler || "-"}
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              list="ordering-admin-handler-list"
+                              value={detailHandlerName}
+                              onChange={(e) => setDetailHandlerName(e.target.value)}
+                              placeholder="관리자 이름을 입력/선택하세요"
+                              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <datalist id="ordering-admin-handler-list">
+                              {users
+                                .filter((u) => u.role === "관리자")
+                                .map((u) => (
+                                  <option key={u.userId} value={u.name} />
+                                ))}
+                            </datalist>
+                            <p className="text-xs text-gray-500">
+                              사용자 관리 시트에 등록된 관리자 이름 기준으로 배정됩니다.
+                            </p>
+                          </div>
                         </td>
                       </tr>
                       <tr>
