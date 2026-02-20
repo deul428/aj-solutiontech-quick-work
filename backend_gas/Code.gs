@@ -103,7 +103,7 @@ function doPost(e) {
   }
 }
 
-function handleChecklistSync(ss, rowsToProcess) {
+function handleChecklistSync(ss, rowsToProcess, options) {
   const sheetName = "체크리스트_데이터";
   let sheet = ss.getSheetByName(sheetName);
   const targetHeaders = ["관리번호", "자산번호", "상품코드", "상품명", "제조사", "모델", "년식", "차량번호", "차대번호", "자산실사일", "자산실사 여부", "이상자산구분", "QR", "센터위치", "자산위치", "자산실사자"];
@@ -111,6 +111,7 @@ function handleChecklistSync(ss, rowsToProcess) {
     sheet = ss.insertSheet(sheetName);
     sheet.appendRow(targetHeaders);
   }
+  const setAbnormalOnInsert = options && options.setAbnormalOnInsert === true;
   const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
   const mgmtColIdx = headers.indexOf("관리번호");
   const qrColIdx = headers.indexOf("QR");
@@ -153,8 +154,13 @@ function handleChecklistSync(ss, rowsToProcess) {
         const qrFormula = '=IMAGE("https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' + encodeURIComponent(targetMgmtNo) + '")';
         qrCell.setFormula(qrFormula);
       }
-      // 신규 추가 시 이상자산구분 열에 O 표시
-      if (abnormalAssetColIdx > -1) {
+      // 이상자산구분 규칙:
+      // - checklist 저장(action=checklist): 신규 생성이어도 자동 'O' 금지 (payload에 'O'가 명시된 경우만)
+      // - audit 저장(action=audit): 체크리스트 없이 실사된 케이스는 신규 생성 + 'O' 자동 세팅
+      const abnormalFlag = cleanValue(item["이상자산구분"]);
+      const shouldSetAbnormal =
+        setAbnormalOnInsert || String(abnormalFlag || "").toUpperCase() === "O";
+      if (abnormalAssetColIdx > -1 && shouldSetAbnormal) {
         sheet.getRange(currentRowIdx, abnormalAssetColIdx + 1).setValue("O");
       }
       // 신규 추가 시에도 자산실사자 정보 업데이트 (있는 경우)
@@ -168,7 +174,8 @@ function handleChecklistSync(ss, rowsToProcess) {
 }
 
 function handleAuditUpdate(ss, rowsToProcess) {
-  return handleChecklistSync(ss, rowsToProcess);
+  // 실사(QR) 먼저 찍은 케이스: 체크리스트_데이터에 관리번호가 없으면 신규 생성 + 이상자산구분 'O'
+  return handleChecklistSync(ss, rowsToProcess, { setAbnormalOnInsert: true });
 }
 
 function cleanValue(val) {

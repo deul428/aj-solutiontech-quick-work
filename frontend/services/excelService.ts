@@ -68,7 +68,18 @@ export const fetchMasterFromCloud = async (url: string, sheetName?: string): Pro
     const fetchUrl = `${url}${getUrlSeparator(url)}action=read${sheetParam}&t=${Date.now()}`;
     const response = await fetch(fetchUrl);
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-    return await response.json() as MasterDataRow[];
+    const raw = await response.json() as MasterDataRow[];
+    // 헤더/키에 공백이 섞여 들어오는 경우(예: "자산번호 " 등)를 흡수하기 위해 키를 trim 정규화합니다.
+    if (!Array.isArray(raw)) return [];
+    return raw.map((row) => {
+      const normalized: MasterDataRow = {};
+      if (!row || typeof row !== "object") return normalized;
+      Object.keys(row).forEach((k) => {
+        const nk = String(k).trim();
+        normalized[nk] = (row as any)[k];
+      });
+      return normalized;
+    });
   } catch (error) {
     console.error("Error fetching master from cloud:", error);
     throw error;
@@ -105,8 +116,6 @@ export const syncChecklistToCloud = async (url: string, data: ChecklistData[], _
 
   const rows = data.map((item) => {
     const assetNumber = String(item.assetNumber || "").trim();
-    const isAbnormalAsset = !assetNumber || assetNumber === "" || assetNumber === "null";
-    
     return {
       [CHECKLIST_COLUMNS.MGMT_NO]: String(item.mgmtNumber || "").trim(),
       [CHECKLIST_COLUMNS.ASSET_NO]: assetNumber,
@@ -117,7 +126,6 @@ export const syncChecklistToCloud = async (url: string, data: ChecklistData[], _
       [CHECKLIST_COLUMNS.YEAR]: String(item.year || "").trim(),
       [CHECKLIST_COLUMNS.VEHICLE_NO]: String(item.vehicleNumber || "").trim(),
       [CHECKLIST_COLUMNS.SERIAL_NO]: String(item.serialNumber || "").trim(),
-      ...(isAbnormalAsset && { [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: 'O' }),
     };
   });
 
@@ -158,9 +166,6 @@ export const syncAuditDataToCloud = async (
   const payload = {
     action: "audit",
     rows: auditedItems.map((row) => {
-      const assetNumber = String(row[MASTER_COLUMNS.ASSET_NO] || row[CHECKLIST_COLUMNS.ASSET_NO] || "").trim();
-      const isAbnormalAsset = !assetNumber || assetNumber === "" || assetNumber === "null";
-      
       // 자산실사자 값 확인 및 로깅
       const auditUserValue = auditorName || "";
       if (!auditUserValue) {
@@ -175,7 +180,6 @@ export const syncAuditDataToCloud = async (
         [CHECKLIST_COLUMNS.CENTER_LOC]: centerLocation || "",
         [CHECKLIST_COLUMNS.ASSET_LOC]: assetLocation || "",
         [CHECKLIST_COLUMNS.AUDIT_USER]: auditUserValue, // '자산실사자' 키로 전송
-        ...(isAbnormalAsset && { [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: 'O' }),
       };
     })
   };
