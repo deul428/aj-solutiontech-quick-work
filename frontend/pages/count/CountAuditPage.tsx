@@ -393,13 +393,12 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({
       }
     }
 
-    // 마스터파일에 없는 관리번호인 경우 임시 row 생성 (이상자산구분 'O'으로 설정)
+    // 마스터파일에 없는 관리번호인 경우 임시 row 생성
     if (!match) {
       const tempRow: MasterDataRow = {
         [MASTER_COLUMNS.MGMT_NO]: trimmedText,
         [MASTER_COLUMNS.ASSET_NO]: "", // 자산번호 없음
         [MASTER_COLUMNS.PROD_NAME]: "마스터파일에 없는 관리번호",
-        [CHECKLIST_COLUMNS.ABNORMAL_ASSET]: "O", // 이상자산구분 'O' 설정
         [AUDIT_COLUMNS.STATUS]: "",
       };
       // masterData에 추가
@@ -465,9 +464,6 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({
     setMasterData((prev) =>
       prev.map((row) => {
         if (row[MASTER_COLUMNS.MGMT_NO] === mgmtNo) {
-          const assetNumber = String(row[MASTER_COLUMNS.ASSET_NO] || "").trim();
-          const isAbnormalAsset =
-            !assetNumber || assetNumber === "" || assetNumber === "null";
           const updatedRow = {
             ...row,
             [AUDIT_COLUMNS.DATE]: dateStr,
@@ -475,10 +471,6 @@ const CountAuditPage: React.FC<CountAuditPageProps> = ({
             [AUDIT_COLUMNS.STATUS]: "O",
             [CHECKLIST_COLUMNS.AUDIT_STATUS]: "O",
           };
-          // 자산번호가 없으면 이상자산구분 'O' 설정
-          if (isAbnormalAsset) {
-            updatedRow[CHECKLIST_COLUMNS.ABNORMAL_ASSET] = "O";
-          }
           return updatedRow;
         }
         return row;
