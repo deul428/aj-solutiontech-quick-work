@@ -938,7 +938,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
         </div>
 
         {/* 일괄 변경 버튼 */}
-        <div className="mb-4 flex justify-end gap-2">
+        <div className="mb-4 flex justify-end gap-2 hidden">
           <Button variant="primary" color="blue" onClick={handleBatchStatusChange}>
             일괄 상태 변경 ({selectedRequests.size}건)
           </Button>
