@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Edit, Trash2, Search } from "lucide-react";
 import {
-  isAdmin,
+  isOrderingAdmin,
   getCurrentUser,
   getSessionToken,
 } from "../utils/orderingAuth";
@@ -47,7 +47,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
   } | null>(null);
 
   // user의 role을 메모이제이션하여 안정적인 참조 생성
-  const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
+  const isUserAdmin = useMemo(() => user && isOrderingAdmin(user), [user?.orderingRole, user?.role]);
 
   const loadPlaces = useCallback(async () => {
     try {
@@ -97,7 +97,7 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
     // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
       alert("접근 권한이 없습니다.");
-      navigate("/user", { replace: true });
+      navigate("/dashboard", { replace: true });
       return;
     }
     loadPlaces();

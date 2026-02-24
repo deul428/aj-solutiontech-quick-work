@@ -385,6 +385,9 @@ class UserModel {
       const teamCol = this._getColumnIndex(headers, '소속팀');
       const regionCol = this._getColumnIndex(headers, '지역');
       const roleCol = this._getColumnIndex(headers, '역할');
+      // 시스템별 권한 컬럼 (없을 수 있으므로 optional)
+      const orderingRoleCol = this._getColumnIndex(headers, '부품발주역할');
+      const auditRoleCol = this._getColumnIndex(headers, '정비실사역할');
       const activeCol = this._getColumnIndex(headers, '활성화');
       
       // 필수 컬럼 확인
@@ -401,6 +404,28 @@ class UserModel {
         const sheetUserId = String(data[i][userIdCol] || '').trim();
         
         if (sheetUserId === normalizedUserId) {
+          // 역할 정규화: 관리자만 관리자, 나머지는 신청자 취급(신청자/기타/빈값 포함)
+          const normalizeSystemRole_ = (v) => {
+            const s = String(v === null || v === undefined ? '' : v).trim();
+            if (s === '') return CONFIG.ROLES.USER;
+            const lower = s.toLowerCase();
+            if (s === CONFIG.ROLES.ADMIN || lower.includes('관리자') || lower.includes('manager')) return CONFIG.ROLES.ADMIN;
+            return CONFIG.ROLES.USER;
+          };
+
+          const legacyRoleRaw = roleCol >= 0 ? data[i][roleCol] : '';
+          const orderingRoleRaw =
+            orderingRoleCol >= 0 ? data[i][orderingRoleCol] : legacyRoleRaw;
+          const auditRoleRaw =
+            auditRoleCol >= 0 ? data[i][auditRoleCol] : legacyRoleRaw;
+
+          const orderingRole = normalizeSystemRole_(orderingRoleRaw);
+          const auditRole = normalizeSystemRole_(auditRoleRaw);
+          const uiRole =
+            orderingRole === CONFIG.ROLES.ADMIN || auditRole === CONFIG.ROLES.ADMIN
+              ? CONFIG.ROLES.ADMIN
+              : CONFIG.ROLES.USER;
+
           return {
             userId: data[i][userIdCol],
             passwordHash: passwordHashCol >= 0 ? data[i][passwordHashCol] : '',
@@ -408,7 +433,11 @@ class UserModel {
             employeeCode: employeeCodeCol >= 0 ? data[i][employeeCodeCol] : '',
             team: teamCol >= 0 ? data[i][teamCol] : '',
             region: regionCol >= 0 ? data[i][regionCol] : '',
-            role: roleCol >= 0 ? data[i][roleCol] : '',
+            // 레거시/UI용 role: 둘 중 하나라도 관리자면 관리자
+            role: uiRole,
+            // 시스템별 role: 각 시스템 권한 체크에 사용
+            orderingRole: orderingRole,
+            auditRole: auditRole,
             active: activeCol >= 0 ? data[i][activeCol] : ''
           };
         }
@@ -480,16 +509,20 @@ class UserModel {
     const userIdCol = this._getColumnIndex(headers, '사용자ID');
     const nameCol = this._getColumnIndex(headers, '이름');
     const roleCol = this._getColumnIndex(headers, '역할');
+    const orderingRoleCol = this._getColumnIndex(headers, '부품발주역할');
     const activeCol = this._getColumnIndex(headers, '활성화');
     
-    if (userIdCol < 0 || roleCol < 0 || activeCol < 0) {
+    if (userIdCol < 0 || activeCol < 0) {
       Logger.log('findAllAdmins: 필수 컬럼을 찾을 수 없습니다.');
       return [];
     }
     
     const admins = [];
     for (let i = 1; i < data.length; i++) {
-      const role = data[i][roleCol];
+      // Ordering 시스템 기준 관리자 목록: 부품발주역할 우선, 없으면 레거시 역할 사용
+      const role = orderingRoleCol >= 0
+        ? data[i][orderingRoleCol]
+        : (roleCol >= 0 ? data[i][roleCol] : '');
       const active = data[i][activeCol];
       if (role === CONFIG.ROLES.ADMIN && active === 'Y') {
         admins.push({

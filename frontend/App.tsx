@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Routes, Route, useNavigate, useParams, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useParams, useLocation } from "react-router-dom";
 import "./App.css";
 import { MasterDataRow } from "./types";
 import CountMasterPage from "./pages/count/CountMasterPage";
@@ -12,8 +12,7 @@ import OrderingMyRequestsPage from "./pages/ordering/OrderingMyRequestsPage";
 import OrderingRequestDetailPage from "./pages/ordering/OrderingRequestDetailPage";
 import MyInfoPage from "./pages/MyInfoPage";
 import LoginPage from "./pages/LoginPage";
-import AdminDashboardPage from "./pages/AdminDashboardPage";
-import UserDashboardPage from "./pages/UserDashboardPage";
+import DashboardUnifiedPage from "./pages/DashboardUnifiedPage";
 import CountAdminAuditHistoryPage from "./pages/count/CountAdminAuditHistoryPage";
 import OrderingAdminRequestsPage from "./pages/ordering/OrderingAdminRequestsPage";
 import AdminUserManagementPage from "./pages/AdminUserManagementPage";
@@ -22,21 +21,26 @@ import EquipmentMainPage from "./pages/EquipmentMainPage";
 import LoadingOverlay from "./components/LoadingOverlay";
 import Navbar from "./components/Navbar";
 import { fetchMasterFromCloud, fetchSheetList, AUDIT_GAS_URL } from "./services/excelService";
-import { isLoggedIn, getCurrentUser, isAdmin, isUser, logout } from "./utils/orderingAuth";
+import { isLoggedIn, getCurrentUser, isAdmin, isUser, isOrderingAdmin, isAuditAdmin, logout } from "./utils/orderingAuth";
 
 type ViewType = "home" | "checklist" | "audit";
 
 // 관리자 라우트 보호 컴포넌트
 interface ProtectedAdminRouteProps {
   children: React.ReactElement;
+  system?: "ordering" | "equipment" | "any";
 }
 
-const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children }) => {
+const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children, system = "any" }) => {
   const navigate = useNavigate();
   const currentUser = getCurrentUser();
   const isUserLoggedIn = isLoggedIn();
-  const userIsAdmin = isAdmin(currentUser);
-  const userIsUser = isUser(currentUser);
+  const userIsAdmin =
+    system === "ordering"
+      ? isOrderingAdmin(currentUser)
+      : system === "equipment"
+        ? isAuditAdmin(currentUser)
+        : isAdmin(currentUser);
 
   useEffect(() => {
     // 로그인하지 않은 경우
@@ -49,7 +53,7 @@ const ProtectedAdminRoute: React.FC<ProtectedAdminRouteProps> = ({ children }) =
     // 로그인했지만 관리자가 아닌 경우
     if (!userIsAdmin) {
       alert('접근 권한이 없습니다.');
-      navigate('/user', { replace: true });
+      navigate('/dashboard', { replace: true });
       return;
     }
   }, [isUserLoggedIn, userIsAdmin, navigate]);
@@ -103,7 +107,7 @@ const OrderingRoutes: React.FC = () => {
       <Route
         path="requests"
         element={
-          <ProtectedAdminRoute>
+          <ProtectedAdminRoute system="ordering">
             <OrderingAdminRequestsPage />
           </ProtectedAdminRoute>
         }
@@ -143,8 +147,9 @@ const MainApp: React.FC = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const userIsAdmin = isAdmin(currentUser);
-  const userIsUser = isUser(currentUser);
+  const userIsAdmin = isAdmin(currentUser); // UI/레거시(any_admin)
+  const userIsUser = isUser(currentUser);   // UI/레거시(any_admin 반대)
+  const userIsAuditAdmin = isAuditAdmin(currentUser);
   const isUserLoggedIn = isLoggedIn();
 
   const loadData = async (customUrl?: string, targetSheet?: string) => {
@@ -248,7 +253,7 @@ const MainApp: React.FC = () => {
         <Route
           path="/equipment/checklist"
           element={
-            userIsAdmin ? (
+            userIsAuditAdmin ? (
               <CountChecklistPage masterData={masterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} />
             ) : (
               <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
@@ -258,14 +263,14 @@ const MainApp: React.FC = () => {
         <Route
           path="/equipment/audit"
           element={
-            (userIsUser || userIsAdmin) ? (
+            isUserLoggedIn ? (
               <CountAuditPage masterData={masterData} setMasterData={setMasterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} isDataLoading={isInitialLoading} />
             ) : (
               <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
             )
           }
         />
-        <Route path="/equipment/audit-history" element={<ProtectedAdminRoute><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
+        <Route path="/equipment/audit-history" element={<ProtectedAdminRoute system="equipment"><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
 
         {/* 기존 라우트 (하위 호환성 유지) */}
         <Route
@@ -291,7 +296,7 @@ const MainApp: React.FC = () => {
         <Route
           path="/checklist"
           element={
-            userIsAdmin ? (
+            userIsAuditAdmin ? (
               <CountChecklistPage masterData={masterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} />
             ) : (
               <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
@@ -301,7 +306,7 @@ const MainApp: React.FC = () => {
         <Route
           path="/audit"
           element={
-            (userIsUser || userIsAdmin) ? (
+            isUserLoggedIn ? (
               <CountAuditPage masterData={masterData} setMasterData={setMasterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} isDataLoading={isInitialLoading} />
             ) : (
               <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
@@ -318,13 +323,17 @@ const MainApp: React.FC = () => {
         )}
 
         {/* 관리자 라우트 - 보호된 라우트 */}
-        <Route path="/manager" element={<ProtectedAdminRoute><AdminDashboardPage /></ProtectedAdminRoute>} />
-        <Route path="/manager/audit-history" element={<ProtectedAdminRoute><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
-        <Route path="/manager/users" element={<ProtectedAdminRoute><AdminUserManagementPage /></ProtectedAdminRoute>} />
-        <Route path="/manager/delivery-places" element={<ProtectedAdminRoute><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
+        {/* 통합 대시보드로 리다이렉트 (하위 호환) */}
+        <Route path="/manager" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/manager/audit-history" element={<ProtectedAdminRoute system="equipment"><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
+        <Route path="/manager/users" element={<ProtectedAdminRoute system="ordering"><AdminUserManagementPage /></ProtectedAdminRoute>} />
+        <Route path="/manager/delivery-places" element={<ProtectedAdminRoute system="ordering"><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
 
-        {/* 사용자 라우트 */}
-        {isUser(getCurrentUser()) && <Route path="/user" element={<UserDashboardPage />} />}
+        {/* 통합 대시보드 */}
+        <Route path="/dashboard" element={<DashboardUnifiedPage />} />
+
+        {/* 사용자 라우트 (하위 호환) */}
+        <Route path="/user" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     );
   };

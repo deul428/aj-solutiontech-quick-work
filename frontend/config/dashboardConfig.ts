@@ -3,12 +3,12 @@ import {
     Package,
     Users,
     MapPin,
-    ScanQrCode,
     Home as HomeIcon,
     User as UserIcon,
     Key
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
+import type { User } from '../types/ordering';
 
 /**
  * 대시보드 메뉴 아이템 인터페이스
@@ -22,6 +22,17 @@ export interface DashboardMenuItem {
     color: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
     // 표시 조건: 'manager' | 'user'
     roles?: readonly ('manager' | 'user')[];
+    /**
+     * 시스템별 권한이 필요한 메뉴(주로 관리자 메뉴)용
+     * - ordering: 부품발주 관리자(orderingRole)
+     * - equipment: 정비/실사 관리자(auditRole)
+     */
+    requiredSystem?: 'ordering' | 'equipment';
+    /**
+     * disabled 여부를 런타임 컨텍스트로 결정하고 싶을 때 사용합니다.
+     * - 대시보드 통합 시, 메뉴는 항상 노출하되 권한/정책에 따라 클릭만 막는 용도
+     */
+    disabledWhen?: (ctx: DashboardMenuAccessContext) => boolean;
     // 숨김 여부
     hidden?: boolean;
     // 비활성화 여부 (true면 메뉴는 보이지만 클릭 불가)
@@ -45,6 +56,17 @@ export interface DashboardSection {
     titleColor: 'blue' | 'green' | 'purple' | 'orange' | 'indigo' | 'red' | 'yellow' | 'pink';
     gridCols?: '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10'; // 그리드 컬럼 수 (기본값: '3')
     menus: DashboardMenuItem[];
+}
+
+/**
+ * 대시보드 메뉴 접근/표시 컨텍스트
+ * - DashboardPage에서 생성하여 disabledWhen에 전달합니다.
+ */
+export interface DashboardMenuAccessContext {
+    user: User | null;
+    uiRole: 'manager' | 'user';
+    isOrderingAdmin: boolean;
+    isAuditAdmin: boolean;
 }
 
 /**
@@ -118,38 +140,45 @@ export const colorClasses = {
 };
 
 /**
- * 메뉴 베이스 정의
- * - 각 대시보드별(관리자/사용자) 표시 정책만 다르게 덮어씁니다.
+ * 통합 대시보드(로그인 사용자 공통)
+ *
+ * - 관리자/사용자 대시보드를 분리하지 않고, 메뉴를 한 곳에 모읍니다.
+ * - '사용자 관리', '부품 배송지 관리'는 disabledWhen 정책으로 enable/disable을 쉽게 조정할 수 있습니다.
  */
-const EQUIPMENT_AUDIT_MENU_BASE: Omit<DashboardMenuItem, 'roles'> = {
-    id: 'equipment-audit',
-    title: '자산 실사',
-    description: 'QR코드로 빠르게 자산 실사를 수행',
-    icon: ScanQrCode,
-    path: '/equipment/audit',
-    color: 'blue',
-    navbar: true,
-    navbarLabel: '자산 실사',
-    navbarOrder: 10
+export const unifiedDashboardMenuPolicy = {
+    /**
+     * 사용자 관리 메뉴 enable 조건
+     * - 기본값: ordering 관리자만 활성화
+     * - 필요 시 이 함수만 바꿔서 enable/disable 정책을 바꿀 수 있습니다.
+     */
+    canManageUsers: (ctx: DashboardMenuAccessContext) => ctx.isOrderingAdmin,
+    /**
+     * 배송지 관리 메뉴 enable 조건
+     * - 기본값: ordering 관리자만 활성화
+     */
+    canManageDeliveryPlaces: (ctx: DashboardMenuAccessContext) => ctx.isOrderingAdmin,
 };
 
-const EQUIPMENT_AUDIT_MENU_FOR_USER: DashboardMenuItem = {
-    ...EQUIPMENT_AUDIT_MENU_BASE,
-    roles: ['user']
-};
-
-/**
- * 관리자 대시보드 설정
- * 
- * 메뉴를 추가/제거하려면 이 배열을 수정하세요.
- */
-export const adminDashboardSections: DashboardSection[] = [
+export const unifiedDashboardSections: DashboardSection[] = [
     {
-        id: 'equipment',
-        title: '장비 점검, 실사, QR생성',
+        id: 'unified',
+        title: '대시보드',
         titleColor: 'blue',
-        gridCols: '3',
+        gridCols: '4',
         menus: [
+            {
+                id: 'ordering-main',
+                title: '부품 발주',
+                description: '새 부품 신청, 내 신청 내역 확인',
+                icon: Package,
+                path: '/ordering',
+                color: 'green',
+                roles: ['manager', 'user'],
+                navbar: true,
+                navbarLabel: '부품 발주',
+                navbarActivePath: '/ordering',
+                navbarOrder: 20
+            },
             {
                 id: 'equiment-main',
                 title: '장비 점검, 실사, QR생성',
@@ -157,79 +186,12 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: ClipboardCheck,
                 path: '/equipment',
                 color: 'blue',
-                roles: ['manager'],
+                roles: ['manager', 'user'],
                 navbar: true,
                 navbarLabel: '장비 점검, 실사, QR생성',
-                navbarOrder: 1
+                navbarActivePath: '/equipment',
+                navbarOrder: 10
             },
-            /* 
-            // 예시: disabled 속성 사용
-            {
-                id: 'checklist',
-                title: '체크리스트 생성',
-                description: '자산 점검용 체크리스트 생성',
-                icon: ClipboardCheck,
-                path: '/equipment/checklist',
-                color: 'blue',
-                roles: ['manager'],
-                disabled: true, // 비활성화 (메뉴는 보이지만 클릭 불가)
-                navbar: false,
-                navbarLabel: '체크리스트 생성',
-                navbarOrder: 2
-            },
-            // 예시: dashboardVisibility 사용
-            {
-                id: 'audit-history',
-                title: '자산 실사 내역 확인',
-                description: '체크리스트 데이터 조회 및 관리',
-                icon: FileText,
-                path: '/equipment/audit-history',
-                color: 'pink',
-                roles: ['manager'],
-                dashboardVisibility: 'manager-only', // manager 대시보드에만 표시
-                navbar: false,
-                navbarOrder: 3
-            },
-            {
-                id: 'master-file',
-                title: '마스터 파일 관리',
-                description: 'SAP 자산정보 파일 갱신 및 관리',
-                icon: RefreshCcw,
-                path: '/equipment/master',
-                color: 'purple',
-                roles: ['manager'],
-                navbar: false
-            }
-            */
-        ]
-    },
-    {
-        id: 'ordering',
-        title: '부품 발주',
-        titleColor: 'green',
-        gridCols: '3',
-        menus: [
-            {
-                id: 'ordering-main',
-                title: '부품 발주',
-                description: '새 부품 신청, 내 부품 신청 내역 확인, 관리자 부품 신청 현황 조회',
-                icon: Package,
-                path: '/ordering',
-                color: 'green',
-                roles: ['manager'],
-                navbar: true,
-                navbarLabel: '부품 발주',
-                navbarActivePath: '/ordering',
-                navbarOrder: 20
-            }
-        ]
-    },
-    {
-        id: 'master-data',
-        title: '기준 정보 관리',
-        titleColor: 'yellow',
-        gridCols: '2',
-        menus: [
             {
                 id: 'users',
                 title: '사용자 관리',
@@ -237,8 +199,9 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: Users,
                 path: '/manager/users',
                 color: 'yellow',
-                roles: ['manager'],
-                navbar: false // 대시보드에만 표시
+                roles: ['manager', 'user'],
+                navbar: false,
+                disabledWhen: (ctx) => !unifiedDashboardMenuPolicy.canManageUsers(ctx),
             },
             {
                 id: 'delivery-places',
@@ -247,11 +210,22 @@ export const adminDashboardSections: DashboardSection[] = [
                 icon: MapPin,
                 path: '/manager/delivery-places',
                 color: 'red',
-                roles: ['manager'],
-                navbar: false // 대시보드에만 표시
-            }
+                roles: ['manager', 'user'],
+                navbar: false,
+                disabledWhen: (ctx) =>
+                    !unifiedDashboardMenuPolicy.canManageDeliveryPlaces(ctx),
+            },
         ]
     }
+];
+
+/**
+ * 관리자 대시보드 설정
+ * 
+ * 메뉴를 추가/제거하려면 이 배열을 수정하세요.
+ */
+export const adminDashboardSections: DashboardSection[] = [
+    ...unifiedDashboardSections
 ];
 
 /**
@@ -278,39 +252,8 @@ export interface SystemHomeCard {
  * 
  * 메뉴를 추가/제거하려면 이 배열을 수정하세요.
  */
-import { getCurrentUser } from '../utils/orderingAuth';
-const currentUser = getCurrentUser();
 export const userDashboardSections: DashboardSection[] = [
-    {
-        id: 'equipment',
-        title: '장비 점검, 실사, QR생성',
-        titleColor: 'blue',
-        gridCols: '2',
-        menus: [
-            EQUIPMENT_AUDIT_MENU_FOR_USER
-        ]
-    },
-    {
-        id: 'ordering',
-        title: '부품 발주',
-        titleColor: 'green',
-        gridCols: '2',
-        menus: [
-            {
-                id: 'ordering-main',
-                title: '부품 발주',
-                description: '새 부품 신청, 내 부품 신청 내역 확인',
-                icon: Package,
-                path: '/ordering',
-                color: 'green',
-                roles: ['user'],
-                navbar: true,
-                navbarLabel: '부품 발주',
-                navbarActivePath: '/ordering',
-                navbarOrder: 20
-            }
-        ]
-    }
+    ...unifiedDashboardSections
 ];
 
 /**
@@ -348,27 +291,19 @@ export const navbarOnlyMenuItems: NavbarOnlyMenuItem[] = [
         roles: ['guest'],
         navbarOrder: 1
     },
-    // 대시보드 홈
+    // 대시보드 홈 (통합)
     {
-        id: 'admin-home',
-        label: '관리자 홈',
-        path: '/manager',
+        id: 'dashboard-home',
+        label: '대시보드',
+        path: '/dashboard',
         icon: HomeIcon,
-        roles: ['manager'],
-        navbarOrder: 1
-    },
-    {
-        id: 'user-home',
-        label: '사용자 홈',
-        path: '/user',
-        icon: HomeIcon,
-        roles: ['user'],
+        roles: ['manager', 'user'],
         navbarOrder: 1
     },
     // 공통 메뉴
     {
         id: 'info',
-        label: currentUser ? `${currentUser?.name} (${currentUser?.team})` : '내 정보',
+        label: '내 정보',
         path: '/info',
         icon: UserIcon,
         roles: ['manager', 'user'],
@@ -404,6 +339,7 @@ export interface NavbarMenuItem {
     path: string;
     icon: LucideIcon;
     roles?: readonly ('manager' | 'user' | 'guest')[];
+    requiredSystem?: 'ordering' | 'equipment';
     activePath?: string;
     isLogout?: boolean;
     isLogin?: boolean;
@@ -428,6 +364,7 @@ export function getNavbarMenuItemsFromDashboards(): NavbarMenuItem[] {
                     path: menu.path,
                     icon: menu.icon,
                     roles: menu.roles,
+                    requiredSystem: menu.requiredSystem,
                     activePath: menu.navbarActivePath,
                     navbarOrder: menu.navbarOrder
                 };
@@ -463,6 +400,7 @@ export function getNavbarMenuItemsFromDashboards(): NavbarMenuItem[] {
                     path: menu.path,
                     icon: menu.icon,
                     roles: menu.roles,
+                    requiredSystem: menu.requiredSystem,
                     activePath: menu.navbarActivePath,
                     navbarOrder: menu.navbarOrder
                 };
@@ -530,7 +468,7 @@ export const systemHomeCards: SystemHomeCard[] = [
         icon: Package,
         iconBgColor: 'green',
         navigateTo: (isAdmin: boolean, isUser: boolean) => {
-            if (isAdmin) return '/manager';
+            if (isAdmin) return '/ordering';
             if (isUser) return '/ordering';
             return '/login';
         },

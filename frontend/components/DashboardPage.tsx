@@ -3,11 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { DashboardSection, DashboardMenuItem, colorClasses } from '../config/dashboardConfig';
 import Header from './Header';
+import { getCurrentUser, getUiRole, isOrderingAdmin, isAuditAdmin } from '../utils/orderingAuth';
 
 interface DashboardPageProps {
   sections: DashboardSection[];
   headerTitle: string;
-  userRole: 'manager' | 'user';
+  userRole?: 'manager' | 'user';
   userName?: string;
   userTeam?: string;
 }
@@ -20,6 +21,17 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   userTeam
 }) => {
   const navigate = useNavigate();
+  const currentUser = getCurrentUser();
+  const uiRole = userRole ?? getUiRole(currentUser);
+  const userIsOrderingAdmin = isOrderingAdmin(currentUser);
+  const userIsAuditAdmin = isAuditAdmin(currentUser);
+
+  const accessCtx = {
+    user: currentUser,
+    uiRole,
+    isOrderingAdmin: userIsOrderingAdmin,
+    isAuditAdmin: userIsAuditAdmin,
+  } as const;
 
   const canAccessMenu = (menu: DashboardMenuItem) => {
     if (menu.hidden) return false;
@@ -28,7 +40,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
     if (!menu.roles || menu.roles.length === 0) return true;
 
     // 역할은 명시적으로 분리: manager는 user를 자동 포함하지 않음
-    return menu.roles.includes(userRole);
+    return menu.roles.includes(uiRole);
   };
 
   const MenuCard: React.FC<{
@@ -36,7 +48,9 @@ const DashboardPage: React.FC<DashboardPageProps> = ({
   }> = ({ menu }) => {
     const colors = colorClasses[menu.color as keyof typeof colorClasses];
     const Icon = menu.icon;
-    const isDisabled = menu.disabled === true;
+    const isDisabled =
+      menu.disabled === true ||
+      (typeof menu.disabledWhen === 'function' ? menu.disabledWhen(accessCtx) : false);
 
     // ArrowRight 아이콘 색상 클래스 매핑
     const arrowColorMap: Record<string, string> = {

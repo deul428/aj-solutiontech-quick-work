@@ -18,12 +18,8 @@ const SystemHomePage: React.FC = () => {
       navigate('/login', { state: { from: '/' }, replace: true });
       return;
     }
-    // 이미 로그인한 경우 권한에 따라 적절한 대시보드로 리다이렉트
-    if (userIsAdmin) {
-      navigate('/manager', { replace: true });
-    } else if (userIsUser) {
-      navigate('/user', { replace: true });
-    }
+    // 이미 로그인한 경우: 통합 대시보드로 이동
+    navigate('/dashboard', { replace: true });
   }, [navigate, userIsAdmin, userIsUser]);
 
   // 표시할 카드 필터링

@@ -136,6 +136,18 @@ function verifyPassword(password, hash) {
 }
 
 /**
+ * 부품발주 시스템 관리자 여부
+ * - 시스템별 컬럼(부품발주역할)이 있으면 그 값을 우선 사용
+ * - 없으면 레거시 role 컬럼으로 fallback (마이그레이션/구버전 세션 호환)
+ */
+function isOrderingAdmin_(userInfo) {
+  if (!userInfo) return false;
+  const hasOrderingRole = Object.prototype.hasOwnProperty.call(userInfo, 'orderingRole');
+  const roleValue = hasOrderingRole ? userInfo.orderingRole : userInfo.role;
+  return String(roleValue || '').trim() === CONFIG.ROLES.ADMIN;
+}
+
+/**
  * 로그인 처리
  * @param {string} userId - 사용자 ID
  * @param {string} password - 비밀번호
@@ -220,7 +232,11 @@ function login(userId, password) {
       employeeCode: user.employeeCode,
       team: user.team,
       region: user.region,
-      role: user.role
+      // 레거시/UI용 role (둘 중 하나라도 관리자면 관리자)
+      role: user.role,
+      // 시스템별 role
+      orderingRole: user.orderingRole || CONFIG.ROLES.USER,
+      auditRole: user.auditRole || CONFIG.ROLES.USER
     });
     
     // 로그 기록
@@ -232,7 +248,11 @@ function login(userId, password) {
       user: {
         userId: user.userId,
         name: user.name,
+        // 레거시/UI용 role (둘 중 하나라도 관리자면 관리자)
         role: user.role,
+        // 시스템별 role
+        orderingRole: user.orderingRole || CONFIG.ROLES.USER,
+        auditRole: user.auditRole || CONFIG.ROLES.USER,
         team: user.team,
         region: user.region,
         employeeCode: user.employeeCode
@@ -325,7 +345,7 @@ function resetUserPassword(targetUserId, newPassword, sessionToken) {
   try {
     // 관리자 권한 확인
     const currentUser = getCurrentSession(sessionToken);
-    if (!currentUser || currentUser.role !== CONFIG.ROLES.ADMIN) {
+    if (!currentUser || !isOrderingAdmin_(currentUser)) {
       return {
         success: false,
         message: '관리자만 비밀번호를 초기화할 수 있습니다.'
@@ -371,7 +391,7 @@ function initializeAllPasswords(defaultPassword, sessionToken) {
   try {
     // 관리자 권한 확인
     const currentUser = getCurrentSession(sessionToken);
-    if (!currentUser || currentUser.role !== CONFIG.ROLES.ADMIN) {
+    if (!currentUser || !isOrderingAdmin_(currentUser)) {
       return {
         success: false,
         message: '관리자만 실행할 수 있습니다.'

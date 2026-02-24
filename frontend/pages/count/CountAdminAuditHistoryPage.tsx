@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Search, Download, RefreshCw, X, Info } from "lucide-react";
-import { isAdmin, getCurrentUser } from "../../utils/orderingAuth";
+import { isAuditAdmin, getCurrentUser } from "../../utils/orderingAuth";
 import {
   getAllChecklistData,
   downloadChecklistHistoryExcel,
@@ -195,7 +195,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   });
 
   // user의 role을 메모이제이션하여 안정적인 참조 생성
-  const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
+  const isUserAdmin = useMemo(() => user && isAuditAdmin(user), [user?.auditRole, user?.role]);
 
   // 위치 옵션 로드: VITE_AUDIT_GAS_URL 연결 스프레드시트의 '자산위치_데이터' 시트에서
   // '센터 구분' 열(중복 제거) → 센터 위치, '구역 구분' 열(센터별 종속) → 자산 위치
@@ -286,7 +286,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
       alert("접근 권한이 없습니다.");
-      navigate("/user", { replace: true });
+      navigate("/dashboard", { replace: true });
       return;
     }
     loadData();

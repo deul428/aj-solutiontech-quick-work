@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { isAdmin, isUser, getCurrentUser } from '../utils/orderingAuth';
+import { isAuditAdmin, getCurrentUser } from '../utils/orderingAuth';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { DashboardSection, DashboardMenuItem, colorClasses } from '../config/dashboardConfig';
 import Header from '../components/Header';
@@ -9,8 +9,8 @@ import { ArrowRight, ClipboardCheck, FileText, RefreshCcw, ScanQrCode } from 'lu
 const EquipmentMainPage: React.FC = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
-  const userIsAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
-  const userIsUser = useMemo(() => user && isUser(user), [user?.role]);
+  const userIsAuditAdmin = useMemo(() => user && isAuditAdmin(user), [user?.auditRole, user?.role]);
+  const userIsAuditUser = useMemo(() => !!user && !userIsAuditAdmin, [user?.userId, userIsAuditAdmin]);
 
   // 장비 시스템 섹션만 필터링
   const equipmentSections: DashboardSection[] = [
@@ -21,7 +21,7 @@ const EquipmentMainPage: React.FC = () => {
       gridCols: '4',
       menus: [
         // 관리자 메뉴
-        ...(userIsAdmin ? [
+        ...(userIsAuditAdmin ? [
           {
             id: 'audit',
             title: '자산 실사',
@@ -60,7 +60,7 @@ const EquipmentMainPage: React.FC = () => {
           }
         ] : []),
         // 사용자 메뉴
-        ...(userIsUser ? [
+        ...(userIsAuditUser ? [
           {
             id: 'audit',
             title: '자산 실사',
@@ -110,7 +110,7 @@ const EquipmentMainPage: React.FC = () => {
     );
   };
 
-  if (!userIsAdmin && !userIsUser) {
+  if (!userIsAuditAdmin && !userIsAuditUser) {
     return <LoadingOverlay message="권한 확인 중..." />;
   }
 

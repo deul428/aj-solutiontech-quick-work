@@ -10,7 +10,7 @@ import {
   Maximize2,
 } from "lucide-react";
 import {
-  isAdmin,
+  isOrderingAdmin,
   getCurrentUser,
   getSessionToken,
 } from "../../utils/orderingAuth";
@@ -107,7 +107,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
   // user의 userId를 메모이제이션하여 안정적인 참조 생성
   const userId = useMemo(() => user?.userId || null, [user?.userId]);
   const username = useMemo(() => user?.name || null, [user?.name]);
-  const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
+  const isUserAdmin = useMemo(() => user && isOrderingAdmin(user), [user?.orderingRole, user?.role]);
 
   // loadRequests를 useCallback으로 메모이제이션
   // 클라이언트 측 필터링/페이징을 위해 전체 데이터를 가져옴
@@ -214,7 +214,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
     // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
       alert("접근 권한이 없습니다.");
-      navigate("/user", { replace: true });
+      navigate("/dashboard", { replace: true });
       return;
     }
     loadRequests();
@@ -519,9 +519,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
           });
           return;
         }
-        const matchedUser = users.find(
-          (u) => u.role === "관리자" && u.name === trimmed,
-        );
+        const matchedUser = users.find((u) => isOrderingAdmin(u) && u.name === trimmed);
         if (!matchedUser) {
           setToast({ message: "배정자가 존재하지 않습니다.", type: "error" });
           return;
@@ -1316,7 +1314,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                             />
                             <datalist id="ordering-admin-handler-list">
                               {users
-                                .filter((u) => u.role === "관리자")
+                                .filter((u) => isOrderingAdmin(u))
                                 .map((u) => (
                                   <option key={u.userId} value={u.name} />
                                 ))}

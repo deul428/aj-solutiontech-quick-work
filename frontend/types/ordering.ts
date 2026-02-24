@@ -4,7 +4,17 @@ export interface User {
   name: string;
   team: string;
   region: string;
+  /**
+   * UI/레거시용 역할: 둘 중 하나라도 관리자면 '관리자', 아니면 '신청자'
+   */
   role: '신청자' | '관리자';
+  /**
+   * 시스템별 역할
+   * - orderingRole: 부품발주 권한 기준
+   * - auditRole: 정비 체크리스트/자산실사 권한 기준
+   */
+  orderingRole?: '신청자' | '관리자' | string;
+  auditRole?: '신청자' | '관리자' | string;
   employeeCode?: string;
   active?: string;
 }

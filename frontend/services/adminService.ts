@@ -362,6 +362,8 @@ export async function createUser(
     team: string;
     region: string;
     role: '신청자' | '관리자';
+    orderingRole?: '신청자' | '관리자' | string;
+    auditRole?: '신청자' | '관리자' | string;
     active?: string;
   },
   sessionToken?: string
@@ -425,6 +427,8 @@ export async function updateUser(
     team?: string;
     region?: string;
     role?: '신청자' | '관리자';
+    orderingRole?: '신청자' | '관리자' | string;
+    auditRole?: '신청자' | '관리자' | string;
     active?: string;
     password?: string;
     passwordPlain?: string; // 평문 비밀번호 (구글 시트 '비밀번호' 컬럼에 저장)

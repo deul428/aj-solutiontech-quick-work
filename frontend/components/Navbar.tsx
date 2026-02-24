@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import { navbarMenuItems, NavbarMenuItem } from '../config/dashboardConfig';
-import { isAdmin, isUser, isLoggedIn, getCurrentUser, logout } from '../utils/orderingAuth';
+import { isAdmin, isUser, isLoggedIn, getCurrentUser, isOrderingAdmin, isAuditAdmin, logout } from '../utils/orderingAuth';
 import Button from './Button';
 
 interface NavbarProps {
@@ -16,6 +16,8 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
   const [currentUser, setCurrentUser] = useState(getCurrentUser());
   const [userIsAdmin, setUserIsAdmin] = useState(isAdmin(currentUser));
   const [userIsUser, setUserIsUser] = useState(isUser(currentUser));
+  const [userIsOrderingAdmin, setUserIsOrderingAdmin] = useState(isOrderingAdmin(currentUser));
+  const [userIsAuditAdmin, setUserIsAuditAdmin] = useState(isAuditAdmin(currentUser));
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(isLoggedIn());
 
   // location이 변경될 때마다 사용자 정보를 다시 가져오기
@@ -24,6 +26,8 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
     setCurrentUser(user);
     setUserIsAdmin(isAdmin(user));
     setUserIsUser(isUser(user));
+    setUserIsOrderingAdmin(isOrderingAdmin(user));
+    setUserIsAuditAdmin(isAuditAdmin(user));
     setIsUserLoggedIn(isLoggedIn());
   }, [location.pathname]);
 
@@ -41,7 +45,11 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
     // 역할별 필터링
     for (const role of item.roles) {
       if (role === 'guest' && !loggedIn) return true;
-      if (role === 'manager' && loggedIn && userIsAdmin) return true;
+      if (role === 'manager' && loggedIn && userIsAdmin) {
+        if (item.requiredSystem === 'ordering' && !userIsOrderingAdmin) continue;
+        if (item.requiredSystem === 'equipment' && !userIsAuditAdmin) continue;
+        return true;
+      }
       if (role === 'user' && loggedIn && userIsUser) return true;
     }
 

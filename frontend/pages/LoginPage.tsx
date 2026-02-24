@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LogIn, AlertCircle, Key } from 'lucide-react';
 import { loginOrdering, ORDERING_GAS_URL } from '../services/orderingService';
-import { setCurrentUser, isAdmin, isUser } from '../utils/orderingAuth';
+import { setCurrentUser } from '../utils/orderingAuth';
 import LoadingOverlay from '../components/LoadingOverlay';
 import { useNavigate, useLocation } from 'react-router-dom';
 import logo from '../assets/icons/android-icon-512x512.png';
@@ -20,7 +20,7 @@ const LoginPage: React.FC = () => {
     if (state?.from) {
       return state.from;
     }
-    return '/';
+    return '/dashboard';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -38,16 +38,8 @@ const LoginPage: React.FC = () => {
         // 사용자 정보와 세션 토큰 저장
         setCurrentUser(result.user, result.sessionToken);
 
-        // 권한에 따라 리다이렉트 경로 결정
-        let redirectPath = getRedirectPath();
-        if (isAdmin(result.user)) {
-          // 관리자는 /manager 홈 역할
-          redirectPath = '/manager';
-        } else if (isUser(result.user)) {
-          // 사용자는 /user가 홈 역할
-          redirectPath = '/user';
-        }
-        navigate(redirectPath, { replace: true });
+        // 로그인 성공 후: 이전 페이지(from)가 있으면 복귀, 없으면 통합 대시보드로 이동
+        navigate(getRedirectPath(), { replace: true });
       } else {
         alert(result.message || '로그인에 실패했습니다.');
       }

@@ -17,7 +17,7 @@ import {
   logoutOrdering,
   ORDERING_GAS_URL
 } from '../../services/orderingService';
-import { getCurrentUser, getSessionToken, logout, isAdmin } from '../../utils/orderingAuth';
+import { getCurrentUser, getSessionToken, logout, isOrderingAdmin } from '../../utils/orderingAuth';
 import LoadingOverlay from '../../components/LoadingOverlay';
 import Header from '@/components/Header';
 
@@ -51,7 +51,7 @@ const OrderingPage: React.FC<OrderingPageProps> = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true); 
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  const isUserAdmin = useMemo(() => isAdmin(getCurrentUser()), []);
+  const isUserAdmin = useMemo(() => isOrderingAdmin(getCurrentUser()), []);
 
   useEffect(() => {
     if (!user) {

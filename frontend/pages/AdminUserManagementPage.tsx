@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Edit, Trash2, Search, RefreshCw, Users, ReceiptTurkishLiraIcon } from "lucide-react";
 import {
-  isAdmin,
+  isOrderingAdmin,
   getCurrentUser,
   getSessionToken,
 } from "../utils/orderingAuth";
@@ -53,12 +53,41 @@ const AdminUserManagementPage: React.FC = () => {
     employeeCode: "",
     team: "",
     region: "",
+    // 시스템별 권한(실제 권한 체크용)
+    orderingRole: "신청자" as "신청자" | "관리자",
+    auditRole: "신청자" as "신청자" | "관리자",
+    // UI/레거시용 권한(any_admin 규칙으로 자동 산출)
     role: "신청자" as "신청자" | "관리자",
     active: "Y",
   });
   const [processing, setProcessing] = useState(false);
   const [showTeamManagementModal, setShowTeamManagementModal] = useState(false);
   const [regionTeams, setRegionTeams] = useState<RegionTeam[]>([]);
+
+  const getUiRoleFromSystemRoles = useCallback(
+    (
+      orderingRole: "신청자" | "관리자" | string | undefined,
+      auditRole: "신청자" | "관리자" | string | undefined,
+    ): "신청자" | "관리자" => {
+      return orderingRole === "관리자" || auditRole === "관리자"
+        ? "관리자"
+        : "신청자";
+    },
+    [],
+  );
+
+  const updateSystemRoles = useCallback(
+    (updates: Partial<Pick<typeof formData, "orderingRole" | "auditRole">>) => {
+      setFormData((prev) => {
+        const next = { ...prev, ...updates };
+        return {
+          ...next,
+          role: getUiRoleFromSystemRoles(next.orderingRole, next.auditRole),
+        };
+      });
+    },
+    [getUiRoleFromSystemRoles],
+  );
 
   const showRequiredFieldAlert = (label: string) => {
     alert(`${label} 란을 입력하세요.`);
@@ -76,7 +105,7 @@ const AdminUserManagementPage: React.FC = () => {
   };
 
   // user의 role을 메모이제이션하여 안정적인 참조 생성
-  const isUserAdmin = useMemo(() => user && isAdmin(user), [user?.role]);
+  const isUserAdmin = useMemo(() => user && isOrderingAdmin(user), [user?.orderingRole, user?.role]);
 
   const loadUsers = useCallback(async () => {
     try {
@@ -282,7 +311,7 @@ const AdminUserManagementPage: React.FC = () => {
     // 권한 체크 (ProtectedAdminRoute에서 이미 체크하지만 이중 체크)
     if (!isUserAdmin) {
       alert("접근 권한이 없습니다.");
-      navigate("/user", { replace: true });
+      navigate("/dashboard", { replace: true });
       return;
     }
     loadUsers();
@@ -302,6 +331,8 @@ const AdminUserManagementPage: React.FC = () => {
       employeeCode: "",
       team: "",
       region: "",
+      orderingRole: "신청자",
+      auditRole: "신청자",
       role: "신청자",
       active: "Y",
     });
@@ -310,6 +341,10 @@ const AdminUserManagementPage: React.FC = () => {
   };
 
   const handleEdit = (user: User) => {
+    const orderingRole = user.orderingRole === "관리자" ? "관리자" : "신청자";
+    const auditRole = user.auditRole === "관리자" ? "관리자" : "신청자";
+    const uiRole = getUiRoleFromSystemRoles(orderingRole, auditRole);
+
     setEditingUser(user);
     setFormData({
       userId: user.userId,
@@ -318,7 +353,9 @@ const AdminUserManagementPage: React.FC = () => {
       employeeCode: user.employeeCode || "",
       team: user.team || "",
       region: user.region || "",
-      role: user.role || "신청자",
+      orderingRole,
+      auditRole,
+      role: uiRole,
       active: user.active || "Y",
     });
     loadRegionTeams(); // 최신 데이터 로드
@@ -406,8 +443,20 @@ const AdminUserManagementPage: React.FC = () => {
       },
       {
         key: "role",
-        label: "권한",
+        label: "통합 권한",
         sortable: false,
+      },
+      {
+        key: "orderingRole",
+        label: "부품발주 권한",
+        sortable: false,
+        render: (value) => (value ? String(value) : "-"),
+      },
+      {
+        key: "auditRole",
+        label: "정비실사 권한",
+        sortable: false,
+        render: (value) => (value ? String(value) : "-"),
       },
       {
         key: "active",
@@ -495,11 +544,6 @@ const AdminUserManagementPage: React.FC = () => {
             isMissing: () => !String(formData.team || "").trim(),
           },
           {
-            name: "role",
-            label: "권한",
-            isMissing: () => !String(formData.role || "").trim(),
-          },
-          {
             name: "active",
             label: "활성화",
             isMissing: () => !String(formData.active || "").trim(),
@@ -507,7 +551,10 @@ const AdminUserManagementPage: React.FC = () => {
         ];
 
       const firstMissing = requiredFields.find((f) => f.isMissing());
-      if (firstMissing && firstMissing.name !== "password" || (firstMissing && firstMissing.name === "password" && !editingUser)) { 
+      if (
+        (firstMissing && firstMissing.name !== "password") ||
+        (firstMissing && firstMissing.name === "password" && !editingUser)
+      ) {
         showRequiredFieldAlert(firstMissing.label);
         focusFieldByName(String(firstMissing.name));
         return;
@@ -528,6 +575,10 @@ const AdminUserManagementPage: React.FC = () => {
 
       let result;
       if (editingUser) {
+        const uiRole = getUiRoleFromSystemRoles(
+          formData.orderingRole,
+          formData.auditRole,
+        );
         // 수정
         result = await updateUser(
           editingUser.userId,
@@ -536,7 +587,10 @@ const AdminUserManagementPage: React.FC = () => {
             employeeCode: formData.employeeCode,
             team: formData.team,
             region: formData.region,
-            role: formData.role,
+            // 시스템별 role + 레거시/UI role(any_admin)
+            orderingRole: formData.orderingRole,
+            auditRole: formData.auditRole,
+            role: uiRole,
             active: formData.active,
             password: formData.password, // 해시용
             passwordPlain: formData.password, // 평문 비밀번호 (구글 시트 '비밀번호' 컬럼에 저장)
@@ -544,6 +598,10 @@ const AdminUserManagementPage: React.FC = () => {
           sessionToken,
         );
       } else {
+        const uiRole = getUiRoleFromSystemRoles(
+          formData.orderingRole,
+          formData.auditRole,
+        );
         // 등록
         result = await createUser(
           {
@@ -554,7 +612,10 @@ const AdminUserManagementPage: React.FC = () => {
             employeeCode: formData.employeeCode,
             team: formData.team,
             region: formData.region,
-            role: formData.role,
+            // 시스템별 role + 레거시/UI role(any_admin)
+            orderingRole: formData.orderingRole,
+            auditRole: formData.auditRole,
+            role: uiRole,
             active: formData.active,
           },
           sessionToken,
@@ -869,16 +930,42 @@ const AdminUserManagementPage: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      권한 <span className="text-red-500">*</span>
+                      통합 권한(자동)
+                    </label>
+                    <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700 font-semibold">
+                      {formData.role}
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      부품발주 권한 <span className="text-red-500">*</span>
                     </label>
                     <select
-                      name="role"
-                      value={formData.role}
-                      label="권한"
+                      name="orderingRole"
+                      value={formData.orderingRole}
                       onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          role: e.target.value as "신청자" | "관리자",
+                        updateSystemRoles({
+                          orderingRole: e.target.value as "신청자" | "관리자",
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="신청자">신청자</option>
+                      <option value="관리자">관리자</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      정비실사 권한 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="auditRole"
+                      value={formData.auditRole}
+                      onChange={(e) =>
+                        updateSystemRoles({
+                          auditRole: e.target.value as "신청자" | "관리자",
                         })
                       }
                       className="w-full px-3 py-2 border border-gray-300 rounded-md"

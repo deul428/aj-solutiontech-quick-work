@@ -27,7 +27,7 @@ import {
 import { MasterDataRow } from "../../types";
 import { parseMasterExcel } from "../../services/excelService";
 import LoadingOverlay from "../../components/LoadingOverlay";
-import { getCurrentUser, isAdmin, isUser, isLoggedIn } from "../../utils/orderingAuth";
+import { getCurrentUser, isAuditAdmin, isLoggedIn } from "../../utils/orderingAuth";
 import Header from "@/components/Header";
 import Button from "@/components/Button";
 
@@ -98,8 +98,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
   const [tempUrl, setTempUrl] = useState(serviceUrl);
   const [showTroubleshoot, setShowTroubleshoot] = useState(false);
 
-  const userIsAdmin = isAdmin(currentUser);
-  const userIsUser = isUser(currentUser);
+  const userIsAuditAdmin = isAuditAdmin(currentUser);
 
   // 구글 시트 URL (환경 변수에서 가져오거나 기본값 사용)
   const AUDIT_GOOGLE_SHEET_URL = (import.meta.env?.VITE_AUDIT_GOOGLE_SHEET_URL as string) || "https://docs.google.com/spreadsheets/d/1NXT2EBow1zWxmPsb7frN90e95qRH1mkY9DQUgCrsn2I/edit?usp=sharing";
@@ -178,7 +177,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
               </Button>
             )}
           </div>
-          {userIsAdmin && masterData.length > 0 && (
+          {userIsAuditAdmin && masterData.length > 0 && (
             <div className="mb-4">
               <a
                 href={AUDIT_GOOGLE_SHEET_URL}
@@ -328,7 +327,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
             )}
 
             {/* 관리자 메뉴 */}
-            {isLoggedIn() && userIsAdmin && (
+            {isLoggedIn() && userIsAuditAdmin && (
               <>
                 {/* 체크리스트 생성 - 관리자만 */}
                 <div
@@ -367,7 +366,7 @@ const CountMasterPage: React.FC<CountMasterPageProps> = ({
             )}
 
             {/* 사용자 메뉴 */}
-            {isLoggedIn() && userIsUser && (
+            {isLoggedIn() && !userIsAuditAdmin && (
               <>
                 {/* 자산 실사 - 사용자 */}
                 <div

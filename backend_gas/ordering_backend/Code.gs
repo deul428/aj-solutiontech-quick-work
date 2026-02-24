@@ -60,10 +60,10 @@ function doGet(e) {
     }
     
     // 디버깅: 사용자 정보 로그
-    Logger.log('Current user: ' + user.userId + ', Role: ' + user.role);
+    Logger.log('Current user: ' + user.userId + ', Role: ' + user.role + ', orderingRole: ' + user.orderingRole + ', auditRole: ' + user.auditRole);
     
     // 페이지별 라우팅
-    if (page === 'admin' || page === 'admin-dashboard' || (user.role === CONFIG.ROLES.ADMIN && !page)) {
+    if (page === 'admin' || page === 'admin-dashboard' || (isOrderingAdmin_(user) && !page)) {
       // 관리자 대시보드
       return HtmlService.createTemplateFromFile('AdminDashboardPage')
         .evaluate()
@@ -93,7 +93,7 @@ function doGet(e) {
       return HtmlService.createTemplateFromFile('MyInfoPage')
         .evaluate()
         .setTitle('내 정보');
-    } else if (page === 'user' || page === 'dashboard' || (user.role === CONFIG.ROLES.USER && !page)) {
+    } else if (page === 'user' || page === 'dashboard' || (!isOrderingAdmin_(user) && !page)) {
       // 신청자 대시보드 (명세서 기반)
       return HtmlService.createTemplateFromFile('UserDashboard')
         .evaluate()
@@ -115,7 +115,7 @@ function doGet(e) {
         .setTitle('신청 상세');
     } else {
       // 기본: 역할에 따라 페이지 이동
-      if (user.role === CONFIG.ROLES.ADMIN) {
+      if (isOrderingAdmin_(user)) {
         return HtmlService.createTemplateFromFile('AdminDashboardPage')
           .evaluate()
           .setTitle('관리자 대시보드');
@@ -627,8 +627,8 @@ function getAllRequests(filter = {}, sessionToken) {
       return [];
     }
     
-    if (user.role !== CONFIG.ROLES.ADMIN) {
-      log('ERROR', 'getAllRequests: Not admin, role = ' + user.role);
+    if (!isOrderingAdmin_(user)) {
+      log('ERROR', 'getAllRequests: Not admin, role = ' + user.role + ', orderingRole = ' + user.orderingRole);
       return [];
     }
     
@@ -779,7 +779,7 @@ function getAllRequests(filter = {}, sessionToken) {
 function assignHandler(requestNo, handlerEmail, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 배정할 수 있습니다.');
     }
 
@@ -828,7 +828,7 @@ function assignHandler(requestNo, handlerEmail, sessionToken) {
 function updateRequestStatus(requestNo, newStatus, remarks, sessionToken, handler, expectedDeliveryDate, requesterRemarks) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 변경할 수 있습니다.');
     }
 
@@ -911,7 +911,7 @@ function updateRequesterRemarks(requestNo, requesterRemarks, sessionToken) {
     const requestUserId = String(request.requesterUserId || request.requesterEmail || '').trim();
     const currentUserId = String(user.userId || '').trim();
     const isRequester = requestUserId === currentUserId;
-    const isAdmin = user.role === CONFIG.ROLES.ADMIN;
+    const isAdmin = isOrderingAdmin_(user);
     
     if (!isRequester && !isAdmin) {
       throw new Error('신청자 본인 또는 관리자만 변경할 수 있습니다.');
@@ -968,7 +968,7 @@ function updateHandlerRemarks(requestNo, handlerRemarks, sessionToken) {
     }
     
     // 권한 체크: 접수 담당자 또는 관리자만 가능
-    const isAdmin = user.role === CONFIG.ROLES.ADMIN;
+    const isAdmin = isOrderingAdmin_(user);
     const isHandler = request.handler && request.handler === user.userId;
     
     if (!isHandler && !isAdmin) {
@@ -1017,7 +1017,7 @@ function updateHandlerRemarks(requestNo, handlerRemarks, sessionToken) {
 function updateRequestFields(requestNo, updatesPayload, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 변경할 수 있습니다.');
     }
 
@@ -1117,7 +1117,7 @@ function updateRequestFields(requestNo, updatesPayload, sessionToken) {
 function bulkUpdateStatus(requestNos, newStatus, remarks, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -1242,7 +1242,7 @@ function getCodeList(type) {
 function getAllDeliveryPlaces(sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
 
@@ -1301,7 +1301,7 @@ function getAllDeliveryPlaces(sessionToken) {
 function getAllUsers(sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       log('ERROR', 'getAllUsers: Not admin');
       return [];
     }
@@ -1322,6 +1322,8 @@ function getAllUsers(sessionToken) {
     const teamCol = headers.indexOf('소속팀');
     const regionCol = headers.indexOf('지역');
     const roleCol = headers.indexOf('역할');
+    const orderingRoleCol = headers.indexOf('부품발주역할');
+    const auditRoleCol = headers.indexOf('정비실사역할');
     const activeCol = headers.indexOf('활성화');
     
     if (userIdCol < 0) {
@@ -1329,18 +1331,42 @@ function getAllUsers(sessionToken) {
       return [];
     }
     
+    // 역할 정규화: 관리자만 관리자, 나머지는 신청자 취급(신청자/기타/빈값 포함)
+    const normalizeSystemRole_ = (v) => {
+      const s = String(v === null || v === undefined ? '' : v).trim();
+      if (s === '') return CONFIG.ROLES.USER;
+      const lower = s.toLowerCase();
+      if (s === CONFIG.ROLES.ADMIN || lower.includes('관리자') || lower.includes('manager')) return CONFIG.ROLES.ADMIN;
+      return CONFIG.ROLES.USER;
+    };
+
     const users = [];
     for (let i = 1; i < data.length; i++) {
       const row = data[i];
       if (!row[userIdCol] || String(row[userIdCol]).trim() === '') continue;
-      
+
+      const legacyRoleRaw = roleCol >= 0 ? row[roleCol] : '';
+      const orderingRoleRaw = orderingRoleCol >= 0 ? row[orderingRoleCol] : legacyRoleRaw;
+      const auditRoleRaw = auditRoleCol >= 0 ? row[auditRoleCol] : legacyRoleRaw;
+
+      const orderingRole = normalizeSystemRole_(orderingRoleRaw);
+      const auditRole = normalizeSystemRole_(auditRoleRaw);
+      const uiRole =
+        orderingRole === CONFIG.ROLES.ADMIN || auditRole === CONFIG.ROLES.ADMIN
+          ? CONFIG.ROLES.ADMIN
+          : CONFIG.ROLES.USER;
+
       users.push({
         userId: row[userIdCol],
         name: nameCol >= 0 ? row[nameCol] : '',
         employeeCode: employeeCodeCol >= 0 ? row[employeeCodeCol] : '',
         team: teamCol >= 0 ? row[teamCol] : '',
         region: regionCol >= 0 ? row[regionCol] : '',
-        role: roleCol >= 0 ? row[roleCol] : '',
+        // 레거시/UI용 role: 둘 중 하나라도 관리자면 관리자
+        role: uiRole,
+        // 시스템별 role: 각 시스템 권한 체크에 사용
+        orderingRole: orderingRole,
+        auditRole: auditRole,
         active: activeCol >= 0 ? row[activeCol] : 'Y'
       });
     }
@@ -1354,14 +1380,14 @@ function getAllUsers(sessionToken) {
 
 /**
  * 사용자 등록 (관리자 전용)
- * @param {Object} userData - 사용자 데이터 {userId, password, name, employeeCode, team, region, role, active}
+ * @param {Object} userData - 사용자 데이터 {userId, password, name, employeeCode, team, region, role, orderingRole, auditRole, active}
  * @param {string} sessionToken - 세션 토큰
  * @return {Object} 결과 객체 {success: boolean, message: string}
  */
 function createUser(userData, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -1383,8 +1409,8 @@ function createUser(userData, sessionToken) {
     // 헤더 확인 및 생성
     const data = userModel.sheet.getDataRange().getValues();
     if (data.length === 0) {
-      userModel.sheet.getRange(1, 1, 1, 9).setValues([[
-        '사용자ID', '비밀번호해시', '비밀번호', '이름', '기사코드', '소속팀', '지역', '역할', '활성화'
+      userModel.sheet.getRange(1, 1, 1, 11).setValues([[
+        '사용자ID', '비밀번호해시', '비밀번호', '이름', '기사코드', '소속팀', '지역', '부품발주역할', '정비실사역할', '역할', '활성화'
       ]]);
     }
     
@@ -1409,20 +1435,47 @@ function createUser(userData, sessionToken) {
     // 평문 비밀번호 (passwordPlain이 있으면 사용, 없으면 password 사용)
     const passwordPlain = userData.passwordPlain || userData.password || '';
     
-    // 헤더 인덱스 찾기
-    const finalHeaders = userModel.sheet.getDataRange().getValues()[0];
-    const userIdCol = finalHeaders.indexOf('사용자ID');
-    const passwordHashCol = finalHeaders.indexOf('비밀번호해시');
-    const passwordPlainCol = finalHeaders.indexOf('비밀번호');
-    const nameCol = finalHeaders.indexOf('이름');
-    const employeeCodeCol = finalHeaders.indexOf('기사코드');
-    const teamCol = finalHeaders.indexOf('소속팀');
-    const regionCol = finalHeaders.indexOf('지역');
-    const roleCol = finalHeaders.indexOf('역할');
-    const activeCol = finalHeaders.indexOf('활성화');
+    const ensureHeaderColumn_ = (sheet, headerName) => {
+      const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const idx = currentHeaders.indexOf(headerName);
+      if (idx >= 0) return idx;
+      const lastCol = currentHeaders.length || sheet.getLastColumn() || 1;
+      sheet.insertColumnAfter(lastCol);
+      sheet.getRange(1, lastCol + 1).setValue(headerName);
+      return lastCol;
+    };
+
+    // 역할 정규화: 관리자만 관리자, 나머지는 신청자 취급(신청자/기타/빈값 포함)
+    const normalizeSystemRole_ = (v) => {
+      const s = String(v === null || v === undefined ? '' : v).trim();
+      if (s === '') return CONFIG.ROLES.USER;
+      const lower = s.toLowerCase();
+      if (s === CONFIG.ROLES.ADMIN || lower.includes('관리자') || lower.includes('manager')) return CONFIG.ROLES.ADMIN;
+      return CONFIG.ROLES.USER;
+    };
+
+    // 헤더 인덱스 찾기/보장
+    const userIdCol = ensureHeaderColumn_(userModel.sheet, '사용자ID');
+    const passwordHashCol = ensureHeaderColumn_(userModel.sheet, '비밀번호해시');
+    const passwordPlainCol = ensureHeaderColumn_(userModel.sheet, '비밀번호');
+    const nameCol = ensureHeaderColumn_(userModel.sheet, '이름');
+    const employeeCodeCol = ensureHeaderColumn_(userModel.sheet, '기사코드');
+    const teamCol = ensureHeaderColumn_(userModel.sheet, '소속팀');
+    const regionCol = ensureHeaderColumn_(userModel.sheet, '지역');
+    const orderingRoleCol = ensureHeaderColumn_(userModel.sheet, '부품발주역할');
+    const auditRoleCol = ensureHeaderColumn_(userModel.sheet, '정비실사역할');
+    const roleCol = ensureHeaderColumn_(userModel.sheet, '역할');
+    const activeCol = ensureHeaderColumn_(userModel.sheet, '활성화');
+
+    const orderingRole = normalizeSystemRole_(userData.orderingRole !== undefined ? userData.orderingRole : userData.role);
+    const auditRole = normalizeSystemRole_(userData.auditRole !== undefined ? userData.auditRole : userData.role);
+    const uiRole =
+      orderingRole === CONFIG.ROLES.ADMIN || auditRole === CONFIG.ROLES.ADMIN
+        ? CONFIG.ROLES.ADMIN
+        : CONFIG.ROLES.USER;
     
     // 새 행 생성 (모든 컬럼에 맞춰서)
-    const maxCol = Math.max(userIdCol, passwordHashCol, passwordPlainCol, nameCol, employeeCodeCol, teamCol, regionCol, roleCol, activeCol) + 1;
+    const maxCol = Math.max(userIdCol, passwordHashCol, passwordPlainCol, nameCol, employeeCodeCol, teamCol, regionCol, orderingRoleCol, auditRoleCol, roleCol, activeCol) + 1;
     const newRow = new Array(maxCol).fill('');
     
     if (userIdCol >= 0) newRow[userIdCol] = userData.userId;
@@ -1432,7 +1485,10 @@ function createUser(userData, sessionToken) {
     if (employeeCodeCol >= 0) newRow[employeeCodeCol] = userData.employeeCode || '';
     if (teamCol >= 0) newRow[teamCol] = userData.team || '';
     if (regionCol >= 0) newRow[regionCol] = userData.region || '';
-    if (roleCol >= 0) newRow[roleCol] = userData.role || '신청자';
+    if (orderingRoleCol >= 0) newRow[orderingRoleCol] = orderingRole;
+    if (auditRoleCol >= 0) newRow[auditRoleCol] = auditRole;
+    // 레거시/UI용 role: 둘 중 하나라도 관리자면 관리자
+    if (roleCol >= 0) newRow[roleCol] = uiRole;
     if (activeCol >= 0) newRow[activeCol] = userData.active || 'Y';
     
     userModel.sheet.appendRow(newRow);
@@ -1455,14 +1511,14 @@ function createUser(userData, sessionToken) {
 /**
  * 사용자 수정 (관리자 전용)
  * @param {string} userId - 사용자 ID
- * @param {Object} userData - 수정할 사용자 데이터 {name, employeeCode, team, region, role, active, password}
+ * @param {Object} userData - 수정할 사용자 데이터 {name, employeeCode, team, region, role, orderingRole, auditRole, active, password}
  * @param {string} sessionToken - 세션 토큰
  * @return {Object} 결과 객체 {success: boolean, message: string}
  */
 function updateUser(userId, userData, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -1512,6 +1568,8 @@ function updateUser(userId, userData, sessionToken) {
     const employeeCodeCol = headers.indexOf('기사코드');
     const teamCol = headers.indexOf('소속팀');
     const regionCol = headers.indexOf('지역');
+    let orderingRoleCol = headers.indexOf('부품발주역할');
+    let auditRoleCol = headers.indexOf('정비실사역할');
     const roleCol = headers.indexOf('역할');
     const activeCol = headers.indexOf('활성화');
     
@@ -1521,6 +1579,27 @@ function updateUser(userId, userData, sessionToken) {
     const finalData = userModel.sheet.getDataRange().getValues();
     const finalHeaders = finalData[0];
     const finalPasswordPlainCol = finalHeaders.indexOf('비밀번호');
+    orderingRoleCol = finalHeaders.indexOf('부품발주역할');
+    auditRoleCol = finalHeaders.indexOf('정비실사역할');
+
+    // 역할 정규화: 관리자만 관리자, 나머지는 신청자 취급(신청자/기타/빈값 포함)
+    const normalizeSystemRole_ = (v) => {
+      const s = String(v === null || v === undefined ? '' : v).trim();
+      if (s === '') return CONFIG.ROLES.USER;
+      const lower = s.toLowerCase();
+      if (s === CONFIG.ROLES.ADMIN || lower.includes('관리자') || lower.includes('manager')) return CONFIG.ROLES.ADMIN;
+      return CONFIG.ROLES.USER;
+    };
+
+    const ensureHeaderColumn_ = (sheet, headerName) => {
+      const currentHeaders = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      const idx = currentHeaders.indexOf(headerName);
+      if (idx >= 0) return idx;
+      const lastCol = currentHeaders.length || sheet.getLastColumn() || 1;
+      sheet.insertColumnAfter(lastCol);
+      sheet.getRange(1, lastCol + 1).setValue(headerName);
+      return lastCol;
+    };
     
     for (let i = 1; i < finalData.length; i++) {
       const sheetUserId = String(finalData[i][userIdCol] || '').trim();
@@ -1553,8 +1632,52 @@ function updateUser(userId, userData, sessionToken) {
         if (userData.region !== undefined && regionCol >= 0) {
           userModel.sheet.getRange(rowNum, regionCol + 1).setValue(userData.region);
         }
-        if (userData.role !== undefined && roleCol >= 0) {
-          userModel.sheet.getRange(rowNum, roleCol + 1).setValue(userData.role);
+        // 시스템별 역할 업데이트
+        const currentLegacyRoleRaw = roleCol >= 0 ? finalData[i][roleCol] : '';
+        const currentOrderingRoleRaw =
+          orderingRoleCol >= 0 ? finalData[i][orderingRoleCol] : currentLegacyRoleRaw;
+        const currentAuditRoleRaw =
+          auditRoleCol >= 0 ? finalData[i][auditRoleCol] : currentLegacyRoleRaw;
+        const currentOrderingRole = normalizeSystemRole_(currentOrderingRoleRaw);
+        const currentAuditRole = normalizeSystemRole_(currentAuditRoleRaw);
+
+        const nextOrderingRole =
+          userData.orderingRole !== undefined
+            ? normalizeSystemRole_(userData.orderingRole)
+            : userData.role !== undefined
+              ? normalizeSystemRole_(userData.role)
+              : currentOrderingRole;
+        const nextAuditRole =
+          userData.auditRole !== undefined
+            ? normalizeSystemRole_(userData.auditRole)
+            : userData.role !== undefined
+              ? normalizeSystemRole_(userData.role)
+              : currentAuditRole;
+
+        const nextUiRole =
+          nextOrderingRole === CONFIG.ROLES.ADMIN || nextAuditRole === CONFIG.ROLES.ADMIN
+            ? CONFIG.ROLES.ADMIN
+            : CONFIG.ROLES.USER;
+
+        if (userData.orderingRole !== undefined || userData.role !== undefined) {
+          const ensuredOrderingRoleCol = orderingRoleCol >= 0
+            ? orderingRoleCol
+            : ensureHeaderColumn_(userModel.sheet, '부품발주역할');
+          userModel.sheet.getRange(rowNum, ensuredOrderingRoleCol + 1).setValue(nextOrderingRole);
+        }
+        if (userData.auditRole !== undefined || userData.role !== undefined) {
+          const ensuredAuditRoleCol = auditRoleCol >= 0
+            ? auditRoleCol
+            : ensureHeaderColumn_(userModel.sheet, '정비실사역할');
+          userModel.sheet.getRange(rowNum, ensuredAuditRoleCol + 1).setValue(nextAuditRole);
+        }
+
+        // 레거시/UI용 role은 시스템별 role 기반(any_admin)으로 갱신
+        if (
+          roleCol >= 0 &&
+          (userData.role !== undefined || userData.orderingRole !== undefined || userData.auditRole !== undefined)
+        ) {
+          userModel.sheet.getRange(rowNum, roleCol + 1).setValue(nextUiRole);
         }
         if (userData.active !== undefined && activeCol >= 0) {
           userModel.sheet.getRange(rowNum, activeCol + 1).setValue(userData.active);
@@ -1588,7 +1711,7 @@ function updateUser(userId, userData, sessionToken) {
 function bulkUpdatePasswordsFromTargetColumn(sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -1685,7 +1808,7 @@ function bulkUpdatePasswordsFromTargetColumn(sessionToken) {
 function deleteUser(userId, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -1756,7 +1879,7 @@ function deleteUser(userId, sessionToken) {
 function createDeliveryPlace(placeData, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -1837,7 +1960,7 @@ function createDeliveryPlace(placeData, sessionToken) {
 function updateDeliveryPlace(placeName, placeData, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -1940,7 +2063,7 @@ function updateDeliveryPlace(placeName, placeData, sessionToken) {
 function deleteDeliveryPlace(placeName, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -2010,7 +2133,7 @@ function deleteDeliveryPlace(placeName, sessionToken) {
 function getRegionTeams(sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -2068,7 +2191,7 @@ function getRegionTeams(sessionToken) {
 function createRegionTeam(regionTeamData, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -2141,7 +2264,7 @@ function createRegionTeam(regionTeamData, sessionToken) {
 function updateRegionTeam(updateData, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -2254,7 +2377,7 @@ function updateRegionTeam(updateData, sessionToken) {
 function deleteRegionTeam(deleteData, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -2429,7 +2552,7 @@ function getRequest(requestNo, sessionToken) {
     const requestUserId = String(request.requesterUserId || request.requesterEmail || '').trim();
     const currentUserId = String(user.userId || '').trim();
     
-    if (user.role !== CONFIG.ROLES.ADMIN && requestUserId !== currentUserId) {
+    if (!isOrderingAdmin_(user) && requestUserId !== currentUserId) {
       Logger.log('getRequest: Permission denied. requestUserId: ' + requestUserId + ', currentUserId: ' + currentUserId);
       throw new Error('조회 권한이 없습니다.');
     }
@@ -2575,7 +2698,7 @@ function changePassword(oldPassword, newPassword, sessionToken) {
 function importDeliveryPlacesFromCSV(csvContent, sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       throw new Error('관리자만 실행할 수 있습니다.');
     }
     
@@ -2991,7 +3114,7 @@ function getRequestDetail(requestNo, sessionToken) {
       const user = getCurrentUser(sessionToken);
       const requestUserId = String(request.requesterUserId || request.requesterEmail || '').trim();
       const currentUserId = String(user && user.userId ? user.userId : '').trim();
-      if (user && user.role !== CONFIG.ROLES.ADMIN && requestUserId !== currentUserId) {
+      if (user && !isOrderingAdmin_(user) && requestUserId !== currentUserId) {
         throw new Error('조회 권한이 없습니다.');
       }
     }
@@ -3175,7 +3298,7 @@ function getImageAsBase64(driveUrl, sessionToken) {
 function debugRequestSheetMapping(sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       return { success: false, message: '관리자만 접근 가능합니다.' };
     }
 
@@ -3249,7 +3372,7 @@ function debugRequestSheetMapping(sessionToken) {
 function repairRequestSheetStatusHandlerHeaders(sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       return { success: false, message: '관리자만 접근 가능합니다.' };
     }
 
@@ -3370,7 +3493,7 @@ function repairRequestSheetStatusHandlerHeaders(sessionToken) {
 function repairRequestSheetStatusHandlerData(sessionToken) {
   try {
     const user = getCurrentUser(sessionToken);
-    if (!user || user.role !== CONFIG.ROLES.ADMIN) {
+    if (!user || !isOrderingAdmin_(user)) {
       return { success: false, message: '관리자만 접근 가능합니다.' };
     }
 
