@@ -5,31 +5,22 @@
 class RequestModel {
   constructor() {
     const ss = SpreadsheetApp.getActiveSpreadsheet();
+    // CONFIG 누락/공백 등 이슈 대비 + 시트명 loose 매칭 지원
     const sheetName = (CONFIG && CONFIG.SHEETS && CONFIG.SHEETS.REQUESTS)
       ? String(CONFIG.SHEETS.REQUESTS).trim()
       : '신청내역';
 
+    // getSheetByNameLoose_ 가 있으면 우선 사용 (공백/유사명 대응)
     if (typeof getSheetByNameLoose_ === 'function') {
       this.sheet = getSheetByNameLoose_(ss, sheetName);
     } else {
       this.sheet = ss.getSheetByName(sheetName);
     }
-
+    
+    // 시트가 없으면 null로 설정
     if (!this.sheet) {
       Logger.log('RequestModel: Sheet "' + sheetName + '" not found');
     }
-
-    // 헤더를 인스턴스 수준에서 한 번만 읽어 재사용 (Sheets API 호출 절감)
-    this._headers = null;
-  }
-
-  _getHeaders() {
-    if (!this._headers && this.sheet) {
-      this._headers = this.sheet
-        .getRange(1, 1, 1, this.sheet.getLastColumn())
-        .getValues()[0];
-    }
-    return this._headers || [];
   }
   
   // 전체 조회 (서버 측 필터링 및 페이징 지원)
@@ -139,66 +130,37 @@ class RequestModel {
   create(requestData) {
     const row = this._objectToRow(requestData);
     this.sheet.appendRow(row);
-    SpreadsheetApp.flush(); // 즉시 시트에 반영 (이후 읽기에서 새 행이 보이도록 보장)
-
-    // 사진URL이 여러 장(\n 구분)인 경우 각 URL에 Rich Text 하이퍼링크 적용
-    // (단일 URL은 Sheets가 자동 감지하지만, 다중 URL은 수동으로 걸어줘야 함)
-    const photoUrl = requestData.photoUrl;
-    if (photoUrl && String(photoUrl).includes('\n')) {
-      try {
-        const photoColIndex = this._getColumnIndex('photoUrl');
-        if (photoColIndex >= 0) {
-          const lastRow = this.sheet.getLastRow();
-          const urls = String(photoUrl).split('\n').map(u => u.trim()).filter(Boolean);
-
-          let fullText = '';
-          const linkRanges = [];
-          urls.forEach((url, i) => {
-            const start = fullText.length;
-            fullText += url;
-            linkRanges.push({ start, end: fullText.length, url });
-            if (i < urls.length - 1) fullText += '\n';
-          });
-
-          const richText = SpreadsheetApp.newRichTextValue().setText(fullText);
-          linkRanges.forEach(({ start, end, url }) => {
-            richText.setLinkUrl(start, end, url);
-          });
-
-          this.sheet.getRange(lastRow, photoColIndex + 1).setRichTextValue(richText.build());
-        }
-      } catch (e) {
-        Logger.log('create: Rich Text 하이퍼링크 설정 실패 (무시): ' + e);
-      }
-    }
-
     return requestData;
   }
   
-  // 수정 (진짜 배치: 행 전체를 메모리에서 수정 후 setValues 1회 호출)
+  // 수정 (배치 업데이트 최적화)
   update(requestNo, updates) {
     if (!this.sheet) return false;
-
+    
     const data = this.sheet.getDataRange().getValues();
     const requestNoStr = String(requestNo);
-
+    
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) !== requestNoStr) continue;
-
-      const headers = this._getHeaders(); // 인스턴스 캐시 재사용
-      const rowData = data[i].slice(); // 기존 행 전체 복사
-
-      // 업데이트할 값만 메모리에서 교체
-      Object.keys(updates).forEach(key => {
-        const colIndex = this._getColumnIndex(key);
-        if (colIndex >= 0) {
-          rowData[colIndex] = updates[key];
-        }
-      });
-
-      // Sheets API 1회 호출로 행 전체 쓰기
-      this.sheet.getRange(i + 1, 1, 1, rowData.length).setValues([rowData]);
-      return true;
+      if (String(data[i][0]) === requestNoStr) {
+        // 배치 업데이트: 여러 셀을 한 번에 업데이트
+        const updatesArray = [];
+        Object.keys(updates).forEach(key => {
+          const colIndex = this._getColumnIndex(key);
+          if (colIndex >= 0) {
+            updatesArray.push({
+              range: this.sheet.getRange(i + 1, colIndex + 1),
+              value: updates[key]
+            });
+          }
+        });
+        
+        // 한 번에 업데이트 (배치 처리)
+        updatesArray.forEach(update => {
+          update.range.setValue(update.value);
+        });
+        
+        return true;
+      }
     }
     return false;
   }
@@ -234,7 +196,7 @@ class RequestModel {
   }
   
   _objectToRow(obj) {
-    const headers = this._getHeaders(); // 인스턴스 캐시 재사용
+    const headers = this.sheet.getRange(1, 1, 1, this.sheet.getLastColumn()).getValues()[0];
     return headers.map(header => {
       const key = this._headerToKey(header);
       return obj[key] !== undefined ? obj[key] : '';
@@ -290,11 +252,17 @@ class RequestModel {
   }
   
   _getColumnIndex(key) {
+    // 시트 컬럼 순서가 바뀌어도 동작하도록 "헤더명 기반"으로 컬럼 위치를 찾습니다.
+    // (reverseMap 고정 인덱스 방식은 운영 중 컬럼 변경에 취약)
     try {
       if (!this.sheet) return -1;
-      const headers = this._getHeaders(); // 인스턴스 캐시 재사용 (Sheets API 중복 호출 방지)
+      const headers = this.sheet
+        .getRange(1, 1, 1, this.sheet.getLastColumn())
+        .getValues()[0];
+
       for (let i = 0; i < headers.length; i++) {
-        if (this._headerToKey(headers[i]) === key) return i;
+        const mappedKey = this._headerToKey(headers[i]);
+        if (mappedKey === key) return i;
       }
       return -1;
     } catch (e) {

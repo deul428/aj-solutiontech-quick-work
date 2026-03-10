@@ -114,12 +114,21 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
       {
         key: "배송지명",
         label: "배송지명",
-        sortable: true,
+        sortable: false,
+        render: (value, row) => (
+          <Button
+            variant="link"
+            onClick={() => handleEdit(row)}
+            title="수정"
+          >
+            {value}
+          </Button>
+        ),
       },
       {
         key: "소속팀",
         label: "소속팀",
-        sortable: true,
+        sortable: false,
       },
       {
         key: "주소",
@@ -145,20 +154,20 @@ const AdminDeliveryPlaceManagementPage: React.FC = () => {
       },
       {
         key: "actions",
-        label: "데이터 변경",
+        label: "삭제",
         sortable: false,
         render: (_, row) => {
           const isInactive = row["활성화"] === "N";
           return (
             <div className="flex gap-2">
-              <Button
+              {/* <Button
                 onClick={() => handleEdit(row)}
                 disabled={isInactive || processing}
                 variant="icon"
                 icon={Edit}
                 className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
                 title={isInactive ? "비활성화된 배송지는 수정할 수 없습니다." : "수정"}
-              />
+              /> */}
               <Button
                 onClick={() => handleDelete(row["배송지명"])}
                 disabled={isInactive || processing}

@@ -379,9 +379,10 @@ function createRequest(formData, sessionToken) {
     // 캐시 무효화 (신청 생성 시)
     if (result.success) {
       const cacheManager = new CacheManager();
+      // 관련 캐시 제거
       cacheManager.remove('request_stats_' + user.userId);
       cacheManager.remove('my_requests_' + user.userId);
-      cacheManager.bumpRequestsVersion(); // all_requests_* 전체 무효화
+      // getAllRequests 캐시는 패턴 매칭이 어려우므로 TTL에 의존
     }
     
     return result;
@@ -631,12 +632,8 @@ function getAllRequests(filter = {}, sessionToken) {
       return [];
     }
     
-    const cacheManager = new CacheManager();
-
-    // 버전 키를 캐시 키에 포함 → 쓰기 발생 시 bumpRequestsVersion()으로 버전이 바뀌면
-    // 기존 캐시 키와 달라져 자동으로 캐시 미스가 발생 (패턴 삭제 대체)
-    const requestsVersion = cacheManager.getRequestsVersion();
-    const cacheKey = 'all_requests_v' + requestsVersion + '_' + JSON.stringify({
+    // 캐시 키 생성 (필터 및 페이징 정보 포함)
+    const cacheKey = 'all_requests_' + JSON.stringify({
       status: filter.status || '',
       region: filter.region || '',
       dateFrom: filter.dateFrom || '',
@@ -644,6 +641,8 @@ function getAllRequests(filter = {}, sessionToken) {
       page: filter.page || 1,
       pageSize: filter.pageSize || CONFIG.PAGE_SIZE
     });
+    
+    const cacheManager = new CacheManager();
     
     // 캐시 확인 (TTL: 60초)
     const cached = cacheManager.get(cacheKey);
@@ -868,8 +867,10 @@ function updateRequestStatus(requestNo, newStatus, remarks, sessionToken, handle
       
       // 캐시 무효화 (상태 변경 시)
       const cacheManager = new CacheManager();
+      // 신청 건 조회 캐시 제거
       cacheManager.remove('request_' + requestNo);
-      cacheManager.bumpRequestsVersion(); // all_requests_* 전체 무효화
+      // getAllRequests 캐시는 TTL에 의존 (패턴 매칭 어려움)
+      // 통계 캐시는 사용자별로 관리되므로 해당 사용자 캐시만 제거
       const request = requestModel.findById(requestNo);
       const requesterKey = request ? String(request.requesterUserId || request.requesterEmail || '').trim() : '';
       if (requesterKey) {
@@ -985,7 +986,6 @@ function updateHandlerRemarks(requestNo, handlerRemarks, sessionToken) {
     // 캐시 무효화
     const cacheManager = new CacheManager();
     cacheManager.remove('request_' + requestNo);
-    cacheManager.bumpRequestsVersion(); // all_requests_* 전체 무효화
     const requesterKey = String(request.requesterUserId || request.requesterEmail || '').trim();
     if (requesterKey) {
       cacheManager.remove('request_stats_' + requesterKey);
@@ -1089,7 +1089,6 @@ function updateRequestFields(requestNo, updatesPayload, sessionToken) {
     // 캐시 무효화
     const cacheManager = new CacheManager();
     cacheManager.remove('request_' + requestNo);
-    cacheManager.bumpRequestsVersion(); // all_requests_* 전체 무효화
     const requesterKey = String(request.requesterUserId || request.requesterEmail || '').trim();
     if (requesterKey) {
       cacheManager.remove('request_stats_' + requesterKey);

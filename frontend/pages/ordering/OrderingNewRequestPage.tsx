@@ -11,10 +11,13 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import Toast from '../../components/Toast';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
+import { MAX_PHOTO_COUNT } from '../../constants/orderingPhoto';
 
 interface OrderingNewRequestPageProps {
   onNavigate?: (view: string) => void;
 }
+
+const MAX_PHOTO_SIZE_BYTES = 5 * 1024 * 1024;
 
 const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavigate }) => {
   const [user] = useState<User | null>(getCurrentUser());
@@ -31,8 +34,8 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
     company: '',
     remarks: '',
   });
-  const [photoFile, setPhotoFile] = useState<File | null>(null);
-  const [photoPreview, setPhotoPreview] = useState<string>('');
+  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
+  const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
   const [showCustomDelivery, setShowCustomDelivery] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -137,28 +140,51 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
   };
 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const selectedFiles: File[] = e.target.files ? Array.from(e.target.files) : [];
+    if (selectedFiles.length === 0) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert('파일 크기는 5MB를 초과할 수 없습니다.');
+    const remainingSlots = MAX_PHOTO_COUNT - photoFiles.length;
+    if (remainingSlots <= 0) {
+      alert(`사진은 최대 ${MAX_PHOTO_COUNT}장까지 첨부할 수 있습니다.`);
       return;
     }
 
-    setPhotoFile(file);
+    const oversizedFile = selectedFiles.find((file: File) => file.size > MAX_PHOTO_SIZE_BYTES);
+    if (oversizedFile) {
+      alert(`"${oversizedFile.name}" 파일 크기는 5MB를 초과할 수 없습니다.`);
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      setPhotoPreview(e.target?.result as string);
-    };
-    reader.readAsDataURL(file);
+    const filesToAdd = selectedFiles.slice(0, remainingSlots);
+    if (selectedFiles.length > remainingSlots) {
+      alert(`최대 ${MAX_PHOTO_COUNT}장까지 첨부할 수 있어 일부 파일만 추가됩니다.`);
+    }
+
+    const nextFiles = [...photoFiles, ...filesToAdd];
+    setPhotoFiles(nextFiles);
+
+    Promise.all(
+      nextFiles.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target?.result as string);
+            reader.onerror = () => reject(new Error('이미지 미리보기 생성에 실패했습니다.'));
+            reader.readAsDataURL(file);
+          })
+      )
+    )
+      .then((previews) => setPhotoPreviews(previews))
+      .catch(() => {
+        setToast({ message: '이미지 미리보기 생성 중 오류가 발생했습니다.', type: 'error' });
+      });
   };
 
-  const removePhoto = () => {
-    setPhotoFile(null);
-    setPhotoPreview('');
-    const input = document.getElementById('photoInput') as HTMLInputElement;
-    if (input) input.value = '';
+  const removePhoto = (indexToRemove: number) => {
+    const nextFiles = photoFiles.filter((_, index) => index !== indexToRemove);
+    const nextPreviews = photoPreviews.filter((_, index) => index !== indexToRemove);
+    setPhotoFiles(nextFiles);
+    setPhotoPreviews(nextPreviews);
   };
 
   // 이미지 압축 함수 (점진적 압축으로 URL 길이 제한 해결)
@@ -249,7 +275,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
     }
 
     // 사진은 필수
-    if (!photoFile) {
+    if (photoFiles.length === 0) {
       alert('사진을 첨부해 주세요.');
       return;
     }
@@ -269,11 +295,8 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
         return;
       }
 
-      // 사진을 점진적으로 압축하여 Base64로 변환 (URL 길이 제한을 피하기 위해)
-      let photoUrl = '';
-      const maxUrlLength = 150000; // 약 150KB (안전 마진 포함, GAS URL 제한 고려)
-
-      // 압축 설정을 점진적으로 시도 (더 작은 크기부터 시작)
+      // 사진을 점진적으로 압축하여 Base64(Data URL)로 변환
+      const maxPhotoDataUrlLength = 150000;
       const compressionSettings = [
         { width: 400, height: 400, quality: 0.5 },
         { width: 300, height: 300, quality: 0.4 },
@@ -281,53 +304,43 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
         { width: 200, height: 200, quality: 0.25 },
       ];
 
-      let lastError: Error | null = null;
+      const photoUrls: string[] = [];
 
-      for (const setting of compressionSettings) {
-        try {
-          const photoBase64 = await compressImage(photoFile, setting.width, setting.height, setting.quality);
-          photoUrl = `data:image/jpeg;base64,${photoBase64}`;
+      for (const file of photoFiles) {
+        let photoUrl = '';
+        let lastError: Error | null = null;
 
-          // 실제 URL 길이 체크 (인코딩된 formData 포함)
-          const testRequestData = {
-            ...formData,
-            deliveryPlace: formData.deliveryPlace === '기타' ? formData.customDeliveryPlace : formData.deliveryPlace,
-            photoUrl: photoUrl,
-          };
+        for (const setting of compressionSettings) {
+          try {
+            const photoBase64 = await compressImage(file, setting.width, setting.height, setting.quality);
+            const dataUrl = `data:image/jpeg;base64,${photoBase64}`;
 
-          // URL 인코딩 시뮬레이션 (대략적인 길이 계산)
-          const testUrl = `${ORDERING_GAS_URL}?action=createRequest&formData=${encodeURIComponent(JSON.stringify(testRequestData))}&token=${sessionToken}&t=${Date.now()}`;
-          const actualUrlLength = testUrl.length;
-
-          if (actualUrlLength <= maxUrlLength) {
-            // URL 길이가 허용 범위 내이면 성공 
-            break;
-          } else {
-            // 아직 길면 다음 설정으로 시도 
-            photoUrl = ''; // 초기화하고 다음 시도
+            if (dataUrl.length <= maxPhotoDataUrlLength) {
+              photoUrl = dataUrl;
+              break;
+            }
+          } catch (compressError: any) {
+            lastError = compressError;
+            console.error(`압축 실패 (${setting.width}x${setting.height}, quality: ${setting.quality}):`, compressError);
           }
-        } catch (compressError: any) {
-          lastError = compressError;
-          console.error(`압축 실패 (${setting.width}x${setting.height}, quality: ${setting.quality}):`, compressError);
-          // 다음 설정으로 시도
-          continue;
         }
-      }
 
-      // 모든 압축 시도 실패
-      if (!photoUrl) {
-        if (lastError) {
-          throw new Error('이미지 압축에 실패했습니다. 더 작은 이미지를 사용해 주세요.');
-        } else {
-          throw new Error('이미지가 너무 큽니다. 더 작은 이미지를 사용해 주세요.');
+        if (!photoUrl) {
+          if (lastError) {
+            throw new Error(`"${file.name}" 이미지 압축에 실패했습니다. 더 작은 이미지를 사용해 주세요.`);
+          }
+          throw new Error(`"${file.name}" 이미지가 너무 큽니다. 더 작은 이미지를 사용해 주세요.`);
         }
+
+        photoUrls.push(photoUrl);
       }
 
       // 신청 데이터 제출
       const requestData = {
         ...formData,
         deliveryPlace: formData.deliveryPlace === '기타' ? formData.customDeliveryPlace : formData.deliveryPlace,
-        photoUrl: photoUrl, // 필수이므로 항상 포함
+        photoUrl: photoUrls[0], // 하위 호환용
+        photoUrls: photoUrls,
       };
 
       const result = await createRequestOrdering(ORDERING_GAS_URL, requestData, sessionToken);
@@ -565,6 +578,7 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
                 className="hidden"
                 onChange={handlePhotoSelect}
                 ref={photoSelectInputRef}
+                multiple
               />
               <Button
                 type="button"
@@ -595,31 +609,38 @@ const OrderingNewRequestPage: React.FC<OrderingNewRequestPageProps> = ({ onNavig
               </Button>
             </div>
           </div>
-          {photoPreview && (
-            <div className="relative flex flex-col justify-center sm:inline-block">
-              <img
-                src={photoPreview}
-                alt="미리보기"
-                className="max-h-xs rounded-xl border-2 border-gray-200 max-w-full sm:max-w-xs"
-              />
-              <Button
-                variant='icon'
-                type="button"
-                onClick={removePhoto}
-                className="absolute top-2 right-2 bg-red-500 text-white !rounded-full"
-              >
-                <X className="w-5 h-5" />
-              </Button>
-              {photoFile && (
-                <p className="mt-2 text-sm text-gray-600 font-bold">
-                  {photoFile.name} ({(photoFile.size / 1024).toFixed(2)} KB)
-                </p>
-              )}
+          {photoPreviews.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {photoPreviews.map((preview, index) => (
+                <div key={`${photoFiles[index]?.name || 'photo'}-${index}`} className="relative flex flex-col">
+                  <img
+                    src={preview}
+                    alt={`미리보기 ${index + 1}`}
+                    className="h-48 object-cover rounded-xl border-2 border-gray-200 w-full"
+                  />
+                  <Button
+                    variant='icon'
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    className="absolute top-2 right-2 bg-red-500 text-white !rounded-full"
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                  {photoFiles[index] && (
+                    <p className="mt-2 text-sm text-gray-600 font-bold">
+                      {photoFiles[index].name} ({(photoFiles[index].size / 1024).toFixed(2)} KB)
+                    </p>
+                  )}
+                </div>
+              ))}
             </div>
           )}
+          <p className="mt-3 text-sm text-gray-600 font-semibold">
+            첨부됨: {photoFiles.length}/{MAX_PHOTO_COUNT}
+          </p>
           <div className="mt-4 p-4 bg-blue-50 rounded-xl text-sm text-gray-700 font-semibold">
             <p>
-              💡 부품 또는 장비의 사진을 첨부해 주세요. (최대 5MB, JPG/PNG 형식, 자동 리사이즈)
+              💡 부품 또는 장비의 사진을 첨부해 주세요. (파일당 최대 5MB, 최대 {MAX_PHOTO_COUNT}장, JPG/PNG 형식, 자동 리사이즈)
             </p>
           </div>
         </div>

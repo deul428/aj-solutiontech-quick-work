@@ -8,6 +8,7 @@ import {
   Eye,
   X,
   Maximize2,
+  RefreshCw,
 } from "lucide-react";
 import {
   isOrderingAdmin,
@@ -38,6 +39,7 @@ import DataTable, { TableColumn } from "../../components/DataTable";
 import Toast from "../../components/Toast";
 import Header from "@/components/Header";
 import Button from "@/components/Button";
+import { getLimitedPhotoUrls } from "../../constants/orderingPhoto";
 
 const OrderingAdminRequestsPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,6 +50,9 @@ const OrderingAdminRequestsPage: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [regionFilter, setRegionFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const [sortBy, setSortBy] = useState<string>("requestNo");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [currentPage, setCurrentPage] = useState(1);
@@ -92,6 +97,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
     }
     return false;
   });
+  const detailPhotoUrls = useMemo(
+    () => getLimitedPhotoUrls(detailRequest?.photoUrl),
+    [detailRequest?.photoUrl],
+  );
 
   useEffect(() => {
     const handleResize = () => {
@@ -108,6 +117,11 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const userId = useMemo(() => user?.userId || null, [user?.userId]);
   const username = useMemo(() => user?.name || null, [user?.name]);
   const isUserAdmin = useMemo(() => user && isOrderingAdmin(user), [user?.orderingRole, user?.role]);
+
+  const availableRegions = useMemo(
+    () => [...new Set(requests.map((r) => r.region).filter(Boolean))].sort() as string[],
+    [requests],
+  );
 
   // loadRequests를 useCallback으로 메모이제이션
   // 클라이언트 측 필터링/페이징을 위해 전체 데이터를 가져옴
@@ -150,34 +164,38 @@ const OrderingAdminRequestsPage: React.FC = () => {
   const filterRequests = useCallback(() => {
     let filtered = [...requests];
 
-    // 검색 필터
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (req) =>
-          String(req.requestNo || "")
-            .toLowerCase()
-            .includes(term) ||
-          String(req.requesterName || "")
-            .toLowerCase()
-            .includes(term) ||
-          String(req.itemName || "")
-            .toLowerCase()
-            .includes(term) ||
-          String(req.status || "")
-            .toLowerCase()
-            .includes(term),
+          String(req.requestNo || "").toLowerCase().includes(term) ||
+          String(req.requesterName || "").toLowerCase().includes(term) ||
+          String(req.itemName || "").toLowerCase().includes(term) ||
+          String(req.assetNo || "").toLowerCase().includes(term) ||
+          String(req.status || "").toLowerCase().includes(term),
       );
     }
 
-    // 상태 필터
     if (statusFilter !== "all") {
       filtered = filtered.filter((req) => req.status === statusFilter);
     }
 
+    if (regionFilter !== "all") {
+      filtered = filtered.filter((req) => req.region === regionFilter);
+    }
+
+    if (dateFrom || dateTo) {
+      filtered = filtered.filter((req) => {
+        if (!req.requestDate) return false;
+        const dateStr = String(req.requestDate).substring(0, 10);
+        if (dateFrom && dateStr < dateFrom) return false;
+        if (dateTo && dateStr > dateTo) return false;
+        return true;
+      });
+    }
 
     setFilteredRequests(filtered);
-  }, [requests, searchTerm, statusFilter]);
+  }, [requests, searchTerm, statusFilter, regionFilter, dateFrom, dateTo]);
 
   // 정렬된 데이터 (클라이언트 측 정렬)
   const sortedAndFilteredRequests = useMemo(() => {
@@ -196,17 +214,10 @@ const OrderingAdminRequestsPage: React.FC = () => {
     return sorted;
   }, [filteredRequests, sortBy, sortOrder]);
 
-  // requests가 변경되면 자동으로 필터링 실행
   useEffect(() => {
     filterRequests();
+    setCurrentPage(1);
   }, [filterRequests]);
-
-  // requests가 직접 변경되면 필터링 실행 (이중 보장)
-  useEffect(() => {
-    if (requests.length > 0) {
-      filterRequests();
-    }
-  }, [requests.length, filterRequests]); // requests.length 변경 시 필터링 실행
 
 
 
@@ -246,7 +257,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
       {
         key: "checkbox",
         label: (
-          <input 
+          <input
             type="checkbox"
             checked={
               selectedRequests.size === sortedAndFilteredRequests.length &&
@@ -350,18 +361,20 @@ const OrderingAdminRequestsPage: React.FC = () => {
           </Button>
         ),
       },
-      // {
-      //   key: "orderDate",
-      //   label: "발주일시",
-      //   sortable: true,
-      //   render: (value) => (value ? formatDate(value) : "-"),
-      // },
-      // {
-      //   key: "expectedDeliveryDate",
-      //   label: "예상납기일시",
-      //   sortable: true,
-      //   render: (value) => (value ? formatDate(value) : "-"),
-      // },
+      {
+        key: "orderDate",
+        label: "발주일시",
+        sortable: true,
+        sortKey: "orderDate",
+        render: (value) => (value ? formatDate(value) : "-"),
+      },
+      {
+        key: "expectedDeliveryDate",
+        label: "예상납기일시",
+        sortable: true,
+        sortKey: "expectedDeliveryDate",
+        render: (value) => (value ? formatDate(value) : "-"),
+      },
       {
         key: "handler",
         label: "접수담당자",
@@ -467,11 +480,11 @@ const OrderingAdminRequestsPage: React.FC = () => {
       const handlerChanged = detailHandlerName !== originalDetailHandlerName;
       setHasChanges(
         remarksChanged ||
-          requesterRemarksChanged ||
-          orderDateChanged ||
-          expectedChanged ||
-          statusChanged ||
-          handlerChanged,
+        requesterRemarksChanged ||
+        orderDateChanged ||
+        expectedChanged ||
+        statusChanged ||
+        handlerChanged,
       );
     }
   }, [
@@ -905,34 +918,82 @@ const OrderingAdminRequestsPage: React.FC = () => {
         level={2}
       />
       <div className="max-w-[85dvw] mx-auto px-4 sm:px-4 lg:px-8">
-        <div className="mb-6">
-          <p className="mt-2 text-gray-600">총 {total}건의 신청이 있습니다.</p>
-        </div>
-
         {/* 필터 및 검색 */}
-        <div className="mb-6 flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
+        <div className="mb-4 flex flex-col gap-3">
+          {/* 1행: 검색창 */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               data-type="search"
-              placeholder="신청번호, 신청자, 품명으로 검색..."
+              placeholder="신청번호, 신청자, 품명, 관리번호로 검색..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+              className="pl-10"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
-          >
-            <option value="all">전체 상태</option>
-            {statusOptions.map((status) => (
-              <option key={status} value={status}>
-                {status}
-              </option>
-            ))}
-          </select>
+          {/* 2행: 필터들 + 초기화 버튼 */}
+          <div className="flex flex-wrap gap-2 items-center flex-row justify-end">
+            {/* 상태 필터 */}
+            <div>
+              <select
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px]"
+              >
+                <option value="all">진행 상태 전체</option>
+                {statusOptions.map((status) => (
+                  <option key={status} value={status}>{status}</option>
+                ))}
+              </select>
+            </div>
+            {/* 날짜 범위 필터 */}
+            <div className="flex items-center gap-1 ">
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => { setDateFrom(e.target.value); setCurrentPage(1); }}
+                className="px-2 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm min-w-[150px]"
+                title="신청일 시작"
+              />
+              <span className="text-gray-400 text-sm">~</span>
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => { setDateTo(e.target.value); setCurrentPage(1); }}
+                className="px-2 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm min-w-[150px]"
+                title="신청일 종료"
+              />
+            </div>
+            {/* 초기화 버튼 */}
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSearchTerm("");
+                setStatusFilter("all");
+                setRegionFilter("all");
+                setDateFrom("");
+                setDateTo("");
+                setCurrentPage(1);
+              }}
+            >
+              <RefreshCw className="w-4 h-4" />
+              초기화
+            </Button>
+          </div>
+          {/* 건수 */}
+          <p className="text-sm text-gray-500">
+            전체 <span className="font-semibold text-gray-700">{total}</span>건
+            {sortedAndFilteredRequests.length !== total && (
+              <span>
+                {" "}· 검색 결과{" "}
+                <span className="font-semibold text-blue-600">
+                  {sortedAndFilteredRequests.length}
+                </span>
+                건
+              </span>
+            )}
+          </p>
         </div>
 
         {/* 일괄 변경 버튼 */}
@@ -1262,7 +1323,7 @@ const OrderingAdminRequestsPage: React.FC = () => {
                 </div>
 
                 {/* 첨부사진 */}
-                {detailRequest.photoUrl && (
+                {detailPhotoUrls.length > 0 && (
                   <div className="bg-gray-50 rounded-lg overflow-hidden">
                     <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
                       <h2 className="text-lg font-semibold text-gray-800">
@@ -1270,20 +1331,19 @@ const OrderingAdminRequestsPage: React.FC = () => {
                       </h2>
                     </div>
                     <div className="p-6 bg-white">
-                      <div className="flex justify-center">
-                        <img
-                          src={getImageUrl(detailRequest.photoUrl)}
-                          alt="첨부사진"
-                          className="max-h-[300px] h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity shadow-md"
-                          onClick={() =>
-                            setExpandedImage(
-                              getImageUrl(detailRequest.photoUrl!),
-                            )
-                          }
-                        />
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {detailPhotoUrls.map((photoUrl, index) => (
+                          <img
+                            key={`${photoUrl}-${index}`}
+                            src={getImageUrl(photoUrl)}
+                            alt={`첨부사진 ${index + 1}`}
+                            className="h-48 w-full object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity shadow-md"
+                            onClick={() => setExpandedImage(getImageUrl(photoUrl))}
+                          />
+                        ))}
                       </div>
                       <p className="text-xs text-gray-500 text-center mt-2">
-                        클릭하면 원본 크기로 확대됩니다
+                        총 {detailPhotoUrls.length}장 (최대 표시)
                       </p>
                     </div>
                   </div>

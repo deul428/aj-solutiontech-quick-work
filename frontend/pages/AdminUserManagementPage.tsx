@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Plus, Edit, Trash2, Search, RefreshCw, Users, ReceiptTurkishLiraIcon } from "lucide-react";
 import {
   isOrderingAdmin,
+  isAuditAdmin,
   getCurrentUser,
   getSessionToken,
 } from "../utils/orderingAuth";
@@ -22,6 +23,15 @@ import Header from "@/components/Header";
 import TeamManagementModal from "../components/TeamManagementModal";
 import Button from "../components/Button";
 
+/**
+ * 서비스별 권한 컬럼 설정.
+ * 새 서비스 추가 시 이 배열에만 항목을 추가하면 테이블·모달 양쪽에 자동 반영됨.
+ */
+const SERVICE_ROLE_CONFIG: { key: keyof User; label: string }[] = [
+  { key: "orderingRole", label: "부품발주" },
+  { key: "auditRole",    label: "정비실사" },
+];
+
 const AdminUserManagementPage: React.FC = () => {
   const navigate = useNavigate();
   const user = getCurrentUser();
@@ -29,19 +39,24 @@ const AdminUserManagementPage: React.FC = () => {
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"all" | "관리자" | "신청자">(
+  const [orderingRoleFilter, setOrderingRoleFilter] = useState<"all" | "관리자" | "신청자">(
+    "all",
+  );
+  const [auditRoleFilter, setAuditRoleFilter] = useState<"all" | "관리자" | "신청자">(
     "all",
   );
   const [regionFilter, setRegionFilter] = useState<string>("all");
   const [teamFilter, setTeamFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<
-    "name" | "employeeCode" | "regionTeam" | null
+    "name" | "employeeCode" | "regionTeam" | "role" | null
   >(null);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [isSearchReadOnly, setIsSearchReadOnly] = useState(true);
+  const [isPasswordReadOnly, setIsPasswordReadOnly] = useState(true);
   const [toast, setToast] = useState<{
     message: string;
     type: "success" | "error" | "info";
@@ -105,7 +120,10 @@ const AdminUserManagementPage: React.FC = () => {
   };
 
   // user의 role을 메모이제이션하여 안정적인 참조 생성
-  const isUserAdmin = useMemo(() => user && isOrderingAdmin(user), [user?.orderingRole, user?.role]);
+  const isUserAdmin = useMemo(
+    () => !!user && (isOrderingAdmin(user) || isAuditAdmin(user)),
+    [user?.orderingRole, user?.auditRole, user?.role],
+  );
 
   const loadUsers = useCallback(async () => {
     try {
@@ -213,7 +231,7 @@ const AdminUserManagementPage: React.FC = () => {
   // 필터나 검색어 변경 시 첫 페이지로 리셋
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, roleFilter, regionFilter, teamFilter]);
+  }, [searchTerm, orderingRoleFilter, auditRoleFilter, regionFilter, teamFilter]);
 
   const filterUsers = useCallback(() => {
     let filtered = [...users];
@@ -235,9 +253,14 @@ const AdminUserManagementPage: React.FC = () => {
       );
     }
 
-    // 권한 필터
-    if (roleFilter !== "all") {
-      filtered = filtered.filter((u) => u.role === roleFilter);
+    // 부품발주 권한 필터
+    if (orderingRoleFilter !== "all") {
+      filtered = filtered.filter((u) => u.orderingRole === orderingRoleFilter);
+    }
+
+    // 정비실사 권한 필터
+    if (auditRoleFilter !== "all") {
+      filtered = filtered.filter((u) => u.auditRole === auditRoleFilter);
     }
 
     // 지역 필터
@@ -275,6 +298,10 @@ const AdminUserManagementPage: React.FC = () => {
             const teamB = String(b.team || "").toLowerCase();
             comparison = teamA.localeCompare(teamB, "ko");
           }
+        } else if (sortBy === "role") {
+          const roleA = String(a.role || "").toLowerCase();
+          const roleB = String(b.role || "").toLowerCase();
+          comparison = roleA.localeCompare(roleB, "ko");
         }
 
         return sortOrder === "asc" ? comparison : -comparison;
@@ -288,7 +315,8 @@ const AdminUserManagementPage: React.FC = () => {
   }, [
     users,
     searchTerm,
-    roleFilter,
+    orderingRoleFilter,
+    auditRoleFilter,
     regionFilter,
     teamFilter,
     sortBy,
@@ -324,6 +352,7 @@ const AdminUserManagementPage: React.FC = () => {
 
   const handleCreate = () => {
     setEditingUser(null);
+    setIsPasswordReadOnly(true);
     setFormData({
       userId: "",
       password: "",
@@ -341,11 +370,12 @@ const AdminUserManagementPage: React.FC = () => {
   };
 
   const handleEdit = (user: User) => {
-    const orderingRole = user.orderingRole === "관리자" ? "관리자" : "신청자";
-    const auditRole = user.auditRole === "관리자" ? "관리자" : "신청자";
+    const orderingRole = user.orderingRole === "기타?" ? "기타" : user.orderingRole === "관리자" ? "관리자" : "신청자";
+    const auditRole = user.auditRole === "기타" ? "기타" : user.auditRole === "관리자" ? "관리자" : "신청자";
     const uiRole = getUiRoleFromSystemRoles(orderingRole, auditRole);
 
     setEditingUser(user);
+    setIsPasswordReadOnly(true);
     setFormData({
       userId: user.userId,
       password: "",
@@ -405,7 +435,7 @@ const AdminUserManagementPage: React.FC = () => {
   };
 
   const handleSort = (key: string) => {
-    const column = key as "name" | "employeeCode" | "regionTeam";
+    const column = key as "name" | "employeeCode" | "regionTeam" | "role";
     if (sortBy === column) {
       setSortOrder(sortOrder === "asc" ? "desc" : "asc");
     } else {
@@ -421,12 +451,38 @@ const AdminUserManagementPage: React.FC = () => {
         key: "userId",
         label: "사용자ID",
         sortable: false,
+        render: (value, row) => {
+          const isInactive = row.active === "N";
+          return (
+            <Button
+              variant="link"
+              onClick={() => handleEdit(row)}
+              disabled={isInactive || processing}
+              title={isInactive ? "비활성화된 사용자는 수정할 수 없습니다." : "수정"}
+            >
+              {value}
+            </Button>
+          );
+        },
       },
       {
         key: "name",
         label: "이름",
         sortable: true,
         sortKey: "name",
+        render: (value, row) => {
+          const isInactive = row.active === "N";
+          return (
+            <Button
+              variant="link"
+              onClick={() => handleEdit(row)}
+              disabled={isInactive || processing}
+              title={isInactive ? "비활성화된 사용자는 수정할 수 없습니다." : "수정"}
+            >
+              {value}
+            </Button>
+          );
+        },
       },
       {
         key: "employeeCode",
@@ -442,21 +498,35 @@ const AdminUserManagementPage: React.FC = () => {
         render: (_, row) => `${row.region || ""} - ${row.team || ""}`,
       },
       {
-        key: "role",
-        label: "통합 권한",
+        key: "serviceRoles" as keyof User,
+        label: "관리자 권한",
         sortable: false,
-      },
-      {
-        key: "orderingRole",
-        label: "부품발주 권한",
-        sortable: false,
-        render: (value) => (value ? String(value) : "-"),
-      },
-      {
-        key: "auditRole",
-        label: "정비실사 권한",
-        sortable: false,
-        render: (value) => (value ? String(value) : "-"),
+        render: (_: unknown, row: User) => (
+          <div className="flex flex-wrap gap-1">
+            {SERVICE_ROLE_CONFIG.map(({ key, label }) => {
+              const value = String(row[key] || "-");
+              const isAdmin = value === "관리자";
+              return (
+                <span
+                  key={String(key)}
+                  title={`${label}: ${value}`}
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium cursor-default select-none ${
+                    isAdmin
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-gray-100 text-gray-400"
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      isAdmin ? "bg-blue-500" : "bg-gray-300"
+                    }`}
+                  />
+                  {label}
+                </span>
+              );
+            })}
+          </div>
+        ),
       },
       {
         key: "active",
@@ -466,23 +536,23 @@ const AdminUserManagementPage: React.FC = () => {
       },
       {
         key: "actions",
-        label: "데이터 변경",
+        label: "삭제",
         sortable: false,
         render: (_, row) => {
           const isInactive = row.active === "N";
           return (
             <div className="flex gap-2">
-              <Button
+              {/* <Button
                 onClick={() => handleEdit(row)}
-                className="text-blue-600 hover:text-blue-900 disabled:text-gray-400"
+                className="text-blue-600 hover:text-blue-900  "
                 disabled={isInactive || processing}
                 variant="icon"
                 icon={Edit}
                 title={isInactive ? "비활성화된 사용자는 수정할 수 없습니다." : "수정"}
-              />
+              /> */}
               <Button
                 onClick={() => handleDelete(row.userId)}
-                className="text-red-600 hover:text-red-900 disabled:text-gray-400"
+                className="text-red-600 hover:text-red-900  "
                 disabled={isInactive || processing}
                 variant="icon"
                 icon={Trash2}
@@ -573,12 +643,13 @@ const AdminUserManagementPage: React.FC = () => {
         return;
       }
 
+      const derivedRole: "관리자" | "신청자" =
+        formData.orderingRole === "관리자" || formData.auditRole === "관리자"
+          ? "관리자"
+          : "신청자";
+
       let result;
       if (editingUser) {
-        const uiRole = getUiRoleFromSystemRoles(
-          formData.orderingRole,
-          formData.auditRole,
-        );
         // 수정
         result = await updateUser(
           editingUser.userId,
@@ -590,7 +661,7 @@ const AdminUserManagementPage: React.FC = () => {
             // 시스템별 role + 레거시/UI role(any_admin)
             orderingRole: formData.orderingRole,
             auditRole: formData.auditRole,
-            role: uiRole,
+            role: derivedRole,
             active: formData.active,
             password: formData.password, // 해시용
             passwordPlain: formData.password, // 평문 비밀번호 (구글 시트 '비밀번호' 컬럼에 저장)
@@ -598,10 +669,6 @@ const AdminUserManagementPage: React.FC = () => {
           sessionToken,
         );
       } else {
-        const uiRole = getUiRoleFromSystemRoles(
-          formData.orderingRole,
-          formData.auditRole,
-        );
         // 등록
         result = await createUser(
           {
@@ -615,7 +682,7 @@ const AdminUserManagementPage: React.FC = () => {
             // 시스템별 role + 레거시/UI role(any_admin)
             orderingRole: formData.orderingRole,
             auditRole: formData.auditRole,
-            role: uiRole,
+            role: derivedRole,
             active: formData.active,
           },
           sessionToken,
@@ -736,16 +803,23 @@ const AdminUserManagementPage: React.FC = () => {
             사용자 등록
           </Button>
         </div>
-        {/* 검색 및 필터 */}
-        <div className="mb-6 flex flex-row items-center justify-between gap-2">
+      {/* 검색 및 필터 */}
+        <div className="mb-6 flex flex-row items-center justify-between gap-4">
           {/* 검색 입력 */}
           <div className="relative flex-1 flex">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
               data-type="search"
-              placeholder="사용자 ID, 이름, 소속팀으로 검색..."
+              name="admin-user-search"
+              autoComplete="off"
+              readOnly={isSearchReadOnly}
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              placeholder="사용자 아이디, 이름, 소속팀으로 검색..."
               value={searchTerm}
+              onFocus={() => setIsSearchReadOnly(false)}
               onChange={(e) => setSearchTerm(e.target.value)}
               required={true}
             />
@@ -753,26 +827,36 @@ const AdminUserManagementPage: React.FC = () => {
 
           {/* 필터 */}
           <div className="flex flex-wrap gap-2">
-            {/* 권한 필터 */}
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700 hidden ">
-                권한:
-              </label>
+            {/* 권한 필터 */} 
+            <div className="flex items-center"> 
               <select
-                value={roleFilter}
+                value={orderingRoleFilter}
                 onChange={(e) =>
-                  setRoleFilter(e.target.value as "all" | "관리자" | "신청자")
+                  setOrderingRoleFilter(e.target.value as "all" | "관리자" | "신청자")
                 }
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px]"
               >
-                <option value="all">권한 전체</option>
+                <option value="all">부품발주 권한 전체</option>
                 <option value="관리자">관리자</option>
                 <option value="신청자">신청자</option>
               </select>
             </div>
 
+            <div className="flex items-center"> 
+              <select
+                value={auditRoleFilter}
+                onChange={(e) =>
+                  setAuditRoleFilter(e.target.value as "all" | "관리자" | "신청자")
+                }
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px]"
+              >
+                <option value="all">정비실사 권한 전체</option>
+                <option value="관리자">관리자</option>
+                <option value="신청자">신청자</option>
+              </select>
+            </div>
             {/* 지역 필터 */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               <label className="text-sm font-medium text-gray-700 hidden">
                 지역:
               </label>
@@ -790,7 +874,7 @@ const AdminUserManagementPage: React.FC = () => {
               </select>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center">
               {/* <label className="text-sm font-medium text-gray-700">팀:</label> */}
               <select
                 value={teamFilter}
@@ -812,7 +896,8 @@ const AdminUserManagementPage: React.FC = () => {
               setRegionFilter("all");
               setTeamFilter("all");
               setSearchTerm("");
-              setRoleFilter("all");
+              setOrderingRoleFilter("all");
+              setAuditRoleFilter("all");
             }}
             disabled={loading}
           >
@@ -827,7 +912,7 @@ const AdminUserManagementPage: React.FC = () => {
         <DataTable
           data={filteredUsers}
           columns={columns}
-          getRowClassName={(row) => row.active === "N" ? "opacity-50 bg-gray-100" : ""}
+          getRowClassName={(row) => /* row.active === "N" ? "opacity-50 bg-gray-100" :  */""}
           sortBy={sortBy || undefined}
           sortOrder={sortOrder}
           onSort={handleSort}
@@ -856,6 +941,22 @@ const AdminUserManagementPage: React.FC = () => {
                 </div>
               )} */}
               <div className="space-y-4">
+                <input
+                  type="text"
+                  name="dummy-username"
+                  autoComplete="username"
+                  tabIndex={-1}
+                  className="hidden"
+                  aria-hidden="true"
+                />
+                <input
+                  type="password"
+                  name="dummy-password"
+                  autoComplete="new-password"
+                  tabIndex={-1}
+                  className="hidden"
+                  aria-hidden="true"
+                />
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     사용자 아이디 {<span className="text-red-500">*</span>}
@@ -865,6 +966,7 @@ const AdminUserManagementPage: React.FC = () => {
                     name="userId"
                     value={formData.userId}
                     label="사용자 아이디"
+                    autoComplete="off"
                     onChange={(e) =>
                       setFormData({ ...formData, userId: e.target.value })
                     }
@@ -888,6 +990,12 @@ const AdminUserManagementPage: React.FC = () => {
                     name="password"
                     value={formData.password}
                     label="비밀번호"
+                    autoComplete="new-password"
+                    readOnly={isPasswordReadOnly}
+                    autoCorrect="off"
+                    autoCapitalize="off"
+                    spellCheck={false}
+                    onFocus={() => setIsPasswordReadOnly(false)}
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
@@ -912,34 +1020,6 @@ const AdminUserManagementPage: React.FC = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      기사코드 <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      name="employeeCode"
-                      value={formData.employeeCode}
-                      label="기사코드"
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          employeeCode: e.target.value,
-                        })
-                      }
-                      required={true}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      통합 권한(자동)
-                    </label>
-                    <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700 font-semibold">
-                      {formData.role}
-                    </div>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       부품발주 권한 <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -958,6 +1038,24 @@ const AdminUserManagementPage: React.FC = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
+                      기사코드 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="employeeCode"
+                      value={formData.employeeCode}
+                      label="기사코드"
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          employeeCode: e.target.value,
+                        })
+                      }
+                      required={true}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       정비실사 권한 <span className="text-red-500">*</span>
                     </label>
                     <select
@@ -973,10 +1071,7 @@ const AdminUserManagementPage: React.FC = () => {
                       <option value="신청자">신청자</option>
                       <option value="관리자">관리자</option>
                     </select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  </div><div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       소속 지역 <span className="text-red-500">*</span>
                     </label>
@@ -1019,23 +1114,31 @@ const AdminUserManagementPage: React.FC = () => {
                       ))}
                     </select>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    활성화 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    name="active"
-                    value={formData.active}
-                    label="활성화"
-                    onChange={(e) =>
-                      setFormData({ ...formData, active: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                  >
-                    <option value="Y">활성</option>
-                    <option value="N">비활성</option>
-                  </select>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      활성화 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="active"
+                      value={formData.active}
+                      label="활성화"
+                      onChange={(e) =>
+                        setFormData({ ...formData, active: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                    >
+                      <option value="Y">활성</option>
+                      <option value="N">비활성</option>
+                    </select>
+                  </div>
+                  {/* <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      통합 권한(자동)
+                    </label>
+                    <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700 font-semibold">
+                      {formData.role}
+                    </div>
+                  </div> */}
                 </div>
               </div>
               <div className="mt-6 flex justify-end gap-2">

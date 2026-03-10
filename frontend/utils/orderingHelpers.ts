@@ -311,21 +311,28 @@ export function getDateRange(period: 'today' | 'thisWeek' | 'thisMonth' | 'last3
 export function getImageUrl(url: string): string {
   if (!url) return '';
 
+  // 다중 이미지가 줄바꿈으로 저장된 경우 첫 번째 이미지를 사용
+  const firstUrl = String(url)
+    .split('\n')
+    .map((v) => v.trim())
+    .find((v) => v.length > 0) || '';
+  if (!firstUrl) return '';
+
   // 이미 data URL인 경우 그대로 반환
-  if (url.startsWith('data:')) {
-    return url;
+  if (firstUrl.startsWith('data:')) {
+    return firstUrl;
   }
 
   // Google Drive 파일 링크인 경우 변환
-  if (url.includes('drive.google.com')) {
+  if (firstUrl.includes('drive.google.com')) {
     let fileId = '';
     // 형식 1: /file/d/{FILE_ID}
-    const match1 = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+    const match1 = firstUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
     if (match1 && match1[1]) {
       fileId = match1[1];
     } else {
       // 형식 2: ?id={FILE_ID}
-      const match2 = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+      const match2 = firstUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
       if (match2 && match2[1]) {
         fileId = match2[1];
       }
@@ -339,7 +346,7 @@ export function getImageUrl(url: string): string {
   }
   
   // 다른 URL인 경우 그대로 반환
-  return url;
+  return firstUrl;
 }
 
 /**

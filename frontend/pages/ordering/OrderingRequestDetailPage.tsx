@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, X, CheckCircle2, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { ArrowLeft, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Request } from '../../types/ordering';
 import {
   getRequestDetailOrdering,
@@ -16,6 +16,7 @@ import LoadingOverlay from '../../components/LoadingOverlay';
 import Toast from '../../components/Toast';
 import Header from '@/components/Header';
 import Button from '@/components/Button';
+import { getLimitedPhotoUrls } from '../../constants/orderingPhoto';
 
 interface OrderingRequestDetailPageProps {
   requestNo?: string;
@@ -31,11 +32,10 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
   const [processing, setProcessing] = useState(false); 
   const [success, setSuccess] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [imageLoading, setImageLoading] = useState(true);
-  const [imageError, setImageError] = useState(false);
   const [requesterRemarks, setRequesterRemarks] = useState('');
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const [formattedRequestDate, setFormattedRequestDate] = useState('');
+  const photoUrls = getLimitedPhotoUrls(request?.photoUrl);
 
   useEffect(() => {
     if (requestNo) {
@@ -220,65 +220,6 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
       setProcessing(false);
     }
   };
-
-  // 이미지 로드 완료 핸들러
-  const handleImageLoad = () => {
-    setImageLoading(false);
-    setImageError(false);
-  };
-
-  // 이미지 에러 핸들러
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const img = e.target as HTMLImageElement;
-    const originalUrl = request?.photoUrl || '';
-
-    // 파일 ID 추출
-    let fileId = '';
-    if (originalUrl.includes('drive.google.com')) {
-      const match1 = originalUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-      if (match1 && match1[1]) {
-        fileId = match1[1];
-      } else {
-        const match2 = originalUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
-        if (match2 && match2[1]) {
-          fileId = match2[1];
-        }
-      }
-    }
-
-    // 대체 URL 시도 (여러 방법 순차 시도)
-    if (fileId) {
-      // 시도 1: lh3.googleusercontent.com이 실패한 경우, export=view 시도
-      if (img.src.includes('lh3.googleusercontent.com')) {
-        img.src = `https://drive.google.com/uc?export=view&id=${fileId}`;
-        return;
-      }
-
-      // 시도 2: export=view가 실패한 경우, 썸네일 링크 시도
-      if (img.src.includes('export=view')) {
-        img.src = `https://drive.google.com/thumbnail?id=${fileId}&sz=w800-h600`;
-        return;
-      }
-
-      // 시도 3: 썸네일이 실패한 경우, 다운로드 링크 시도
-      if (img.src.includes('thumbnail')) {
-        img.src = `https://drive.google.com/uc?export=download&id=${fileId}`;
-        return;
-      }
-    }
-
-    // 모든 시도 실패
-    setImageLoading(false);
-    setImageError(true);
-  };
-
-  // request가 변경될 때 이미지 로딩 상태 초기화
-  useEffect(() => {
-    if (request?.photoUrl) {
-      setImageLoading(true);
-      setImageError(false);
-    }
-  }, [request?.photoUrl]);
 
   // requestDate 포맷팅
   useEffect(() => {
@@ -470,47 +411,26 @@ const OrderingRequestDetailPage: React.FC<OrderingRequestDetailPageProps> = ({ r
             </div>
 
             {/* 첨부사진 */}
-            {request.photoUrl && (
+            {photoUrls.length > 0 && (
               <div className="sm:bg-gray-50 rounded-lg overflow-hidden">
                 <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
                   <h2 className="text-lg font-semibold text-gray-800">첨부사진</h2>
                 </div>
                 <div className="mt-2 sm:mt-0 p-0 sm:p-6 bg-white">
-                  <div className="flex justify-center relative">
-                    {imageError ? (
-                      <div className="flex flex-col items-center justify-center p-8 bg-gray-100 rounded-lg min-h-[200px]">
-                        <ImageIcon className="w-12 h-12 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500">이미지를 불러올 수 없습니다</p>
-                        <a
-                          href={request.photoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 text-xs text-blue-600 hover:underline"
-                        >
-                          원본 링크로 열기
-                        </a>
-                      </div>
-                    ) : (
-                      <>
-                        <img
-                          src={getImageUrl(request.photoUrl)}
-                          alt="첨부사진"
-                          className="max-h-[300px] h-auto rounded-lg cursor-pointer hover:opacity-80 transition-opacity shadow-md"
-                          onClick={() => setExpandedImage(getImageUrl(request.photoUrl!))}
-                          onLoad={handleImageLoad}
-                          onError={handleImageError}
-                        />
-                        {imageLoading && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-75 rounded-lg">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                          </div>
-                        )}
-                      </>
-                    )}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {photoUrls.map((photoUrl, index) => (
+                      <img
+                        key={`${photoUrl}-${index}`}
+                        src={getImageUrl(photoUrl)}
+                        alt={`첨부사진 ${index + 1}`}
+                        className="h-48 w-full object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity shadow-md"
+                        onClick={() => setExpandedImage(getImageUrl(photoUrl))}
+                      />
+                    ))}
                   </div>
-                  {!imageError && (
-                    <p className="text-xs text-gray-500 text-center mt-2">클릭하면 원본 크기로 확대됩니다</p>
-                  )}
+                  <p className="text-xs text-gray-500 text-center mt-2">
+                    총 {photoUrls.length}장 (최대 표시)
+                  </p>
                 </div>
               </div>
             )}

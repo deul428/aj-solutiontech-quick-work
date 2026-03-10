@@ -198,9 +198,6 @@ const MainApp: React.FC = () => {
       navigate('/login', { state: { from: location.pathname }, replace: true });
     }
     const needsMaster =
-      location.pathname === "/checklist" ||
-      location.pathname === "/audit" ||
-      location.pathname === "/master" ||
       location.pathname.startsWith("/equipment/checklist") ||
       location.pathname.startsWith("/equipment/audit") ||
       location.pathname.startsWith("/equipment/master");
@@ -272,48 +269,6 @@ const MainApp: React.FC = () => {
         />
         <Route path="/equipment/audit-history" element={<ProtectedAdminRoute system="equipment"><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
 
-        {/* 기존 라우트 (하위 호환성 유지) */}
-        <Route
-          path="/master"
-          element={
-            <CountMasterPage
-              masterData={masterData}
-              setMasterData={setMasterData}
-              fileName={fileName}
-              setFileName={setFileName}
-              onNavigate={(view) => {
-                setCurrentView(view as ViewType);
-              }}
-              onRefresh={loadData}
-              lastSyncTime={lastSyncTime}
-              serviceUrl={serviceUrl}
-              availableSheets={availableSheets}
-              selectedSheet={selectedSheet}
-              onSheetSwitch={handleSheetSwitch}
-            />
-          }
-        />
-        <Route
-          path="/checklist"
-          element={
-            userIsAuditAdmin ? (
-              <CountChecklistPage masterData={masterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} />
-            ) : (
-              <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
-            )
-          }
-        />
-        <Route
-          path="/audit"
-          element={
-            isUserLoggedIn ? (
-              <CountAuditPage masterData={masterData} setMasterData={setMasterData} serviceUrl={serviceUrl} selectedSheet={selectedSheet || undefined} isDataLoading={isInitialLoading} />
-            ) : (
-              <div className="p-6 text-center text-gray-600 font-bold">접근 권한이 없습니다.</div>
-            )
-          }
-        />
-
         {/* Ordering Routes를 MainApp 내부로 통합하여 네비게이션 바 유지 */}
         <Route path="/ordering/*" element={<OrderingRoutes />} />
 
@@ -326,14 +281,12 @@ const MainApp: React.FC = () => {
         {/* 통합 대시보드로 리다이렉트 (하위 호환) */}
         <Route path="/manager" element={<Navigate to="/dashboard" replace />} />
         <Route path="/manager/audit-history" element={<ProtectedAdminRoute system="equipment"><CountAdminAuditHistoryPage /></ProtectedAdminRoute>} />
-        <Route path="/manager/users" element={<ProtectedAdminRoute system="ordering"><AdminUserManagementPage /></ProtectedAdminRoute>} />
+        <Route path="/manager/users" element={<ProtectedAdminRoute system="any"><AdminUserManagementPage /></ProtectedAdminRoute>} />
         <Route path="/manager/delivery-places" element={<ProtectedAdminRoute system="ordering"><AdminDeliveryPlaceManagementPage /></ProtectedAdminRoute>} />
 
         {/* 통합 대시보드 */}
         <Route path="/dashboard" element={<DashboardUnifiedPage />} />
 
-        {/* 사용자 라우트 (하위 호환) */}
-        <Route path="/user" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     );
   };

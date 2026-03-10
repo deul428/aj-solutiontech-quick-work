@@ -11,14 +11,6 @@ class RequestService {
   
   // 신청 생성
   createRequest(formData, user) {
-    // 동시 요청으로 인한 신청번호 중복 생성 방지: 스크립트 전역 Lock 획득
-    const lock = LockService.getScriptLock();
-    try {
-      lock.waitLock(15000); // 최대 15초 대기
-    } catch (e) {
-      return { success: false, message: '서버가 잠시 바쁩니다. 잠시 후 다시 시도해 주세요.' };
-    }
-
     try {
       // 1. 사용자 정보 확인
       if (!user) {
@@ -28,7 +20,18 @@ class RequestService {
       // 2. 입력 검증
       this._validateRequestData(formData);
       
-      // 3. 신청번호 생성
+      // 3. 중복 접수 체크 (같은 관리번호, 같은 상태가 접수중인 경우)
+      const duplicateCheck = this._checkDuplicateRequest(formData, user);
+      if (duplicateCheck.isDuplicate) {
+        return {
+          success: false,
+          isDuplicate: true,
+          duplicateRequestNo: duplicateCheck.requestNo,
+          message: `중복 접수가 감지되었습니다. 신청번호: ${duplicateCheck.requestNo}`
+        };
+      }
+      
+      // 4. 신청번호 생성
       const requestNo = this._generateRequestNo();
       
       // 4. 사진 업로드 (단일/다중 모두 지원)
@@ -120,8 +123,6 @@ class RequestService {
         success: false, 
         message: error.message 
       };
-    } finally {
-      lock.releaseLock();
     }
   }
   
@@ -248,37 +249,22 @@ class RequestService {
   _generateRequestNo() {
     const today = new Date();
     const prefix = Utilities.formatDate(today, 'Asia/Seoul', 'yyMMdd');
-
-    // ── PropertiesService 카운터 (실행 간 즉시 반영) ──
-    const propKey = 'reqSeq_' + prefix;
-    const props = PropertiesService.getScriptProperties();
-    const propSeq = parseInt(props.getProperty(propKey) || '0');
-
-    // ── 시트 스캔: 오늘 날짜의 기존 신청번호 전체를 Set으로 수집 ──
+    
     const requests = this.requestModel.findAll();
-    const todayRequests = requests.filter(r => r.requestNo && String(r.requestNo).startsWith(prefix));
-
-    let sheetMaxSeq = 0;
-    const existingNos = new Set();
-    todayRequests.forEach(r => {
-      const noStr = String(r.requestNo);
-      existingNos.add(noStr);
-      const seq = parseInt(noStr.substring(6)) || 0;
-      if (seq > sheetMaxSeq) sheetMaxSeq = seq;
+    const todayRequests = requests.filter(r => {
+      if (!r.requestNo) return false;
+      // requestNo를 문자열로 변환하여 비교
+      const requestNoStr = String(r.requestNo);
+      return requestNoStr.startsWith(prefix);
     });
-
-    // ── PropertiesService와 시트 최대값 중 더 큰 것에서 시작 ──
-    let nextSeq = Math.max(propSeq, sheetMaxSeq) + 1;
-
-    // ── 생성한 신청번호가 DB에 이미 존재하면 +1 반복 (신청번호 기준 중복 체크) ──
-    while (existingNos.has(prefix + String(nextSeq).padStart(4, '0'))) {
-      nextSeq++;
+    
+    let sequence = 1;
+    if (todayRequests.length > 0) {
+      const lastNo = String(todayRequests[todayRequests.length - 1].requestNo);
+      sequence = parseInt(lastNo.substr(6)) + 1;
     }
-
-    // PropertiesService에 최종 시퀀스 기록
-    props.setProperty(propKey, String(nextSeq));
-
-    return prefix + String(nextSeq).padStart(4, '0');
+    
+    return prefix + String(sequence).padStart(4, '0');
   }
   
   _uploadPhoto(requestNo, base64Data) {

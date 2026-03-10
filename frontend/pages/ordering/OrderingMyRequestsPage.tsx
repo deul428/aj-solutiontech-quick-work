@@ -35,6 +35,7 @@ import ExcelDateRangeModal, {
 } from "../../components/ExcelDateRangeModal";
 import Header from "@/components/Header";
 import Button from "@/components/Button";
+import { getLimitedPhotoUrls } from "../../constants/orderingPhoto";
 
 interface OrderingMyRequestsPageProps {
   onNavigate?: (view: string, requestNo?: string) => void;
@@ -258,9 +259,12 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       // 해당 신청의 이미지를 프리로딩
       const request = requests.find((r) => r.requestNo === requestNo);
       if (request && request.photoUrl) {
-        // 프리로딩 시작 (비동기, 블로킹하지 않음)
-        preloadImage(request.photoUrl).catch(() => {
-          // 프리로딩 실패해도 상세 페이지는 정상 진입
+        const photoUrls = getLimitedPhotoUrls(request.photoUrl);
+        photoUrls.forEach((photoUrl) => {
+          // 프리로딩 시작 (비동기, 블로킹하지 않음)
+          preloadImage(photoUrl).catch(() => {
+            // 프리로딩 실패해도 상세 페이지는 정상 진입
+          });
         });
       }
 
@@ -593,7 +597,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       {processing && <LoadingOverlay message="처리 중..." />}
 
       {/* 필터 및 검색 */}
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-6 mb-6">
+      <div className="bg-white mb-6 rounded-2xl shadow-2xl border border-gray-100 p-6 sm:p-0 sm:bg-transparent sm:rounded-none sm:shadow-none sm:border-none">
         <div className="flex flex-col gap-4">
           {/* 검색 및 상태 필터 */}
           <div className="flex flex-col md:flex-row gap-4 ">
@@ -617,7 +621,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
-                <option value="all">전체 상태</option>
+                <option value="all">진행 상태 전체</option>
                 <option value="접수중">접수중</option>
                 <option value="접수완료">접수완료</option>
                 <option value="발주완료(납기확인)">발주완료(납기확인)</option>
@@ -720,7 +724,7 @@ const OrderingMyRequestsPage: React.FC<OrderingMyRequestsPageProps> = ({
       </div>
 
       {/* 신청 목록 */}
-      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 md:p-6 sm:p-8">
+      <div className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 sm:p-0 sm:bg-transparent sm:rounded-none sm:shadow-none sm:border-none">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
           <div className="flex items-center gap-2">
             <FileText className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />

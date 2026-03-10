@@ -129,7 +129,7 @@ const getColumns = (
             <img
               src={value}
               alt="QR Code"
-              className="w-[50px] h-[50px] object-contain cursor-pointer hover:opacity-80 transition-opacity"
+              className="w-[30px] h-[30px] object-contain cursor-pointer hover:opacity-80 transition-opacity"
               onClick={() => onImageClick(value)}
               onError={(e) => {
                 e.currentTarget.style.display = "none";
@@ -165,8 +165,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<boolean>(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [inputSearchTerm, setInputSearchTerm] = useState(""); // 입력 중인 검색어
-  const [activeSearchTerm, setActiveSearchTerm] = useState(""); // 실제 검색에 사용되는 검색어
+  const [searchTerm, setSearchTerm] = useState("");
   const [auditStatusFilter, setAuditStatusFilter] = useState<"all" | "O" | "X">(
     "all",
   ); // 자산실사 여부 필터
@@ -496,7 +495,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     let filtered = filterByAuditStatus(checklistData, auditStatusFilter);
     filtered = filterByAbnormalAsset(filtered, abnormalAssetFilter);
     filtered = filterByLocation(filtered, selectedCenter, selectedZone);
-    filtered = filterBySearchTerm(filtered, activeSearchTerm);
+    filtered = filterBySearchTerm(filtered, searchTerm);
     filtered = sortRows(filtered, sortBy, sortOrder);
     setFilteredData(filtered);
   }, [
@@ -505,7 +504,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     abnormalAssetFilter,
     selectedCenter,
     selectedZone,
-    activeSearchTerm,
+    searchTerm,
     sortBy,
     sortOrder,
     filterByAuditStatus,
@@ -517,8 +516,7 @@ const CountAdminAuditHistoryPage: React.FC = () => {
 
   const handleRefresh = () => {
     // 검색 조건 초기화
-    setInputSearchTerm("");
-    setActiveSearchTerm("");
+    setSearchTerm("");
     setAuditStatusFilter("all");
     setAbnormalAssetFilter("all");
     setSelectedCenter("");
@@ -560,10 +558,6 @@ const CountAdminAuditHistoryPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleSearch = () => {
-    setActiveSearchTerm(inputSearchTerm);
-    setCurrentPage(1);
-  };
 
   const filterByAuditDateRange = (
     rows: ChecklistDataItem[],
@@ -687,66 +681,57 @@ const CountAdminAuditHistoryPage: React.FC = () => {
         </div>
 
         {/* 검색 및 필터 */}
-        <div className="mb-12">
-          <div className="flex flex-col sm:flex-col gap-2">
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row gap-4">
             {/* 검색 입력 */}
-            <div className="relative flex-1 w-full flex items-center gap-4">
+            <div className="relative flex-1 w-full flex items-center">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 " />
               <input
                 type="text"
                 data-type="search"
                 placeholder="검색어를 입력하세요 (관리번호, 자산번호, 상품명 등)"
-                value={inputSearchTerm}
-                onChange={(e) => setInputSearchTerm(e.target.value)}
-                onKeyPress={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearch();
-                  }
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
                 }}
               />
-              <Button
-                variant="primary"
-                onClick={handleSearch}
-                className="hidden"
-              >
-                검색
-              </Button>
             </div>
             {/* 필터 그룹 */}
-            <div className="flex flex-col sm:flex-row gap-8 justify-end items-end">
+            <div className="flex flex-col sm:flex-row gap-2 justify-end items-end">
               {/* 자산실사 여부 및 이상자산 여부 필터 */}
-              <div className="flex gap-2 items-center gap-2">
-                <h2 className="text-sm font-bold text-gray-700">
+              <div className="flex gap-2 items-center">
+                {/* <h2 className="text-sm font-bold text-gray-700">
                   자산 실사 여부
-                </h2>
+                </h2> */}
                 <select
                   value={auditStatusFilter}
                   onChange={(e) => {
                     setAuditStatusFilter(e.target.value as "all" | "O" | "X");
                     setCurrentPage(1);
                   }}
-                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px]"
                 >
-                  <option value="all">전체</option>
+                  <option value="all">자산실사 여부 전체</option>
                   <option value="O">O</option>
                   <option value="X">X</option>
                 </select>
               </div>
               <div className="flex items-center relative group">
                 <div className="flex gap-2 items-center">
-                  <h2 className="text-sm font-bold text-gray-700">
+                  {/* <h2 className="text-sm font-bold text-gray-700">
                     이상 자산 여부
                   </h2>
-                  <Info className="w-4 h-4 text-gray-500" />
+                  <Info className="w-4 h-4 text-gray-500" /> */}
                   <select
                     value={abnormalAssetFilter}
                     onChange={(e) => {
                       setAbnormalAssetFilter(e.target.value as "all" | "O" | "X");
                       setCurrentPage(1);
                     }}
-                    className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+                    className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px]"
                   >
-                    <option value="all">전체</option>
+                    <option value="all">이상 자산 여부 전체</option>
                     <option value="O">O</option>
                     <option value="X">X</option>
                   </select>
@@ -762,28 +747,28 @@ const CountAdminAuditHistoryPage: React.FC = () => {
               </div>
 
               {/* 센터 위치 및 자산위치 필터 */}
-              <div className="flex gap-2 items-center gap-2">
-                <h2 className="text-sm font-bold text-gray-700">센터 위치</h2>
+              <div className="flex gap-2 items-center">
+                {/* <h2 className="text-sm font-bold text-gray-700">센터 위치</h2> */}
                 <select
                   value={selectedCenter}
                   onChange={handleCenterSelect}
-                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px]"
+                  className="px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px]"
                 >
-                  <option value="">전체</option>
+                  <option value="">센터 위치 전체</option>
                   {centerOptions.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}
                     </option>
                   ))}
                 </select>
-                <h2 className="text-sm font-bold text-gray-700">자산 위치</h2>
+                {/* <h2 className="text-sm font-bold text-gray-700">자산 위치</h2> */}
                 <select
                   value={selectedZone}
                   onChange={handleZoneSelect}
                   disabled={!selectedCenter}
-                  className={`px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white w-[150px] ${!selectedCenter ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white min-w-[150px] ${!selectedCenter ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
-                  <option value="">전체</option>
+                  <option value="">자산 위치 전체</option>
                   {availableZones.map((opt) => (
                     <option key={opt} value={opt}>
                       {opt}

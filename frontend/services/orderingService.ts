@@ -429,6 +429,7 @@ export async function createRequestOrdering(
         company?: string;
         remarks?: string;
         photoUrl?: string;
+        photoUrls?: string[];
     },
     sessionToken: string
 ): Promise<{ success: boolean; message?: string; requestNo?: string }> {

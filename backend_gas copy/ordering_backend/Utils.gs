@@ -144,27 +144,6 @@ class CacheManager {
     // 특정 패턴의 키들을 직접 관리해야 함
     // 이는 구현 복잡도를 높이므로, 필요시 별도 키 목록 관리 필요
   }
-
-  /**
-   * all_requests_* 캐시를 전부 무효화한다.
-   * 버전 키 방식: 쓰기가 발생하면 버전을 갱신해 이후 조회 시 캐시 미스가 나도록 한다.
-   * (GAS CacheService는 와일드카드 삭제를 지원하지 않으므로 이 방식이 가장 안전함)
-   */
-  bumpRequestsVersion() {
-    try {
-      this.cache.put('all_requests_version', String(Date.now()), 600);
-    } catch(e) {
-      Logger.log('bumpRequestsVersion error: ' + e);
-    }
-  }
-
-  getRequestsVersion() {
-    try {
-      return this.cache.get('all_requests_version') || '0';
-    } catch(e) {
-      return '0';
-    }
-  }
 }
 
 // Lock 메커니즘 (동시성 제어)
